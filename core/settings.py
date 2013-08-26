@@ -93,7 +93,7 @@ TEMPLATE_LOADERS = (
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+#    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
 )
@@ -101,6 +101,7 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'core.urls'
 
 INSTALLED_APPS = (
+    'api',
     'ontology',
 )
 

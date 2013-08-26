@@ -1,16 +1,10 @@
 from django.db import models
 from mongoengine import *
 
-class Category(models.Model):
-    pid = models.IntegerField(default = 0)
-    title = models.CharField(max_length = 256)
-    eng_title = models.CharField(max_length = 256)
-
 class Entity(models.Model):
     entity_hash = models.CharField(max_length = 32, unique = True, db_index = True)
     brand = models.CharField(max_length = 256, null = True)
     title = models.CharField(max_length = 256, null = True)
-    category = models.ForeignKey(Category)
     created_time = models.DateTimeField(auto_now_add = True, db_index = True)
     updated_time = models.DateTimeField(auto_now = True, db_index = True)
     
@@ -35,6 +29,5 @@ class TaobaoItem(Item):
             "taobao_id",
             "shop_nick" 
         ],
-        "allow_inheritance" : False 
     }
     
