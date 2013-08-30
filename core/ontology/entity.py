@@ -1,7 +1,8 @@
+# coding=utf8
 from models import Entity as EntityModel
 from item import Item
 import datetime 
-import utils
+from utils.common import cal_guoku_hash 
 
 class Entity(object):
     
@@ -11,7 +12,7 @@ class Entity(object):
     @classmethod
     def cal_entity_hash(cls, entity_hash_string):
         while True:
-            entity_hash = utils.cal_guoku_hash(entity_hash_string)
+            entity_hash = cal_guoku_hash(entity_hash_string)
             try:
                 Entity.objects.get(entity_hash = entity_hash)
             except:
@@ -31,16 +32,20 @@ class Entity(object):
         _entity_obj = EntityModel.objects.create( 
             entity_hash = entity_hash, 
             brand = brand,
-            title = title )
+            title = title 
+        )
 
         
         try:
             _taobao_item_obj = Item.create_taobao_item( 
                 entity_id = _entity_obj.id, 
                 taobao_id = taobao_item_info["taobao_id"],
-                shop_nick = taobao_item_info["shop_nick"] 
+                category_id = taobao_item_info["category_id"],
+                title = taobao_item_info["title"],
+                shop_nick = taobao_item_info["shop_nick"], 
+                price = taobao_item_info["price"], 
+                soldout = taobao_item_info["soldout"], 
             )
-
 
         except Exception, e:
             _entity_obj.delete()

@@ -1,3 +1,4 @@
+# coding=utf8
 from django.db import models
 from mongoengine import *
 
@@ -9,25 +10,31 @@ class Entity(models.Model):
     updated_time = models.DateTimeField(auto_now = True, db_index = True)
     
 class Item(Document):
-    item_id = IntField(required = True) 
     entity_id = IntField(required = True) 
     created_time = DateTimeField(required = True)
     updated_time = DateTimeField(required = True)
     meta = {
         "indexes" : [ 
-            "item_id", 
             "entity_id" 
         ],
         "allow_inheritance" : True
     }
 
 class TaobaoItem(Item):
-    taobao_id = StringField(required = True)
+    taobao_id = StringField(required = True, unique = True)
+    category_id = IntField(required = True) 
+    title = StringField(required = True)
     shop_nick = StringField(required = True)
+    price = DecimalField(required = True)
+    soldout = BooleanField(required = True) 
+
     meta = {
-        "indexes" : [ 
-            "taobao_id",
-            "shop_nick" 
+        'indexes' : [ 
+            'taobao_id',
+            'category_id',
+            'shop_nick',
+            'price',
+            'soldout'
         ],
     }
     

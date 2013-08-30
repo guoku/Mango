@@ -9,6 +9,9 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+from mongoengine import connect
+connect('core')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', 
@@ -103,6 +106,7 @@ ROOT_URLCONF = 'core.urls'
 INSTALLED_APPS = (
     'api',
     'ontology',
+    'utils',
 )
 
 # A sample logging configuration. The only tangible logging

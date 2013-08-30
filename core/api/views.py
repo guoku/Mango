@@ -1,4 +1,4 @@
-# Create your views here.
+# coding=utf8
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse, Http404
@@ -6,20 +6,35 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext
 
 from ontology.entity import Entity
+from ontology.item import Item 
+from utils.http import JSONResponse, SuccessJsonResponse, ErrorJsonResponse 
 
 def create_entity(request):
     if request.method == 'POST':
-        _brand = request.POST.get("brand", None)
-        _title = request.POST.get("title", None)
-        _taobao_id = request.POST.get("taobao_id", None)
-        _taobao_shop_nick = request.POST.get("taobao_shop_nick", None)
         
         _entity = Entity.create_by_taobao_item(
-            title = _title,
-            brand = _brand,
+            brand = request.POST.get('brand', None),
+            title = request.POST.get('title', None),
             taobao_item_info = { 
-                "taobao_id" : _taobao_id,
-                "shop_nick" : _taobao_shop_nick
-            }
+                'taobao_id' : request.POST.get('taobao_id', None),
+                'category_id' : request.POST.get('taobao_category_id', None),
+                'title' : request.POST.get('taobao_title', None),
+                'shop_nick' : request.POST.get('taobao_shop_nick', None),
+                'price' : float(request.POST.get('taobao_price', None)),
+                'soldout' : bool(int(request.POST.get('taobao_soldout', '0'))),
+            },
         )
-        return HttpResponse(_entity.get_entity_id())
+        return SuccessJsonResponse(_entity.get_entity_id())
+
+def check_taobao_item(request, taobao_id):
+    _entity_id = Item.get_entity_id_by_taobao_id(taobao_id)
+    if _entity_id != None:
+        _data = { 
+            "exit" : 1,
+            "entity_id" : _entity_id,
+        }
+    else:
+        _data = { "exit" : 0 }
+    return SuccessJsonResponse(_data)
+    
+    
