@@ -10,12 +10,12 @@ ADMINS = (
 MANAGERS = ADMINS
 
 from mongoengine import connect
-connect('core')
+connect('mango')
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', 
-        'NAME': 'core',                      
+        'NAME': 'mango',                      
         'USER': 'root',                      
         'PASSWORD': '123456',                  
         'HOST': 'localhost',                      
@@ -101,7 +101,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
 )
 
-ROOT_URLCONF = 'core.urls'
+ROOT_URLCONF = 'mango.urls'
 
 INSTALLED_APPS = (
     'api',

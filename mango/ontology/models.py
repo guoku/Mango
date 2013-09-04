@@ -3,7 +3,6 @@ from django.db import models
 from mongoengine import *
 
 class Entity(models.Model):
-    entity_hash = models.CharField(max_length = 32, unique = True, db_index = True)
     brand = models.CharField(max_length = 256, null = True)
     title = models.CharField(max_length = 256, null = True)
     created_time = models.DateTimeField(auto_now_add = True, db_index = True)
