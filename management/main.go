@@ -30,5 +30,6 @@ func main() {
 	beego.Router("/list_users", &controllers.ListUsersController{})
 	beego.Router("/login", &controllers.LoginController{})
 	beego.Router("/logout", &controllers.LogoutController{})
+    beego.Router("/invite", &controllers.InviteController{})
 	beego.Run()
 }

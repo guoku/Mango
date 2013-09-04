@@ -1,18 +1,23 @@
 package controllers
 
 import (
-	"crypto/md5"
-	"crypto/sha1"
 	"fmt"
 	"strconv"
 	"time"
 
 	"Mango/management/models"
+	"Mango/management/utils"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"github.com/astaxie/beego/validation"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/riobard/go-mailgun"
+)
+
+const (
+    DefaultLayoutFile = "layout.html"
+    MailgunKey = "key-7n8gut3y8rpk1u-0edgmgaj7vs50gig8"
 )
 
 type IndexController struct {
@@ -54,7 +59,7 @@ func (this *RegisterController) Get() {
 		beego.ReadFromRequest(&this.Controller)
 		this.Data["Invitation"] = invitation
 		this.Data["Title"] = "Registration"
-		this.Layout = "layout.html"
+		this.Layout = DefaultLayoutFile
 		this.TplNames = "register.tpl"
 	}
 }
@@ -97,8 +102,8 @@ func (this *RegisterController) Post() {
 		user := models.User{}
 		addtional := models.UserAdditional{}
 		user.Email = invitation.Email
-		salt := GenerateSalt(user.Email)
-		user.Password = EncryptPassword(rForm.Password, salt)
+		salt := utils.GenerateSalt(user.Email)
+		user.Password = utils.EncryptPassword(rForm.Password, salt)
 		user.Name = rForm.Name
 		user.Nickname = rForm.Nickname
 		o.Insert(&user)
@@ -111,26 +116,6 @@ func (this *RegisterController) Post() {
 		o.Update(&invitation)
 		this.Redirect("/list_users", 302)
 	}
-}
-
-func GetMd5Digest(seed string) string {
-	h := md5.New()
-	h.Write([]byte(seed))
-	return fmt.Sprintf("%x", h.Sum([]byte("")))
-}
-
-func GetSha1Digest(seed string) string {
-	h := sha1.New()
-	h.Write([]byte(seed))
-	return fmt.Sprintf("%x", h.Sum([]byte("")))
-}
-
-func GenerateSalt(seed string) string {
-	return GetMd5Digest(time.Now().String() + seed)
-}
-
-func EncryptPassword(origin, salt string) string {
-	return GetSha1Digest(salt + GetMd5Digest(origin) + salt)
 }
 
 type ListUsersController struct {
@@ -155,7 +140,7 @@ func (this *LoginController) Get() {
 		this.Redirect("/list_users", 302)
 		return
 	}
-	this.Layout = "layout.html"
+	this.Layout = DefaultLayoutFile
 	this.TplNames = "login.tpl"
 }
 
@@ -165,15 +150,19 @@ func (this *LoginController) Post() {
 	user := models.User{}
 	additional := models.UserAdditional{}
 	o := orm.NewOrm()
-	o.QueryTable(&user).Filter("email", email).One(&user)
-	if user.Id != 0 {
+	err := o.QueryTable(&user).Filter("email", email).One(&user)
+	if err != nil {
+    }
+    if user.Id != 0 {
+        fmt.Println(user.Id)
 		o.QueryTable(&additional).Filter("user_id", user.Id).One(&additional)
-		if user.Password == EncryptPassword(password, additional.Salt) {
+		if user.Password == utils.EncryptPassword(password, additional.Salt) {
 			this.SetSession("user_id", int(user.Id))
 			this.Redirect("/list_users", 302)
 			return
 		}
 	} else {
+        fmt.Println("no such email", user.Email, user.Password)
 		this.Redirect("/login", 302)
 		return
 	}
@@ -189,8 +178,17 @@ func (this *UserSessionController) Prepare() {
 	if v == nil {
 		this.Redirect("/login", 302)
 	}
-	this.Data["UserId"], _ = strconv.Atoi(string(v.([]byte)))
-	fmt.Println("user_id", this.Data["UserId"])
+    fmt.Println("fniwnfiwenfiwei")
+	userId, _ := strconv.Atoi(string(v.([]byte)))
+    fmt.Println("fniwiwenfiwei")
+    user := models.User{Id : userId}
+    o := orm.NewOrm()
+    err := o.Read(&user)
+    if err != nil {
+        this.DestroySession()
+        this.Redirect("/login", 302)
+    }
+    this.Data["User"] = &user
 }
 
 type LogoutController struct {
@@ -201,3 +199,48 @@ func (this *LogoutController) Get() {
 	this.DestroySession()
 	this.Redirect("/login", 302)
 }
+
+type AdminSessionController struct {
+    UserSessionController
+}
+
+
+func (this *AdminSessionController) Prepare() {
+    this.UserSessionController.Prepare()
+    user := this.Data["User"].(*models.User)
+    if !user.IsAdmin {
+        this.Redirect("/list_user", 301)
+    }
+}
+
+type InviteController struct {
+    AdminSessionController
+}
+
+func (this *InviteController) Get() {
+    this.Layout = DefaultLayoutFile
+    this.TplNames = "invite.tpl"
+}
+
+func (this *InviteController) Post() {
+    email := this.GetString("email")
+    valid := validation.Validation{}
+    valid.Required(email, "email_empty")
+    valid.Email(email, "email_invalid")
+    if valid.HasErrors() {
+        this.Ctx.WriteString("email invalid")
+        return
+    }
+    token := utils.GenerateRegisterToken(email)
+    m := models.NewRegisterMail(email, token)
+    client := mailgun.New(MailgunKey)
+    client.Send(m)
+    invitation := models.RegisterInvitation {
+        Token : token,
+        Email : email,
+    }
+    o := orm.NewOrm()
+    o.Insert(&invitation)
+    this.Redirect("/invite", 302)
+}
+

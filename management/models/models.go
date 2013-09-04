@@ -52,7 +52,7 @@ type RegisterInvitation struct {
 	Token     string
 	Email     string
 	Expired   bool
-	IssueDate time.Time
+	IssueDate time.Time     `orm:"auto_now_add"`
 }
 
 func (this *RegisterInvitation) TableName() string {
