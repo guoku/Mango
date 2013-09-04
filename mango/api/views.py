@@ -11,7 +11,6 @@ from utils.http import JSONResponse, SuccessJsonResponse, ErrorJsonResponse
 
 def create_entity(request):
     if request.method == 'POST':
-        
         _entity = Entity.create_by_taobao_item(
             brand = request.POST.get('brand', None),
             title = request.POST.get('title', None),
@@ -30,11 +29,11 @@ def check_taobao_item(request, taobao_id):
     _entity_id = Item.get_entity_id_by_taobao_id(taobao_id)
     if _entity_id != None:
         _data = { 
-            "exit" : 1,
+            "exist" : 1,
             "entity_id" : _entity_id,
         }
     else:
-        _data = { "exit" : 0 }
+        _data = { "exist" : 0 }
     return SuccessJsonResponse(_data)
     
     

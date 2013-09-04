@@ -28,3 +28,10 @@ class ErrorJsonResponse(JSONResponse):
         _res['data'] = data
         super(ErrorJsonResponse, self).__init__(_res)
 
+class JSONResponseParser(object):
+    def __init__(self, response):
+        _content = json.loads(response)
+        if _content['res_code'] == 0:
+            return _content['data'] 
+        
+    

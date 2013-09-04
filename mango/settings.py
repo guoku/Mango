@@ -15,7 +15,7 @@ connect('core')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', 
-        'NAME': 'core',                      
+        'NAME': 'mango',                      
         'USER': 'root',                      
         'PASSWORD': '123456',                  
         'HOST': 'localhost',                      
