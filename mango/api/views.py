@@ -23,7 +23,8 @@ def create_entity(request):
                 'soldout' : bool(int(request.POST.get('taobao_soldout', '0'))),
             },
         )
-        return SuccessJsonResponse(_entity.get_entity_id())
+        _data = { "entity_id" : _entity.get_entity_id() }
+        return SuccessJsonResponse(_data)
 
 def check_taobao_item(request, taobao_id):
     _entity_id = Item.get_entity_id_by_taobao_id(taobao_id)
