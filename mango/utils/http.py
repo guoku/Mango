@@ -32,6 +32,19 @@ class JSONResponseParser(object):
     def __init__(self, response):
         _content = json.loads(response)
         if _content['res_code'] == 0:
-            return _content['data'] 
+            self.__status = 0
+            self.__data = _content['data'] 
+        else:
+            self.__status = 1
+
+    def success(self):
+        if self.__status == 0:
+            return True
+        return False
+
+    def read(self):
+        return self.__data
+            
+            
         
     
