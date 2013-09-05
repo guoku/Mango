@@ -13,6 +13,7 @@ type User struct {
 	DateJoined time.Time `orm:"auto_now_add"`
 	IsActive   bool      `orm:"default(true)"`
 	IsAdmin    bool
+    Additional  *UserAdditional `orm:"reverse(one)"` 
 }
 
 func (this *User) TableName() string {

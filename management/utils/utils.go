@@ -4,6 +4,8 @@ import (
 	"crypto/sha1"
     "fmt"
     "time"
+
+    "github.com/astaxie/beego"
 )
 
 func GetMd5Digest(seed string) string {
@@ -27,7 +29,7 @@ func EncryptPassword(origin, salt string) string {
 }
 
 func GenerateRegisterUrl(token string) string {
-    return fmt.Sprintf("https://10.0.1.103:8080/register?token=%s", token)
+    return fmt.Sprintf("https://%s/register?token=%s", beego.AppConfig.String("apphost"),token)
 }
 
 func GenerateRegisterToken(emailAddr string) string {

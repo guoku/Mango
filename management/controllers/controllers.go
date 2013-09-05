@@ -56,7 +56,14 @@ func (this *RegisterController) Get() {
 		o.Update(&invitation)
 		this.Ctx.WriteString("Token expired")
 	} else {
-		beego.ReadFromRequest(&this.Controller)
+		flash := beego.ReadFromRequest(&this.Controller)
+        if _, ok := flash.Data["error"]; ok {
+            this.Data["HasErrors"] = true
+            fmt.Println("true")
+        } else {
+            this.Data["HasErrors"] = false
+            fmt.Println("false")
+        }
 		this.Data["Invitation"] = invitation
 		this.Data["Title"] = "Registration"
 		this.Layout = DefaultLayoutFile
@@ -114,6 +121,9 @@ func (this *RegisterController) Post() {
 		o.Insert(&addtional)
 		invitation.Expired = true
 		o.Update(&invitation)
+        user.Additional = &addtional
+        o.Update(&user)
+		this.SetSession("user_id", int(user.Id))
 		this.Redirect("/list_users", 302)
 	}
 }
@@ -127,7 +137,14 @@ func (this *ListUsersController) Get() {
 	user := models.User{}
 	o := orm.NewOrm()
 	o.QueryTable(&user).Limit(20).All(&users)
-	this.Ctx.WriteString(users[0].Email)
+    ad := models.UserAdditional{}
+    for _, v := range users {
+        v.Additional = &models.UserAdditional{}
+        o.QueryTable(&ad).Filter("user_id", v.Id).One(v.Additional)
+    }
+    this.Data["Users"] = &users
+    this.Layout = DefaultLayoutFile
+    this.TplNames = "list_users.tpl"
 }
 
 type LoginController struct {
@@ -154,7 +171,7 @@ func (this *LoginController) Post() {
 	if err != nil {
     }
     if user.Id != 0 {
-        fmt.Println(user.Id)
+        fmt.Println("login", user.Id)
 		o.QueryTable(&additional).Filter("user_id", user.Id).One(&additional)
 		if user.Password == utils.EncryptPassword(password, additional.Salt) {
 			this.SetSession("user_id", int(user.Id))
@@ -162,7 +179,6 @@ func (this *LoginController) Post() {
 			return
 		}
 	} else {
-        fmt.Println("no such email", user.Email, user.Password)
 		this.Redirect("/login", 302)
 		return
 	}
@@ -177,16 +193,16 @@ func (this *UserSessionController) Prepare() {
 	v := this.GetSession("user_id")
 	if v == nil {
 		this.Redirect("/login", 302)
+        return
 	}
-    fmt.Println("fniwnfiwenfiwei")
 	userId, _ := strconv.Atoi(string(v.([]byte)))
-    fmt.Println("fniwiwenfiwei")
     user := models.User{Id : userId}
     o := orm.NewOrm()
     err := o.Read(&user)
     if err != nil {
         this.DestroySession()
         this.Redirect("/login", 302)
+        return
     }
     this.Data["User"] = &user
 }
@@ -209,7 +225,7 @@ func (this *AdminSessionController) Prepare() {
     this.UserSessionController.Prepare()
     user := this.Data["User"].(*models.User)
     if !user.IsAdmin {
-        this.Redirect("/list_user", 301)
+        this.Redirect("/list_users", 301)
     }
 }
 

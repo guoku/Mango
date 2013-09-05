@@ -1,6 +1,9 @@
 package main
 
 import (
+    "errors"
+    "fmt"
+    "flag"
 	"Mango/management/controllers"
 	"Mango/management/models"
 
@@ -10,8 +13,22 @@ import (
 )
 
 func init() {
+    var env string
+    flag.StringVar(&env, "env", "staging", "program environment")
+    flag.Parse()
+    if env != "prod" && env != "staging" && env != "debug" {
+        panic(errors.New("Wrong Environment Flag Value. Should be 'debug', 'staging' or 'prod'"))
+    }
+    beego.AppConfigPath = fmt.Sprintf("conf/%s.conf", env)
+    beego.ParseConfig()
+    mysqlUser := beego.AppConfig.String("mysqluser")
+    mysqlPass := beego.AppConfig.String("mysqlpass")
+    mysqlProtocol := beego.AppConfig.String("mysqlprotocol")
+    mysqlHost := beego.AppConfig.String("mysqlhost")
+    mysqlPort := beego.AppConfig.String("mysqlport")
 	orm.RegisterDriver("mysql", orm.DR_MySQL)
-	orm.RegisterDataBase("default", "mysql", "root:123456@tcp(localhost:3306)/guokuer?charset=utf8", 30)
+	orm.RegisterDataBase("default", "mysql", fmt.Sprintf("%s%s@%s(%s%s)/guokuer?charset=utf8", mysqlUser, mysqlPass, mysqlProtocol, mysqlHost, mysqlPort), 30)
+	//orm.RegisterDataBase("default", "mysql", "root@unix(/tmp/mysql.sock)/guokuer?charset=utf8", 30)
 	orm.RegisterModel(new(models.User), new(models.UserAdditional))
 	orm.RegisterModel(new(models.RegisterInvitation))
 	orm.RunCommand()
@@ -19,9 +36,8 @@ func init() {
 	beego.CertFile = "server.crt"
 	beego.KeyFile = "server.key"
 	beego.SessionOn = true
-	beego.SessionGCMaxLifetime = 86400
 	beego.SessionProvider = "redis"
-	beego.SessionSavePath = "127.0.0.1:6379"
+	beego.SessionSavePath = beego.AppConfig.String("redispath") 
 }
 
 func main() {
