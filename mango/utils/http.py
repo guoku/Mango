@@ -21,10 +21,10 @@ class SuccessJsonResponse(JSONResponse):
 
 
 class ErrorJsonResponse(JSONResponse):
-    def __init__(self, data = [], emsg = None):
+    def __init__(self, data = [], emsg = 'UNKNOWN'):
         _res = {}
         _res['res_code'] = 1 
-        _res['res_msg'] = 'error' 
+        _res['res_msg'] = emsg 
         _res['data'] = data
         super(ErrorJsonResponse, self).__init__(_res)
 
