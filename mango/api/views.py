@@ -53,3 +53,26 @@ def read_entity(request, entity_id):
     except Exception, e:
         return ErrorJsonResponse(emsg = str(e))
 
+def read_entities(request):
+    try:
+        if request.method == 'GET':
+            _entity_id_list = request.GET.getlist("eid")
+            _rslt = {}
+            for _entity_id in _entity_id_list:
+                try:
+                    _entity = Entity(_entity_id)
+                    _entity_context = _entity.read()
+                    _rslt[_entity_id] = {
+                        'context' : _entity_context,
+                        'status' : '0'
+                    }
+                except Exception, e:
+                    _rslt[_entity_id] = {
+                        'msg' : str(e),
+                        'status' : '1'
+                    }
+                    
+            return SuccessJsonResponse(_rslt)
+    except Exception, e:
+        return ErrorJsonResponse(emsg = str(e))
+
