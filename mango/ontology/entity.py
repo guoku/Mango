@@ -45,15 +45,13 @@ class Entity(object):
 
     def __ensure_entity_obj(self):
         if not hasattr(self, '__entity_obj'):
-            self.__entity_obj = Entity.objects.get(pk = self.__entity_id) 
+            self.__entity_obj = EntityModel.objects.get(pk = self.__entity_id) 
     
     def read(self):
+        self.__ensure_entity_obj()
         _context = {}
-        
         _context["entity_id"] = self.__entity_obj.id
         _context["brand"] = self.__entity_obj.brand 
         _context["title"] = self.__entity_obj.title
-        _context["created_time"] = self.__entity_obj.created_time
-        _context["updated_time"] = self.__entity_obj.updated_time
             
         return _context    
