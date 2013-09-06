@@ -14,7 +14,7 @@ import (
 
 func init() {
     var env string
-    flag.StringVar(&env, "env", "staging", "program environment")
+    flag.StringVar(&env, "env", "debug", "program environment")
     flag.Parse()
     if env != "prod" && env != "staging" && env != "debug" {
         panic(errors.New("Wrong Environment Flag Value. Should be 'debug', 'staging' or 'prod'"))
@@ -29,8 +29,13 @@ func init() {
 	orm.RegisterDriver("mysql", orm.DR_MySQL)
 	orm.RegisterDataBase("default", "mysql", fmt.Sprintf("%s%s@%s(%s%s)/guokuer?charset=utf8", mysqlUser, mysqlPass, mysqlProtocol, mysqlHost, mysqlPort), 30)
 	//orm.RegisterDataBase("default", "mysql", "root@unix(/tmp/mysql.sock)/guokuer?charset=utf8", 30)
-	orm.RegisterModel(new(models.User), new(models.UserAdditional))
+	orm.RegisterModel(new(models.User), new(models.UserProfile))
 	orm.RegisterModel(new(models.RegisterInvitation))
+	orm.RegisterModel(new(models.Permission))
+	orm.RegisterModel(new(models.PasswordInfo))
+	orm.RegisterModel(new(models.PasswordPermission))
+
+	//orm.RegisterModel(new(models.RegisterInvitation))
 	orm.RunCommand()
 	beego.UseHttps = true
 	beego.CertFile = "server.crt"
@@ -47,5 +52,6 @@ func main() {
 	beego.Router("/login", &controllers.LoginController{})
 	beego.Router("/logout", &controllers.LogoutController{})
     beego.Router("/invite", &controllers.InviteController{})
+    beego.Router("/list_pass", &controllers.ListPassController{})
 	beego.Run()
 }

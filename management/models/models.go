@@ -4,47 +4,28 @@ import "time"
 
 // User definition
 type User struct {
-	Id         int       `orm:"auto"`
-	Email      string    `orm:"size(64)"`
+	Id         int       `orm:"auto;index"`
+	Email      string    `orm:"size(64);index;unique"`
 	Password   string    `orm:"size(128)"`
-	Name       string    `orm:"size(64)"`
-	Nickname   string    `orm:"size(64)"`
+	Name       string    `orm:"size(64);index"`
+	Nickname   string    `orm:"size(64);unique;index"`
 	LastLogin  time.Time `orm:"auto_now_add"`
 	DateJoined time.Time `orm:"auto_now_add"`
-	IsActive   bool      `orm:"default(true)"`
-	IsAdmin    bool
-    Additional  *UserAdditional `orm:"reverse(one)"` 
-}
-
-func (this *User) TableName() string {
-	return "staff_user"
-}
-
-func (this *User) TableIndex() [][]string {
-	return [][]string{
-		[]string{"Email", "Nickname"},
-	}
-}
-
-func (this *User) TableUnique() [][]string {
-	return [][]string{
-		[]string{"Nickname", "Email"},
-	}
+	IsActive   bool      `orm:"default(1)"`
+	IsAdmin    bool      `orm:"default(0);index"`
+    Profile  *UserProfile `orm:"reverse(one)"`
+    Permissions []*Permission `orm:"rel(m2m);rel_table(user_permission)"`
 }
 
 // User Additional info
-type UserAdditional struct {
-	Id         int    `orm:"auto"`
-	Department string `orm:"null"`
+type UserProfile struct {
+	Id         int    `orm:"auto;index"`
+	Department string `orm:"index"`
 	Title      string `orm:"null"`
-	Mobile     string `orm:"null"`
-	Phone      string `orm:"null"`
+	Mobile     string `orm:"index"`
+	Phone      string `orm:"null;index"`
 	User       *User  `orm:"rel(one)"`
 	Salt       string
-}
-
-func (this *UserAdditional) TableName() string {
-	return "user_additional_info"
 }
 
 // Register invitation
@@ -56,6 +37,31 @@ type RegisterInvitation struct {
 	IssueDate time.Time     `orm:"auto_now_add"`
 }
 
-func (this *RegisterInvitation) TableName() string {
-	return "register_invitation"
+type Permission struct {
+    Id int `orm:"auto"`
+    ContentTypeId int
+    Name string
+    Codename string
+    Users []*User `orm:"reverse(many)"`
+}
+
+
+type PasswordInfo struct {
+    Id int `orm:"auto;index"`
+    Account string
+    Password string
+    Desc string `orm:"null"`
+}
+
+type PasswordPermission struct {
+    Id int `orm:"auto;index`
+    Password *PasswordInfo `orm:"rel(fk)"`
+    User *User `orm:"rel(fk)"`
+    Level int
+}
+
+func (this *PasswordPermission) TableUnique() [][]string {
+    return [][]string {
+        []string{"Password", "User"},
+    }
 }

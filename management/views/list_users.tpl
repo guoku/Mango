@@ -22,8 +22,8 @@
                 <td>{{.Name}}</td>
                 <td>{{.Nickname}}</td>
                 <td>{{.Email}}</td>
-                <td>{{.Additional.Mobile}}</td>
-                <td>{{.Additional.Department}}</td>
+                <td>{{.Profile.Mobile}}</td>
+                <td>{{.Profile.Department}}</td>
             </tr>
             {{ end }}
         </tbody>

@@ -20,6 +20,41 @@ const (
     MailgunKey = "key-7n8gut3y8rpk1u-0edgmgaj7vs50gig8"
 )
 
+type UserSessionController struct {
+	beego.Controller
+}
+
+func (this *UserSessionController) Prepare() {
+	v := this.GetSession("user_id")
+	if v == nil {
+		this.Redirect("/login", 302)
+        return
+	}
+	userId, _ := strconv.Atoi(string(v.([]byte)))
+    user := models.User{Id : userId}
+    o := orm.NewOrm()
+    err := o.Read(&user)
+    if err != nil {
+        this.DestroySession()
+        this.Redirect("/login", 302)
+        return
+    }
+    this.Data["User"] = &user
+}
+
+type AdminSessionController struct {
+    UserSessionController
+}
+
+
+func (this *AdminSessionController) Prepare() {
+    this.UserSessionController.Prepare()
+    user := this.Data["User"].(*models.User)
+    if !user.IsAdmin {
+        this.Redirect("/list_users", 301)
+    }
+}
+
 type IndexController struct {
 	UserSessionController
 }
@@ -107,21 +142,21 @@ func (this *RegisterController) Post() {
 		this.Ctx.WriteString("Token expired")
 	} else {
 		user := models.User{}
-		addtional := models.UserAdditional{}
+		profile := models.UserProfile{}
 		user.Email = invitation.Email
 		salt := utils.GenerateSalt(user.Email)
 		user.Password = utils.EncryptPassword(rForm.Password, salt)
 		user.Name = rForm.Name
 		user.Nickname = rForm.Nickname
 		o.Insert(&user)
-		addtional.Salt = salt
-		addtional.Department = rForm.Department
-		addtional.Mobile = rForm.Mobile
-		addtional.User = &user
-		o.Insert(&addtional)
+		profile.Salt = salt
+		profile.Department = rForm.Department
+		profile.Mobile = rForm.Mobile
+		profile.User = &user
+		o.Insert(&profile)
 		invitation.Expired = true
 		o.Update(&invitation)
-        user.Additional = &addtional
+        user.Profile = &profile
         o.Update(&user)
 		this.SetSession("user_id", int(user.Id))
 		this.Redirect("/list_users", 302)
@@ -137,10 +172,10 @@ func (this *ListUsersController) Get() {
 	user := models.User{}
 	o := orm.NewOrm()
 	o.QueryTable(&user).Limit(20).All(&users)
-    ad := models.UserAdditional{}
+    ad := models.UserProfile{}
     for _, v := range users {
-        v.Additional = &models.UserAdditional{}
-        o.QueryTable(&ad).Filter("user_id", v.Id).One(v.Additional)
+        v.Profile = &models.UserProfile{}
+        o.QueryTable(&ad).Filter("user_id", v.Id).One(v.Profile)
     }
     this.Data["Users"] = &users
     this.Layout = DefaultLayoutFile
@@ -165,7 +200,7 @@ func (this *LoginController) Post() {
 	email := this.GetString("email")
 	password := this.GetString("password")
 	user := models.User{}
-	additional := models.UserAdditional{}
+	additional := models.UserProfile{}
 	o := orm.NewOrm()
 	err := o.QueryTable(&user).Filter("email", email).One(&user)
 	if err != nil {
@@ -185,28 +220,6 @@ func (this *LoginController) Post() {
 
 }
 
-type UserSessionController struct {
-	beego.Controller
-}
-
-func (this *UserSessionController) Prepare() {
-	v := this.GetSession("user_id")
-	if v == nil {
-		this.Redirect("/login", 302)
-        return
-	}
-	userId, _ := strconv.Atoi(string(v.([]byte)))
-    user := models.User{Id : userId}
-    o := orm.NewOrm()
-    err := o.Read(&user)
-    if err != nil {
-        this.DestroySession()
-        this.Redirect("/login", 302)
-        return
-    }
-    this.Data["User"] = &user
-}
-
 type LogoutController struct {
 	beego.Controller
 }
@@ -214,19 +227,6 @@ type LogoutController struct {
 func (this *LogoutController) Get() {
 	this.DestroySession()
 	this.Redirect("/login", 302)
-}
-
-type AdminSessionController struct {
-    UserSessionController
-}
-
-
-func (this *AdminSessionController) Prepare() {
-    this.UserSessionController.Prepare()
-    user := this.Data["User"].(*models.User)
-    if !user.IsAdmin {
-        this.Redirect("/list_users", 301)
-    }
 }
 
 type InviteController struct {
