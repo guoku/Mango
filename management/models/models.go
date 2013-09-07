@@ -15,6 +15,8 @@ type User struct {
 	IsAdmin    bool      `orm:"default(0);index"`
     Profile  *UserProfile `orm:"reverse(one)"`
     Permissions []*Permission `orm:"rel(m2m);rel_table(user_permission)"`
+    PasswordPermissions []*PasswordPermission `orm:"reverse(many)"`
+    //Passwords []*PasswordInfo `orm:"rel(m2m)"`
 }
 
 // User Additional info
@@ -51,6 +53,8 @@ type PasswordInfo struct {
     Account string
     Password string
     Desc string `orm:"null"`
+    Permissions []*PasswordPermission `orm:"reverse(many)"`
+    //Users []*User `orm:"reverse(many)"`
 }
 
 type PasswordPermission struct {

@@ -1,7 +1,7 @@
 package controllers
 import (
-	//"fmt"
-	"strconv"
+	"fmt"
+	//"strconv"
 	//"time"
 
 	"Mango/management/models"
@@ -23,14 +23,18 @@ func (this *ListPassController) Get() {
     user := this.Data["User"].(*models.User)
     p := models.PasswordPermission{}
     o := orm.NewOrm()
-    //var passwords []int
-    var passwords []*models.PasswordPermission
-    o.QueryTable(&p).Filter("User", user.Id).All(&passwords)
-    result := ""
-    for _, v := range passwords {
-        result += strconv.Itoa(v.Password.Id) + " "
+    o.QueryTable(&p).Filter("User", user.Id).All(&user.PasswordPermissions)
+    for _, v := range user.PasswordPermissions {
+        o.Read(v.Password)
     }
-    this.Ctx.WriteString(result)
+
+    per := models.Permission{}
+    o.QueryTable(&per).Filter("Users__Id", user.Id).All(&user.Permissions)
+    for _, v := range this.Data["User"].(*models.User).PasswordPermissions {
+        fmt.Println(v.Password.Password)
+    }
+    this.Layout = "layout.html"
+    this.TplNames = "list_pass.tpl"
 }
 
 

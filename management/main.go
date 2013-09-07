@@ -35,8 +35,8 @@ func init() {
 	orm.RegisterModel(new(models.PasswordInfo))
 	orm.RegisterModel(new(models.PasswordPermission))
 
-	//orm.RegisterModel(new(models.RegisterInvitation))
 	orm.RunCommand()
+    orm.Debug = true
 	beego.UseHttps = true
 	beego.CertFile = "server.crt"
 	beego.KeyFile = "server.key"
