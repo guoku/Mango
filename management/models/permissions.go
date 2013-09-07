@@ -1,4 +1,5 @@
 package models
+
 /*
 type Permission struct {
     Id int `orm:"auto"`
@@ -14,5 +15,3 @@ type UserPermission struct {
     Permission *Permission `orm:"rel_table"`
 }
 */
-
-

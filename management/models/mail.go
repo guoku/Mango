@@ -1,8 +1,8 @@
 package models
 
 import (
-    "fmt"
-    "Mango/management/utils"
+	"Mango/management/utils"
+	"fmt"
 )
 
 type MangoMail struct {
@@ -59,14 +59,14 @@ func (m *MangoMail) Variables() map[string]string {
 }
 
 func NewRegisterMail(emailAddr, token string) *MangoMail {
-    to := make([]string, 0)
-    to = append(to, emailAddr)
-    url := utils.GenerateRegisterUrl(token)
-    m := &MangoMail {
-        from : "Guoku <noreply@post.guoku.com>",
-        to : to,
-        subject : "Mango Registration URL",
-        html : fmt.Sprintf("<a href='%s'>点此进入</a>", url),
-    }
-    return m
+	to := make([]string, 0)
+	to = append(to, emailAddr)
+	url := utils.GenerateRegisterUrl(token)
+	m := &MangoMail{
+		from:    "Guoku <noreply@post.guoku.com>",
+		to:      to,
+		subject: "Mango Registration URL",
+		html:    fmt.Sprintf("<a href='%s'>点此进入</a>", url),
+	}
+	return m
 }
