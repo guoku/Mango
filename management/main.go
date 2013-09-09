@@ -34,9 +34,10 @@ func init() {
 	orm.RegisterModel(new(models.Permission))
 	orm.RegisterModel(new(models.PasswordInfo))
 	orm.RegisterModel(new(models.PasswordPermission))
+	orm.RegisterModel(new(models.MPKey))
 
 	orm.RunCommand()
-	orm.Debug = true
+	//orm.Debug = true
 	beego.UseHttps = true
 	beego.CertFile = "server.crt"
 	beego.KeyFile = "server.key"
@@ -53,5 +54,7 @@ func main() {
 	beego.Router("/logout", &controllers.LogoutController{})
 	beego.Router("/invite", &controllers.InviteController{})
 	beego.Router("/list_pass", &controllers.ListPassController{})
+	beego.Router("/add_pass", &controllers.AddPassController{})
+	beego.Router("/edit_pass", &controllers.EditPassController{})
 	beego.Run()
 }

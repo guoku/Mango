@@ -48,11 +48,11 @@ type Permission struct {
 }
 
 type PasswordInfo struct {
-	Id          int    `orm:"auto;index"`
-	Name        string `orm:"index;unique"`
-	Account     string
-	Password    string
-	Desc        string                `orm:"null"`
+	Id          int                   `orm:"auto;index"`
+	Name        string                `orm:"index" form:"name"`
+	Account     string                `form:"account"`
+	Password    string                `form:"password"`
+	Desc        string                `orm:"null" form:"desc"`
 	Permissions []*PasswordPermission `orm:"reverse(many)"`
 	//Users []*User `orm:"reverse(many)"`
 }
@@ -68,4 +68,9 @@ func (this *PasswordPermission) TableUnique() [][]string {
 	return [][]string{
 		[]string{"Password", "User"},
 	}
+}
+
+type MPKey struct {
+	Id  int `orm:"auto"`
+	DataKey string
 }

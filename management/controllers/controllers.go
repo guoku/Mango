@@ -170,7 +170,7 @@ func (this *ListUsersController) Get() {
 	var users []*models.User
 	user := models.User{}
 	o := orm.NewOrm()
-	o.QueryTable(&user).Limit(20).All(&users)
+	o.QueryTable(&user).All(&users)
 	ad := models.UserProfile{}
 	for _, v := range users {
 		v.Profile = &models.UserProfile{}
@@ -247,7 +247,7 @@ func (this *InviteController) Post() {
 		return
 	}
 	token := utils.GenerateRegisterToken(email)
-	m := models.NewRegisterMail(email, token)
+	m := utils.NewRegisterMail(email, token)
 	client := mailgun.New(MailgunKey)
 	client.Send(m)
 	invitation := models.RegisterInvitation{
