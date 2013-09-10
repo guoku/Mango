@@ -3,8 +3,8 @@ package main
 import (
 	"Mango/management/controllers"
 	"Mango/management/models"
-	"errors"
-	"flag"
+	//"errors"
+	//"flag"
 	"fmt"
 
 	"github.com/astaxie/beego"
@@ -13,6 +13,7 @@ import (
 )
 
 func init() {
+    /*
 	var env string
 	flag.StringVar(&env, "env", "debug", "program environment")
 	flag.Parse()
@@ -20,6 +21,7 @@ func init() {
 		panic(errors.New("Wrong Environment Flag Value. Should be 'debug', 'staging' or 'prod'"))
 	}
 	beego.AppConfigPath = fmt.Sprintf("conf/%s.conf", env)
+    */
 	beego.ParseConfig()
 	mysqlUser := beego.AppConfig.String("mysqluser")
 	mysqlPass := beego.AppConfig.String("mysqlpass")
