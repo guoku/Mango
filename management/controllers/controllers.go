@@ -177,6 +177,7 @@ func (this *ListUsersController) Get() {
 		o.QueryTable(&ad).Filter("user_id", v.Id).One(v.Profile)
 	}
 	this.Data["Users"] = &users
+    this.Data["Tab"] = &models.Tab{TabName: "Index"}
 	this.Layout = DefaultLayoutFile
 	this.TplNames = "list_users.tpl"
 }

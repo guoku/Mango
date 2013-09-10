@@ -1,4 +1,4 @@
-{{ template "nav.tpl" }}
+{{ template "nav.tpl" .}}
 <div>
     <a href="/add_pass" role="button" class="btn btn-large btn-primary">添加密码</a>
     <br><br> 
@@ -21,7 +21,12 @@
                     <td>{{ .Password.Password }}</td>
                     <td>{{ .Password.Desc }}</td>
                     <td>
-                        <a href="/edit_pass" class="btn btn-large btn-primary">Edit</a>
+                        {{ if .CanUpdate }}
+                            <a href="/edit_pass/{{.Password.Id}}" class="btn btn-large btn-primary">Edit</a>
+                        {{ end }}
+                        {{ if .CanManage }}
+                            <a href="/delete_pass/{{.Password.Id}}" class="btn btn-large btn-primary">Delete</a>
+                        {{ end }}
                     </td>
                 <tr>
             {{end}}

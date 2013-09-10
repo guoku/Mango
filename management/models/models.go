@@ -49,19 +49,38 @@ type Permission struct {
 
 type PasswordInfo struct {
 	Id          int                   `orm:"auto;index"`
-	Name        string                `orm:"index" form:"name"`
-	Account     string                `form:"account"`
-	Password    string                `form:"password"`
+	Name        string                `orm:"index" form:"name" valid:"Required"`
+	Account     string                `form:"account" valid:"Required"`
+	Password    string                `form:"password" valid:"Required"`
 	Desc        string                `orm:"null" form:"desc"`
 	Permissions []*PasswordPermission `orm:"reverse(many)"`
 	//Users []*User `orm:"reverse(many)"`
 }
+
+const (
+	NoPermission = iota
+	CanRead
+	CanUpdate
+	CanManage
+)
 
 type PasswordPermission struct {
 	Id       int           `orm:"auto;index`
 	Password *PasswordInfo `orm:"rel(fk)"`
 	User     *User         `orm:"rel(fk)"`
 	Level    int
+}
+
+func (this *PasswordPermission) CanRead() bool {
+    return this.Level >= CanRead
+}
+
+func (this *PasswordPermission) CanUpdate() bool {
+    return this.Level >= CanUpdate
+}
+
+func (this *PasswordPermission) CanManage() bool {
+    return this.Level >= CanManage
 }
 
 func (this *PasswordPermission) TableUnique() [][]string {
@@ -74,3 +93,17 @@ type MPKey struct {
 	Id  int `orm:"auto"`
 	DataKey string
 }
+
+type Tab struct {
+    TabName string
+}
+
+func (this *Tab) IsIndex() bool {
+    return this.TabName == "Index"
+}
+
+func (this *Tab) IsPassword() bool {
+    return this.TabName == "Password"
+}
+
+

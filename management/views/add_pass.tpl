@@ -1,4 +1,4 @@
-{{ template "nav.tpl" }}
+{{ template "nav.tpl" . }}
 
 <div>
     <div class="modal-header">

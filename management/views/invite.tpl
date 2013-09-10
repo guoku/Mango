@@ -1,4 +1,4 @@
-{{ template "nav.tpl"}}
+{{ template "nav.tpl" .}}
 <div class="container-fluid">
     <form class="well" method="POST" >
         <input type="text" name="email" placeholder="please input email address">

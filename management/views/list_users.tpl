@@ -1,4 +1,4 @@
-{{ template "nav.tpl"}}
+{{ template "nav.tpl" .}}
 
 <div class="container-fluid">
     <div class="page-header">
