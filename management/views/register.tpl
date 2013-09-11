@@ -1,4 +1,4 @@
-<div class="container-fluid">
+ <div class="container-fluid">
     <form class="form-horizontal well" method="POST" action="/register">
         <div class="control-group">
             <p class="text-error">{{.flash.error}}</p>
@@ -24,7 +24,7 @@
         <div class="control-group">
             <label class="control-label" for="user_nick">Nickname</label>
             <div class="controls">
-                <input id="user_nick" name="nick" type="text" class="input-medium">
+                <input id="user_nick" name="nickname" type="text" class="input-medium">
             </div>
         </div>
         <div class="control-group">

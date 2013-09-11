@@ -4,46 +4,30 @@ import "time"
 
 // User definition
 type User struct {
-	Id         int       `orm:"auto"`
-	Email      string    `orm:"size(64)"`
-	Password   string    `orm:"size(128)"`
-	Name       string    `orm:"size(64)"`
-	Nickname   string    `orm:"size(64)"`
-	LastLogin  time.Time `orm:"auto_now_add"`
-	DateJoined time.Time `orm:"auto_now_add"`
-	IsActive   bool      `orm:"default(true)"`
-	IsAdmin    bool
-}
-
-func (this *User) TableName() string {
-	return "staff_user"
-}
-
-func (this *User) TableIndex() [][]string {
-	return [][]string{
-		[]string{"Email", "Nickname"},
-	}
-}
-
-func (this *User) TableUnique() [][]string {
-	return [][]string{
-		[]string{"Nickname", "Email"},
-	}
+	Id                  int                   `orm:"auto;index"`
+	Email               string                `orm:"size(64);index;unique"`
+	Password            string                `orm:"size(128)"`
+	Name                string                `orm:"size(64);index"`
+	Nickname            string                `orm:"size(64);unique;index"`
+	LastLogin           time.Time             `orm:"auto_now_add"`
+	DateJoined          time.Time             `orm:"auto_now_add"`
+	IsActive            bool                  `orm:"default(1)"`
+	IsAdmin             bool                  `orm:"default(0);index"`
+	Profile             *UserProfile          `orm:"reverse(one)"`
+	Permissions         []*Permission         `orm:"rel(m2m);rel_table(user_permission)"`
+	PasswordPermissions []*PasswordPermission `orm:"reverse(many)"`
+	//Passwords []*PasswordInfo `orm:"rel(m2m)"`
 }
 
 // User Additional info
-type UserAdditional struct {
-	Id         int    `orm:"auto"`
-	Department string `orm:"null"`
+type UserProfile struct {
+	Id         int    `orm:"auto;index"`
+	Department string `orm:"index"`
 	Title      string `orm:"null"`
-	Mobile     string `orm:"null"`
-	Phone      string `orm:"null"`
+	Mobile     string `orm:"index"`
+	Phone      string `orm:"null;index"`
 	User       *User  `orm:"rel(one)"`
 	Salt       string
-}
-
-func (this *UserAdditional) TableName() string {
-	return "user_additional_info"
 }
 
 // Register invitation
@@ -52,9 +36,74 @@ type RegisterInvitation struct {
 	Token     string
 	Email     string
 	Expired   bool
-	IssueDate time.Time     `orm:"auto_now_add"`
+	IssueDate time.Time `orm:"auto_now_add"`
 }
 
-func (this *RegisterInvitation) TableName() string {
-	return "register_invitation"
+type Permission struct {
+	Id            int `orm:"auto"`
+	ContentTypeId int
+	Name          string
+	Codename      string
+	Users         []*User `orm:"reverse(many)"`
 }
+
+type PasswordInfo struct {
+	Id          int                   `orm:"auto;index"`
+	Name        string                `orm:"index" form:"name" valid:"Required"`
+	Account     string                `form:"account" valid:"Required"`
+	Password    string                `form:"password" valid:"Required"`
+	Desc        string                `orm:"null" form:"desc"`
+	Permissions []*PasswordPermission `orm:"reverse(many)"`
+	//Users []*User `orm:"reverse(many)"`
+}
+
+const (
+	NoPermission = iota
+	CanRead
+	CanUpdate
+	CanManage
+)
+
+type PasswordPermission struct {
+	Id       int           `orm:"auto;index`
+	Password *PasswordInfo `orm:"rel(fk)"`
+	User     *User         `orm:"rel(fk)"`
+	Level    int
+}
+
+func (this *PasswordPermission) CanRead() bool {
+    return this.Level >= CanRead
+}
+
+func (this *PasswordPermission) CanUpdate() bool {
+    return this.Level >= CanUpdate
+}
+
+func (this *PasswordPermission) CanManage() bool {
+    return this.Level >= CanManage
+}
+
+func (this *PasswordPermission) TableUnique() [][]string {
+	return [][]string{
+		[]string{"Password", "User"},
+	}
+}
+
+type MPKey struct {
+	Id  int `orm:"auto"`
+	DataKey string
+}
+
+type Tab struct {
+    TabName string
+}
+
+func (this *Tab) IsIndex() bool {
+    return this.TabName == "Index"
+}
+
+func (this *Tab) IsPassword() bool {
+    return this.TabName == "Password"
+}
+
+

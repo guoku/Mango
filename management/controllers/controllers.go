@@ -16,9 +16,43 @@ import (
 )
 
 const (
-    DefaultLayoutFile = "layout.html"
-    MailgunKey = "key-7n8gut3y8rpk1u-0edgmgaj7vs50gig8"
+	DefaultLayoutFile = "layout.html"
+	MailgunKey        = "key-7n8gut3y8rpk1u-0edgmgaj7vs50gig8"
 )
+
+type UserSessionController struct {
+	beego.Controller
+}
+
+func (this *UserSessionController) Prepare() {
+	v := this.GetSession("user_id")
+	if v == nil {
+		this.Redirect("/login", 302)
+		return
+	}
+	userId, _ := strconv.Atoi(string(v.([]byte)))
+	user := models.User{Id: userId}
+	o := orm.NewOrm()
+	err := o.Read(&user)
+	if err != nil {
+		this.DestroySession()
+		this.Redirect("/login", 302)
+		return
+	}
+	this.Data["User"] = &user
+}
+
+type AdminSessionController struct {
+	UserSessionController
+}
+
+func (this *AdminSessionController) Prepare() {
+	this.UserSessionController.Prepare()
+	user := this.Data["User"].(*models.User)
+	if !user.IsAdmin {
+		this.Redirect("/list_users", 301)
+	}
+}
 
 type IndexController struct {
 	UserSessionController
@@ -56,7 +90,14 @@ func (this *RegisterController) Get() {
 		o.Update(&invitation)
 		this.Ctx.WriteString("Token expired")
 	} else {
-		beego.ReadFromRequest(&this.Controller)
+		flash := beego.ReadFromRequest(&this.Controller)
+		if _, ok := flash.Data["error"]; ok {
+			this.Data["HasErrors"] = true
+			fmt.Println("true")
+		} else {
+			this.Data["HasErrors"] = false
+			fmt.Println("false")
+		}
 		this.Data["Invitation"] = invitation
 		this.Data["Title"] = "Registration"
 		this.Layout = DefaultLayoutFile
@@ -100,20 +141,23 @@ func (this *RegisterController) Post() {
 		this.Ctx.WriteString("Token expired")
 	} else {
 		user := models.User{}
-		addtional := models.UserAdditional{}
+		profile := models.UserProfile{}
 		user.Email = invitation.Email
 		salt := utils.GenerateSalt(user.Email)
 		user.Password = utils.EncryptPassword(rForm.Password, salt)
 		user.Name = rForm.Name
 		user.Nickname = rForm.Nickname
 		o.Insert(&user)
-		addtional.Salt = salt
-		addtional.Department = rForm.Department
-		addtional.Mobile = rForm.Mobile
-		addtional.User = &user
-		o.Insert(&addtional)
+		profile.Salt = salt
+		profile.Department = rForm.Department
+		profile.Mobile = rForm.Mobile
+		profile.User = &user
+		o.Insert(&profile)
 		invitation.Expired = true
 		o.Update(&invitation)
+		user.Profile = &profile
+		o.Update(&user)
+		this.SetSession("user_id", int(user.Id))
 		this.Redirect("/list_users", 302)
 	}
 }
@@ -126,8 +170,16 @@ func (this *ListUsersController) Get() {
 	var users []*models.User
 	user := models.User{}
 	o := orm.NewOrm()
-	o.QueryTable(&user).Limit(20).All(&users)
-	this.Ctx.WriteString(users[0].Email)
+	o.QueryTable(&user).All(&users)
+	ad := models.UserProfile{}
+	for _, v := range users {
+		v.Profile = &models.UserProfile{}
+		o.QueryTable(&ad).Filter("user_id", v.Id).One(v.Profile)
+	}
+	this.Data["Users"] = &users
+    this.Data["Tab"] = &models.Tab{TabName: "Index"}
+	this.Layout = DefaultLayoutFile
+	this.TplNames = "list_users.tpl"
 }
 
 type LoginController struct {
@@ -148,13 +200,13 @@ func (this *LoginController) Post() {
 	email := this.GetString("email")
 	password := this.GetString("password")
 	user := models.User{}
-	additional := models.UserAdditional{}
+	additional := models.UserProfile{}
 	o := orm.NewOrm()
 	err := o.QueryTable(&user).Filter("email", email).One(&user)
 	if err != nil {
-    }
-    if user.Id != 0 {
-        fmt.Println(user.Id)
+	}
+	if user.Id != 0 {
+		fmt.Println("login", user.Id)
 		o.QueryTable(&additional).Filter("user_id", user.Id).One(&additional)
 		if user.Password == utils.EncryptPassword(password, additional.Salt) {
 			this.SetSession("user_id", int(user.Id))
@@ -162,33 +214,10 @@ func (this *LoginController) Post() {
 			return
 		}
 	} else {
-        fmt.Println("no such email", user.Email, user.Password)
 		this.Redirect("/login", 302)
 		return
 	}
 
-}
-
-type UserSessionController struct {
-	beego.Controller
-}
-
-func (this *UserSessionController) Prepare() {
-	v := this.GetSession("user_id")
-	if v == nil {
-		this.Redirect("/login", 302)
-	}
-    fmt.Println("fniwnfiwenfiwei")
-	userId, _ := strconv.Atoi(string(v.([]byte)))
-    fmt.Println("fniwiwenfiwei")
-    user := models.User{Id : userId}
-    o := orm.NewOrm()
-    err := o.Read(&user)
-    if err != nil {
-        this.DestroySession()
-        this.Redirect("/login", 302)
-    }
-    this.Data["User"] = &user
 }
 
 type LogoutController struct {
@@ -200,47 +229,33 @@ func (this *LogoutController) Get() {
 	this.Redirect("/login", 302)
 }
 
-type AdminSessionController struct {
-    UserSessionController
-}
-
-
-func (this *AdminSessionController) Prepare() {
-    this.UserSessionController.Prepare()
-    user := this.Data["User"].(*models.User)
-    if !user.IsAdmin {
-        this.Redirect("/list_user", 301)
-    }
-}
-
 type InviteController struct {
-    AdminSessionController
+	AdminSessionController
 }
 
 func (this *InviteController) Get() {
-    this.Layout = DefaultLayoutFile
-    this.TplNames = "invite.tpl"
+	this.Layout = DefaultLayoutFile
+	this.TplNames = "invite.tpl"
 }
 
 func (this *InviteController) Post() {
-    email := this.GetString("email")
-    valid := validation.Validation{}
-    valid.Required(email, "email_empty")
-    valid.Email(email, "email_invalid")
-    if valid.HasErrors() {
-        this.Ctx.WriteString("email invalid")
-        return
-    }
-    token := utils.GenerateRegisterToken(email)
-    m := models.NewRegisterMail(email, token)
-    client := mailgun.New(MailgunKey)
-    client.Send(m)
-    invitation := models.RegisterInvitation {
-        Token : token,
-        Email : email,
-    }
-    o := orm.NewOrm()
-    o.Insert(&invitation)
-    this.Redirect("/invite", 302)
+	email := this.GetString("email")
+	valid := validation.Validation{}
+	valid.Required(email, "email_empty")
+	valid.Email(email, "email_invalid")
+	if valid.HasErrors() {
+		this.Ctx.WriteString("email invalid")
+		return
+	}
+	token := utils.GenerateRegisterToken(email)
+	m := utils.NewRegisterMail(email, token)
+	client := mailgun.New(MailgunKey)
+	client.Send(m)
+	invitation := models.RegisterInvitation{
+		Token: token,
+		Email: email,
+	}
+	o := orm.NewOrm()
+	o.Insert(&invitation)
+	this.Redirect("/invite", 302)
 }
-
