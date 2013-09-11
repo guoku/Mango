@@ -53,5 +53,5 @@ class Entity(object):
         _context["entity_id"] = self.__entity_obj.id
         _context["brand"] = self.__entity_obj.brand 
         _context["title"] = self.__entity_obj.title
-            
+        _context["item_id_list"] = Item.get_item_id_list_by_entity_id(self.__entity_id) 
         return _context    

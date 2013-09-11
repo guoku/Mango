@@ -1,4 +1,5 @@
 # coding=utf8
+from models import Item as ItemDocument
 from models import TaobaoItem as TaobaoItemDocument
 import datetime
 
@@ -10,6 +11,13 @@ class Item(object):
     def get_item_id(self):
         return self.__item_id
     
+    @staticmethod
+    def get_item_id_list_by_entity_id(entity_id):
+        _list = []
+        for _item in ItemDocument.objects.filter(entity_id = entity_id):
+            _list.append(str(_item.id))
+        return _list
+
     @staticmethod
     def get_entity_id_by_taobao_id(taobao_id):
         _taobao_item_doc = TaobaoItemDocument.objects.filter(taobao_id = taobao_id).first()
