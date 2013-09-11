@@ -29,7 +29,25 @@ def create_entity(request):
     except Exception, e:
         return ErrorJsonResponse(emsg = str(e))
         
-
+def add_item_for_entity(request, entity_id):
+    try:
+        if request.method == 'POST':
+            _entity = Entity(entity_id)
+            _item_id = _entity.add_taobao_item(
+                taobao_item_info = { 
+                    'taobao_id' : request.POST.get('taobao_id', None),
+                    'cid' : request.POST.get('cid', None),
+                    'title' : request.POST.get('taobao_title', None),
+                    'shop_nick' : request.POST.get('taobao_shop_nick', None),
+                    'price' : float(request.POST.get('taobao_price', None)),
+                    'soldout' : bool(int(request.POST.get('taobao_soldout', '0'))),
+                }
+            )
+            _data = { "entity_id" : _entity.get_entity_id() }
+            return SuccessJsonResponse(_data)
+    except Exception, e:
+        return ErrorJsonResponse(emsg = str(e))
+        
 def check_taobao_item_exist(request, taobao_id):
     try:
         _entity_id = Item.get_entity_id_by_taobao_id(taobao_id)
