@@ -66,6 +66,7 @@ class Item(object):
     
     def __load_taobao_item(self):
         _context = {}
+        _context["item_id"] = str(self.__item_obj.id)
         _context["entity_id"] = self.__item_obj.entity_id
         _context["source"] = self.__item_obj.source
         _context["taobao_id"] = self.__item_obj.taobao_id
