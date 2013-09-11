@@ -2,6 +2,7 @@ __author__ = 'stxiong'
 from django.conf.urls.defaults import *
 
 urlpatterns = patterns('',
+    (r'^item/$', 'api.views.read_items'),
     (r'^entity/create/$', 'api.views.create_entity'),
     (r'^entity/(?P<entity_id>\d+)/$', 'api.views.read_entity'),
     (r'^entity/(?P<entity_id>\d+)/item/(?P<item_id>\w+)/unbind/$', 'api.views.unbind_entity_item'),

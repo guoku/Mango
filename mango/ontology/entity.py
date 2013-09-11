@@ -15,7 +15,7 @@ class Entity(object):
         _taobao_item_obj = Item.create_taobao_item( 
             entity_id = self.__entity_id,
             taobao_id = taobao_item_info["taobao_id"],
-            category_id = taobao_item_info["category_id"],
+            cid = taobao_item_info["cid"],
             title = taobao_item_info["title"],
             shop_nick = taobao_item_info["shop_nick"], 
             price = taobao_item_info["price"], 

@@ -17,7 +17,7 @@ def create_entity(request):
                 title = request.POST.get('title', None),
                 taobao_item_info = { 
                     'taobao_id' : request.POST.get('taobao_id', None),
-                    'category_id' : request.POST.get('taobao_category_id', None),
+                    'cid' : request.POST.get('cid', None),
                     'title' : request.POST.get('taobao_title', None),
                     'shop_nick' : request.POST.get('taobao_shop_nick', None),
                     'price' : float(request.POST.get('taobao_price', None)),
@@ -27,7 +27,6 @@ def create_entity(request):
             _data = { "entity_id" : _entity.get_entity_id() }
             return SuccessJsonResponse(_data)
     except Exception, e:
-        print str(e)
         return ErrorJsonResponse(emsg = str(e))
         
 
@@ -69,6 +68,29 @@ def read_entities(request):
                     }
                 except Exception, e:
                     _rslt[_entity_id] = {
+                        'msg' : str(e),
+                        'status' : '1'
+                    }
+                    
+            return SuccessJsonResponse(_rslt)
+    except Exception, e:
+        return ErrorJsonResponse(emsg = str(e))
+
+def read_items(request):
+    try:
+        if request.method == 'GET':
+            _item_id_list = request.GET.getlist("iid")
+            _rslt = {}
+            for _item_id in _item_id_list:
+                try:
+                    _item = Item(_item_id)
+                    _item_context = _item.read()
+                    _rslt[_item_id] = {
+                        'context' : _item_context,
+                        'status' : '0'
+                    }
+                except Exception, e:
+                    _rslt[_item_id] = {
                         'msg' : str(e),
                         'status' : '1'
                     }

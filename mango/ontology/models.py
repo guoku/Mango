@@ -10,6 +10,7 @@ class Entity(models.Model):
     
 class Item(Document):
     entity_id = IntField(required = True) 
+    source = StringField(required = True)
     created_time = DateTimeField(required = True)
     updated_time = DateTimeField(required = True)
     meta = {
@@ -21,7 +22,7 @@ class Item(Document):
 
 class TaobaoItem(Item):
     taobao_id = StringField(required = True, unique = True)
-    category_id = IntField(required = True) 
+    cid = IntField(required = True) 
     title = StringField(required = True)
     shop_nick = StringField(required = True)
     price = DecimalField(required = True)
@@ -30,7 +31,7 @@ class TaobaoItem(Item):
     meta = {
         'indexes' : [ 
             'taobao_id',
-            'category_id',
+            'cid',
             'shop_nick',
             'price',
             'soldout'
