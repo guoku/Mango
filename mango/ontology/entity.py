@@ -22,6 +22,11 @@ class Entity(object):
             soldout = taobao_item_info["soldout"], 
         )
         return _taobao_item_obj.get_item_id()
+
+    def del_taobao_item(self, item_id):
+        _item_obj = Item(item_id)
+        if _item_obj.get_entity_id() == self.__entity_id:
+            _item_obj.bind_entity(-1)
     
     @classmethod
     def create_by_taobao_item(cls, title, brand, taobao_item_info):

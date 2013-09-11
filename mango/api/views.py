@@ -77,3 +77,11 @@ def read_entities(request):
     except Exception, e:
         return ErrorJsonResponse(emsg = str(e))
 
+def unbind_entity_item(request, entity_id, item_id):
+    try:
+        _entity = Entity(entity_id)
+        _entity.del_taobao_item(item_id)
+        return SuccessJsonResponse({})
+    except Exception, e:
+        return ErrorJsonResponse(emsg = str(e))
+     

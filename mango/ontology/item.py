@@ -11,6 +11,14 @@ class Item(object):
     def get_item_id(self):
         return self.__item_id
     
+    def __ensure_item_obj(self):
+        if not hasattr(self, '__item_obj'):
+            self.__item_obj = TaobaoItemDocument.objects.filter(id = self.__item_id).first()
+    
+    def get_entity_id(self):
+        self.__ensure_item_obj()
+        return self.__item_obj.entity_id
+    
     @staticmethod
     def get_item_id_list_by_entity_id(entity_id):
         _list = []
@@ -20,9 +28,9 @@ class Item(object):
 
     @staticmethod
     def get_entity_id_by_taobao_id(taobao_id):
-        _taobao_item_doc = TaobaoItemDocument.objects.filter(taobao_id = taobao_id).first()
-        if _taobao_item_doc != None:
-            return _taobao_item_doc.entity_id
+        _taobao_item_obj = TaobaoItemDocument.objects.filter(taobao_id = taobao_id).first()
+        if _taobao_item_obj != None:
+            return _taobao_item_obj.entity_id
         return None
 
     @classmethod
@@ -31,7 +39,7 @@ class Item(object):
         _title = title.strip()
         _shop_nick = shop_nick.strip()
 
-        _item_doc = TaobaoItemDocument( 
+        _item_obj = TaobaoItemDocument( 
             entity_id = entity_id,
             taobao_id = _taobao_id,
             category_id = category_id,
@@ -42,9 +50,15 @@ class Item(object):
             created_time = datetime.datetime.now(),
             updated_time = datetime.datetime.now() 
         )
-        _item_doc.save()
+        _item_obj.save()
         
-        _inst = cls(_item_doc.id)
-        _inst.__item_id = _item_doc.id
-        _inst.__item_doc = _item_doc
+        _inst = cls(_item_obj.id)
+        _inst.__item_id = _item_obj.id
+        _inst.__item_obj = _item_obj
         return _inst
+
+    def bind_entity(self, entity_id):
+        self.__ensure_item_obj()
+        self.__item_obj.entity_id = entity_id 
+        self.__item_obj.save()
+         
