@@ -54,7 +54,7 @@ class Item(object):
         _item_obj.save()
 
         _inst = cls(_item_obj.id)
-        _inst.__item_id = _item_obj.id
+        _inst.__item_id = str(_item_obj.id)
         _inst.__item_obj = _item_obj
         return _inst
 

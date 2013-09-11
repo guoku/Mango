@@ -43,7 +43,7 @@ def add_item_for_entity(request, entity_id):
                     'soldout' : bool(int(request.POST.get('taobao_soldout', '0'))),
                 }
             )
-            _data = { "entity_id" : _entity.get_entity_id() }
+            _data = { "item_id" : _item_id }
             return SuccessJsonResponse(_data)
     except Exception, e:
         return ErrorJsonResponse(emsg = str(e))
