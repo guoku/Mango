@@ -27,6 +27,7 @@ def create_entity(request):
             _data = { "entity_id" : _entity.get_entity_id() }
             return SuccessJsonResponse(_data)
     except Exception, e:
+        print str(e)
         return ErrorJsonResponse(emsg = str(e))
         
 
