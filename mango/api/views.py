@@ -29,7 +29,7 @@ def create_entity(request):
     except Exception, e:
         return ErrorJsonResponse(emsg = str(e))
         
-def add_item_for_entity(request, entity_id):
+def add_taobao_item_for_entity(request, entity_id):
     try:
         if request.method == 'POST':
             _entity = Entity(entity_id)
