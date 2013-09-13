@@ -10,6 +10,7 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	_ "github.com/go-sql-driver/mysql"
+	"labix.org/v2/mgo"
 )
 
 func init() {
@@ -28,6 +29,7 @@ func init() {
 	mysqlProtocol := beego.AppConfig.String("mysqlprotocol")
 	mysqlHost := beego.AppConfig.String("mysqlhost")
 	mysqlPort := beego.AppConfig.String("mysqlport")
+    mongoHost := beego.AppConfig.String("mongohost")
 	orm.RegisterDriver("mysql", orm.DR_MySQL)
 	orm.RegisterDataBase("default", "mysql", fmt.Sprintf("%s%s@%s(%s%s)/guokuer?charset=utf8", mysqlUser, mysqlPass, mysqlProtocol, mysqlHost, mysqlPort), 30)
 	//orm.RegisterDataBase("default", "mysql", "root@unix(/tmp/mysql.sock)/guokuer?charset=utf8", 30)
@@ -39,13 +41,20 @@ func init() {
 	orm.RegisterModel(new(models.MPKey))
 
 	orm.RunCommand()
-	//orm.Debug = true
-	beego.UseHttps = true
-	beego.CertFile = "server.crt"
-	beego.KeyFile = "server.key"
+	orm.Debug = true
+	//beego.UseHttps = true
+	//beego.CertFile = "server.crt"
+	//beego.KeyFile = "server.key"
 	beego.SessionOn = true
 	beego.SessionProvider = "redis"
 	beego.SessionSavePath = beego.AppConfig.String("redispath")
+    //beego.UseFcgi = true
+    session, err := mgo.Dial(mongoHost)
+    if err != nil {
+        panic(err)
+    }
+    controllers.MgoSession = session
+    controllers.MgoDbName = beego.AppConfig.String("mongodbname")
 }
 
 func main() {
@@ -60,5 +69,10 @@ func main() {
 	beego.Router("/edit_pass/:id([0-9]+)", &controllers.EditPassController{})
 	beego.Router("/delete_pass/:id([0-9]+)", &controllers.DeletePassController{})
 	beego.Router("/edit_pass_permission/:id([0-9]+)", &controllers.EditPassPermissionController{})
+	beego.Router("/scheduler/list_shops", &controllers.ShopListController{})
+	beego.Router("/scheduler/add_shop", &controllers.AddShopController{})
+	beego.Router("/scheduler/api/add_shop", &controllers.AddShopFromApiController{})
+	beego.Router("/scheduler/api/get_shop_from_queue", &controllers.GetShopFromQueueController{})
+	beego.Router("/scheduler/api/send_taobao_items", &controllers.SendItemsController{})
 	beego.Run()
 }

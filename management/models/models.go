@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+    "fmt"
+    "time"
+)
 
 // User definition
 type User struct {
@@ -106,4 +109,8 @@ func (this *Tab) IsPassword() bool {
     return this.TabName == "Password"
 }
 
+func (this *Tab) IsScheduler() bool {
+    fmt.Println("fniwnfiwneifnweifiweno")
+    return this.TabName == "Scheduler"
+}
 
