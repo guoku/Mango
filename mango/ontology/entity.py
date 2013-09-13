@@ -11,6 +11,23 @@ class Entity(object):
     def get_entity_id(self):
         return self.__entity_id
     
+    def add_taobao_item(self, taobao_item_info):
+        _taobao_item_obj = Item.create_taobao_item( 
+            entity_id = self.__entity_id,
+            taobao_id = taobao_item_info["taobao_id"],
+            cid = taobao_item_info["cid"],
+            title = taobao_item_info["title"],
+            shop_nick = taobao_item_info["shop_nick"], 
+            price = taobao_item_info["price"], 
+            soldout = taobao_item_info["soldout"], 
+        )
+        return _taobao_item_obj.get_item_id()
+
+    def del_taobao_item(self, item_id):
+        _item_obj = Item(item_id)
+        if _item_obj.get_entity_id() == self.__entity_id:
+            _item_obj.bind_entity(-1)
+    
     @classmethod
     def create_by_taobao_item(cls, title, brand, taobao_item_info):
         
@@ -24,23 +41,15 @@ class Entity(object):
             title = title 
         )
         
+        _inst = cls(_entity_obj.id)
+        _inst.__entity_obj = _entity_obj
+        
         try:
-            _taobao_item_obj = Item.create_taobao_item( 
-                entity_id = _entity_obj.id, 
-                taobao_id = taobao_item_info["taobao_id"],
-                category_id = taobao_item_info["category_id"],
-                title = taobao_item_info["title"],
-                shop_nick = taobao_item_info["shop_nick"], 
-                price = taobao_item_info["price"], 
-                soldout = taobao_item_info["soldout"], 
-            )
-
+            _taobao_item_id = _inst.add_taobao_item(taobao_item_info)
         except Exception, e:
             _entity_obj.delete()
             raise e
 
-        _inst = cls(_entity_obj.id)
-        _inst.__entity_obj = _entity_obj
         return _inst
 
     def __ensure_entity_obj(self):
@@ -53,5 +62,5 @@ class Entity(object):
         _context["entity_id"] = self.__entity_obj.id
         _context["brand"] = self.__entity_obj.brand 
         _context["title"] = self.__entity_obj.title
-            
+        _context["item_id_list"] = Item.get_item_id_list_by_entity_id(self.__entity_id) 
         return _context    

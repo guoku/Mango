@@ -17,7 +17,7 @@ def create_entity(request):
                 title = request.POST.get('title', None),
                 taobao_item_info = { 
                     'taobao_id' : request.POST.get('taobao_id', None),
-                    'category_id' : request.POST.get('taobao_category_id', None),
+                    'cid' : request.POST.get('cid', None),
                     'title' : request.POST.get('taobao_title', None),
                     'shop_nick' : request.POST.get('taobao_shop_nick', None),
                     'price' : float(request.POST.get('taobao_price', None)),
@@ -29,7 +29,25 @@ def create_entity(request):
     except Exception, e:
         return ErrorJsonResponse(emsg = str(e))
         
-
+def add_taobao_item_for_entity(request, entity_id):
+    try:
+        if request.method == 'POST':
+            _entity = Entity(entity_id)
+            _item_id = _entity.add_taobao_item(
+                taobao_item_info = { 
+                    'taobao_id' : request.POST.get('taobao_id', None),
+                    'cid' : request.POST.get('cid', None),
+                    'title' : request.POST.get('taobao_title', None),
+                    'shop_nick' : request.POST.get('taobao_shop_nick', None),
+                    'price' : float(request.POST.get('taobao_price', None)),
+                    'soldout' : bool(int(request.POST.get('taobao_soldout', '0'))),
+                }
+            )
+            _data = { "item_id" : _item_id }
+            return SuccessJsonResponse(_data)
+    except Exception, e:
+        return ErrorJsonResponse(emsg = str(e))
+        
 def check_taobao_item_exist(request, taobao_id):
     try:
         _entity_id = Item.get_entity_id_by_taobao_id(taobao_id)
@@ -76,3 +94,34 @@ def read_entities(request):
     except Exception, e:
         return ErrorJsonResponse(emsg = str(e))
 
+def read_items(request):
+    try:
+        if request.method == 'GET':
+            _item_id_list = request.GET.getlist("iid")
+            _rslt = {}
+            for _item_id in _item_id_list:
+                try:
+                    _item = Item(_item_id)
+                    _item_context = _item.read()
+                    _rslt[_item_id] = {
+                        'context' : _item_context,
+                        'status' : '0'
+                    }
+                except Exception, e:
+                    _rslt[_item_id] = {
+                        'msg' : str(e),
+                        'status' : '1'
+                    }
+                    
+            return SuccessJsonResponse(_rslt)
+    except Exception, e:
+        return ErrorJsonResponse(emsg = str(e))
+
+def unbind_entity_item(request, entity_id, item_id):
+    try:
+        _entity = Entity(entity_id)
+        _entity.del_taobao_item(item_id)
+        return SuccessJsonResponse({})
+    except Exception, e:
+        return ErrorJsonResponse(emsg = str(e))
+     
