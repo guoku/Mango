@@ -29,6 +29,20 @@ def create_entity(request):
     except Exception, e:
         return ErrorJsonResponse(emsg = str(e))
         
+def update_entity(request, entity_id):
+    try:
+        print request.POST
+        if request.method == 'POST':
+            Entity(entity_id).update(
+                brand = request.POST.get('brand', None),
+                title = request.POST.get('title', None),
+            )
+            return SuccessJsonResponse({})
+    except Exception, e:
+        return ErrorJsonResponse(emsg = str(e))
+
+
+
 def add_taobao_item_for_entity(request, entity_id):
     try:
         if request.method == 'POST':

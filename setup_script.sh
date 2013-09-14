@@ -41,3 +41,5 @@ sudo pip install pyapns
 sudo pip install Wand
 sudo pip install django-sphinx
 sudo pip install Hiredis
+sudo pip install requests 
+

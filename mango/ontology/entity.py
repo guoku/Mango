@@ -64,3 +64,11 @@ class Entity(object):
         _context["title"] = self.__entity_obj.title
         _context["item_id_list"] = Item.get_item_id_list_by_entity_id(self.__entity_id) 
         return _context    
+    
+    def update(self, brand = None, title = None):
+        self.__ensure_entity_obj()
+        if brand != None:
+            self.__entity_obj.brand = brand
+        if title != None:
+            self.__entity_obj.title = title
+        self.__entity_obj.save()
