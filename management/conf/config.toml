@@ -1,0 +1,11 @@
+[mongodb]
+    [mongodb.debug]
+        host = "localhost"
+        db = "test"
+    [mongodb.staging]
+        host = "localhost"
+        db = "test"
+    [mongodb.prod]
+        host = "10.0.2.150"
+        db = "mango"
+
