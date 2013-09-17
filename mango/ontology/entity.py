@@ -29,16 +29,19 @@ class Entity(object):
             _item_obj.bind_entity(-1)
     
     @classmethod
-    def create_by_taobao_item(cls, title, brand, taobao_item_info):
+    def create_by_taobao_item(cls, brand, title, intro, taobao_item_info):
         
         if brand != None: 
             brand = brand.strip()
         if title != None:
             title = title.strip()
+        if intro != None:
+            intro = intro.strip()
         
         _entity_obj = EntityModel.objects.create( 
             brand = brand,
-            title = title 
+            title = title,
+            intro = intro,
         )
         
         _inst = cls(_entity_obj.id)
@@ -62,5 +65,16 @@ class Entity(object):
         _context["entity_id"] = self.__entity_obj.id
         _context["brand"] = self.__entity_obj.brand 
         _context["title"] = self.__entity_obj.title
+        _context["intro"] = self.__entity_obj.intro
         _context["item_id_list"] = Item.get_item_id_list_by_entity_id(self.__entity_id) 
         return _context    
+    
+    def update(self, brand = None, title = None, intro = None):
+        self.__ensure_entity_obj()
+        if brand != None:
+            self.__entity_obj.brand = brand
+        if title != None:
+            self.__entity_obj.title = title
+        if intro != None:
+            self.__entity_obj.intro = intro
+        self.__entity_obj.save()

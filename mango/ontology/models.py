@@ -3,8 +3,9 @@ from django.db import models
 from mongoengine import *
 
 class Entity(models.Model):
-    brand = models.CharField(max_length = 256, null = True)
-    title = models.CharField(max_length = 256, null = True)
+    brand = models.CharField(max_length = 256, null = False, default = "")
+    title = models.CharField(max_length = 256, null = False, default = "")
+    intro = models.TextField(null = True, default = "")
     created_time = models.DateTimeField(auto_now_add = True, db_index = True)
     updated_time = models.DateTimeField(auto_now = True, db_index = True)
     
