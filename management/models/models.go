@@ -97,6 +97,11 @@ type MPKey struct {
 	DataKey string
 }
 
+type MPApiToken struct {
+    Id int `orm:"auto"`
+    Token string 
+}
+
 type Tab struct {
     TabName string
 }

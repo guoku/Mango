@@ -147,6 +147,7 @@ func (this *RegisterController) Post() {
 		user.Password = utils.EncryptPassword(rForm.Password, salt)
 		user.Name = rForm.Name
 		user.Nickname = rForm.Nickname
+        user.IsActive = true
 		o.Insert(&user)
 		profile.Salt = salt
 		profile.Department = rForm.Department
