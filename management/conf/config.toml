@@ -2,6 +2,9 @@
     [mongodb.debug]
         host = "localhost"
         db = "test"
+    [mongodb.test]
+        host = "localhost"
+        db = "mango"
     [mongodb.staging]
         host = "localhost"
         db = "test"

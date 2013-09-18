@@ -43,7 +43,7 @@ func init() {
 
 	orm.RunCommand()
 	orm.Debug = true
-	beego.UseHttps = true
+	beego.UseHttps, _ = beego.AppConfig.Bool("usehttps")
 	beego.CertFile = "server.crt"
 	beego.KeyFile = "server.key"
 	beego.SessionOn = true

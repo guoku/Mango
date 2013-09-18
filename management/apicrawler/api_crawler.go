@@ -19,7 +19,7 @@ var dbName string
 
 func init() {
     var env string
-    flag.StringVar(&env, "env", "prod", "program environment")
+    flag.StringVar(&env, "env", "test", "program environment")
     flag.Parse()
     var mongoSetting *toml.TomlTree
     conf, err := toml.LoadFile("conf/config.toml")
@@ -30,6 +30,8 @@ func init() {
             mongoSetting = conf.Get("mongodb.staging").(*toml.TomlTree)
         case "prod":
             mongoSetting = conf.Get("mongodb.prod").(*toml.TomlTree)
+        case "test":
+            mongoSetting = conf.Get("mongodb.test").(*toml.TomlTree)
         default:
             panic(errors.New("Wrong Environment Flag Value. Should be 'debug', 'staging' or 'prod'"))
     }

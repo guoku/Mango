@@ -214,10 +214,9 @@ func (this *LoginController) Post() {
 			this.Redirect("/list_users", 302)
 			return
 		}
-	} else {
-		this.Redirect("/login", 302)
-		return
 	}
+	this.Redirect("/login", 302)
+	return
 
 }
 
