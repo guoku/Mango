@@ -128,6 +128,8 @@ func (this *AddShopFromApiController) Post() {
 }
 
 func addTaobaoItem(sid, numIid int) bool {
+    itemLock.Lock()
+    defer itemLock.Unlock()
     taobaoItem := models.TaobaoItem{}
     c := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
     c.Find(bson.M{"num_iid": numIid}).One(&taobaoItem)
