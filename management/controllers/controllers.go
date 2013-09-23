@@ -147,6 +147,7 @@ func (this *RegisterController) Post() {
 		user.Password = utils.EncryptPassword(rForm.Password, salt)
 		user.Name = rForm.Name
 		user.Nickname = rForm.Nickname
+        user.IsActive = true
 		o.Insert(&user)
 		profile.Salt = salt
 		profile.Department = rForm.Department
@@ -213,10 +214,9 @@ func (this *LoginController) Post() {
 			this.Redirect("/list_users", 302)
 			return
 		}
-	} else {
-		this.Redirect("/login", 302)
-		return
 	}
+	this.Redirect("/login", 302)
+	return
 
 }
 

@@ -1,6 +1,8 @@
 package controllers
 
 import (
+    "strconv"
+    "strings"
     "sync"
     "time"
     "Mango/management/models"
@@ -8,14 +10,15 @@ import (
     "Mango/management/taobaoclient"
     "github.com/astaxie/beego"
     "github.com/jason-zou/taobaosdk/rest"
-    //"github.com/astaxie/beego/orm"
+    "github.com/astaxie/beego/orm"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 )
 
 var MgoSession *mgo.Session
 var MgoDbName string
-var lock sync.Mutex
+var shopLock sync.Mutex
+var itemLock sync.Mutex
 
 const SchedulerCodeName = "manage_crawler"
 type SchedulerController struct {
@@ -66,8 +69,8 @@ func (this *AddShopController) Post() {
 }
 
 func addShopItem(shopInfo *rest.Shop) bool {
-    lock.Lock()
-    defer lock.Unlock()
+    shopLock.Lock()
+    defer shopLock.Unlock()
     result := models.ShopItem{}
     c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
     c.Find(bson.M{"shop_info.sid": shopInfo.Sid}).One(&result)
@@ -98,7 +101,13 @@ func (this *CrawlerApiController) Prepare() {
 }
 
 func CheckToken(token string) bool {
-    return true
+    t := models.MPApiToken{}
+    o := orm.NewOrm()
+    o.QueryTable(&t).Filter("token", token).One(&t)
+    if t.Id != 0 {
+        return true
+    }
+    return false
 }
 
 type AddShopFromApiController struct {
@@ -106,6 +115,35 @@ type AddShopFromApiController struct {
 }
 
 func (this *AddShopFromApiController) Post() {
+    shopName := this.GetString("shop_name")
+    shopInfo, topErr := taobaoclient.GetTaobaoShopInfo(shopName)
+    if topErr != nil {
+        this.Data["json"] = map[string]string{"status" : "no such shop"}
+        this.ServeJson()
+        return
+    }
+    addShopItem(shopInfo)
+    this.Data["json"] = map[string]string{"status" : "succeeded"}
+    this.ServeJson()
+}
+
+func addTaobaoItem(sid, numIid int) bool {
+    itemLock.Lock()
+    defer itemLock.Unlock()
+    taobaoItem := models.TaobaoItem{}
+    c := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    c.Find(bson.M{"num_iid": numIid}).One(&taobaoItem)
+    if taobaoItem.NumIid == 0 {
+        taobaoItem.Sid = sid
+        taobaoItem.NumIid = numIid
+        taobaoItem.CreatedTime = time.Now()
+        err := c.Insert(&taobaoItem)
+        if err != nil {
+            return false
+        }
+        return true
+    }
+    return false
 }
 
 type SendItemsController struct {
@@ -113,6 +151,18 @@ type SendItemsController struct {
 }
 
 func (this *SendItemsController) Post() {
+    sid, _:= strconv.Atoi(this.GetString("sid"))
+    itemsString := this.GetString("item_ids")
+    itemIds := strings.Split(itemsString, ",")
+    for _, v := range itemIds {
+        numIid, err := strconv.Atoi(v)
+        if err != nil {
+            continue
+        }
+        addTaobaoItem(sid, numIid)
+    }
+    this.Data["json"] = map[string]string{"status" : "succeeded"}
+    this.ServeJson()
 }
 
 type GetShopFromQueueController struct {
@@ -135,4 +185,15 @@ func (this *GetShopFromQueueController) Get() {
     this.ServeJson()
 
 }
+
+type ShopDetailController struct {
+}
+
+func (this *ShopDetailController) Get() {
+}
+
+func (this *ShopDetailController) Post() {
+}
+
+
 

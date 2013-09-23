@@ -39,12 +39,13 @@ func init() {
 	orm.RegisterModel(new(models.PasswordInfo))
 	orm.RegisterModel(new(models.PasswordPermission))
 	orm.RegisterModel(new(models.MPKey))
+	orm.RegisterModel(new(models.MPApiToken))
 
 	orm.RunCommand()
 	orm.Debug = true
-	//beego.UseHttps = true
-	//beego.CertFile = "server.crt"
-	//beego.KeyFile = "server.key"
+	beego.UseHttps, _ = beego.AppConfig.Bool("usehttps")
+	beego.CertFile = "server.crt"
+	beego.KeyFile = "server.key"
 	beego.SessionOn = true
 	beego.SessionProvider = "redis"
 	beego.SessionSavePath = beego.AppConfig.String("redispath")
