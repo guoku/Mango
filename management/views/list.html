@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link media="all" rel="stylesheet" type="text/css" href="http://static.guoku.com/static/management/css/bootstrap-responsive.min.css">
+        <link media="all" rel="stylesheet" type="text/css" href="http://static.guoku.com/static/management/css/bootstrap.min.css">
+        <title>Crawling List</title>
+    </head>
+    <body>
+        <div class="container-fluid">
+            <div class="span2">
+            <div>
+            <div class="span10">
+            <form class="well form-search" method="POST" action="/add">
+                <input type="text" class="input-medium search-query" name="shop_name">
+                <button type="submit" class="btn">添加店铺昵称</button>
+            </form>   
+            <table class="table table-bordered table-striped">
+                <th>Name</th>
+                <th>Title</th>
+                <th>Status</th>
+                {{ range . }}
+                <tr>
+                    <td>{{ .ShopInfo.Nick }}</td>
+                    <td>{{ .ShopInfo.Title }} </td>
+                    <td>{{ .Status }}</td>
+                </tr>
+                {{ end }}
+            </table>
+            </div>
+        </div>
+    </body>
+</html>

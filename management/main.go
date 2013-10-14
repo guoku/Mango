@@ -42,7 +42,7 @@ func init() {
 	orm.RegisterModel(new(models.MPApiToken))
 
 	orm.RunCommand()
-	orm.Debug = true
+	//orm.Debug = true
 	beego.UseHttps, _ = beego.AppConfig.Bool("usehttps")
 	beego.CertFile = "server.crt"
 	beego.KeyFile = "server.key"
@@ -71,6 +71,8 @@ func main() {
 	beego.Router("/delete_pass/:id([0-9]+)", &controllers.DeletePassController{})
 	beego.Router("/edit_pass_permission/:id([0-9]+)", &controllers.EditPassPermissionController{})
 	beego.Router("/scheduler/list_shops", &controllers.ShopListController{})
+	beego.Router("/scheduler/shop_detail/taobao/:sid([0-9]+)", &controllers.TaobaoShopDetailController{})
+	beego.Router("/scheduler/item_detail/taobao/:id([0-9]+)", &controllers.TaobaoItemDetailController{})
 	beego.Router("/scheduler/add_shop", &controllers.AddShopController{})
 	beego.Router("/scheduler/api/add_shop", &controllers.AddShopFromApiController{})
 	beego.Router("/scheduler/api/get_shop_from_queue", &controllers.GetShopFromQueueController{})

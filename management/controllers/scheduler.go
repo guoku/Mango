@@ -1,6 +1,7 @@
 package controllers
 
 import (
+    "fmt"
     "strconv"
     "strings"
     "sync"
@@ -21,6 +22,7 @@ var shopLock sync.Mutex
 var itemLock sync.Mutex
 
 const SchedulerCodeName = "manage_crawler"
+const NumInOnePage = 100
 type SchedulerController struct {
     UserSessionController
 }
@@ -42,13 +44,20 @@ type ShopListController struct {
 
 func (this *ShopListController) Get() {
     c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+    page, err := this.GetInt("p")
+    if err != nil {
+        page = 1
+    }
     results := make([]models.ShopItem, 0)
-    err := c.Find(bson.M{}).All(&results)
+    err = c.Find(bson.M{}).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
     if err != nil {
         this.Abort("500")
         return
     }
+    total, _  := c.Find(bson.M{}).Count()
+    paginator := models.NewSimplePaginator(int(page), total, NumInOnePage, this.Input())
     this.Data["ShopList"] = results
+    this.Data["Paginator"] = paginator
     this.Layout = DefaultLayoutFile
     this.TplNames = "list_shop.tpl"
 }
@@ -88,6 +97,38 @@ func addShopItem(shopInfo *rest.Shop) bool {
     return true
 }
 
+type TaobaoShopDetailController struct {
+    SchedulerController
+}
+
+
+func (this *TaobaoShopDetailController) Get() {
+    sid, err := strconv.Atoi(this.Ctx.Params[":sid"])
+    fmt.Println("xxxxxxxxxxxxxxxxxxx")
+    if err != nil {
+        fmt.Println(err, "=======xxxxxxxxxxxxx")
+        this.Abort("404")
+        return
+    }
+    page, perr := this.GetInt("p")
+    if perr != nil {
+        page = 1
+    }
+    c := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    results := make([]models.TaobaoItem, 0)
+    err = c.Find(bson.M{"sid" : sid}).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
+    if err != nil {
+        this.Abort("500")
+        return
+    }
+    total, _ := c.Find(bson.M{"sid" : sid}).Count()
+    fmt.Println("total", total)
+    this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, NumInOnePage, this.Input())
+    this.Data["ItemList"] = results
+    this.Layout = DefaultLayoutFile
+    this.TplNames = "taobao_shop_detail.tpl"
+}
+
 type CrawlerApiController struct {
     beego.Controller
 }
@@ -114,7 +155,7 @@ type AddShopFromApiController struct {
     CrawlerApiController
 }
 
-func (this *AddShopFromApiController) Post() {
+func (this *AddShopFromApiController) Get() {
     shopName := this.GetString("shop_name")
     shopInfo, topErr := taobaoclient.GetTaobaoShopInfo(shopName)
     if topErr != nil {

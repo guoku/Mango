@@ -11,7 +11,7 @@
         <th>Status</th>
         {{ range .ShopList }}
         <tr>
-            <td>{{ .ShopInfo.Nick }}</td>
+            <td><a href="/scheduler/shop_detail/taobao/{{ .ShopInfo.Sid }}">{{ .ShopInfo.Nick }}</a></td>
             <td>{{ .ShopInfo.Title }} </td>
             <td>{{ .Status }}</td>
         </tr>
@@ -19,3 +19,4 @@
     </table>
     </div>
 </div>
+{{ template "paginator.tpl" .}}

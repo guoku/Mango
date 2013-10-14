@@ -6,6 +6,7 @@ cp api_crawler upload
 cp -r conf upload
 cp -r views upload
 cp -r static upload
+cp -r jobs upload
 cp server.key upload
 cp server.crt upload
 cp upload/conf/test.conf upload/conf/app.conf
