@@ -3,13 +3,14 @@ package models
 import (
     "fmt"
     "net/url"
+    "html/template"
 )
 type SimplePaginator struct {
     HasPrev bool
     HasNext bool
     CurrentPage int
     TotalPages int
-    OtherParams string
+    OtherParams template.URL
     PrevPage int
     NextPage int
 }
@@ -19,7 +20,7 @@ func NewSimplePaginator(currentPage int, total int, numInOnePage int, params url
     paginator.CurrentPage = currentPage
     paginator.TotalPages = total / numInOnePage
     params.Del("p")
-    paginator.OtherParams = params.Encode()
+    paginator.OtherParams = template.URL(params.Encode())
     fmt.Println(paginator.OtherParams)
     if total % numInOnePage > 0 {
         paginator.TotalPages += 1

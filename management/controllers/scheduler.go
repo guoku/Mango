@@ -1,7 +1,7 @@
 package controllers
 
 import (
-    "fmt"
+    //"fmt"
     "strconv"
     "strings"
     "sync"
@@ -103,10 +103,15 @@ type TaobaoShopDetailController struct {
 
 
 func (this *TaobaoShopDetailController) Get() {
-    sid, err := strconv.Atoi(this.Ctx.Params[":sid"])
-    fmt.Println("xxxxxxxxxxxxxxxxxxx")
+    sid, err := this.GetInt("sid")
     if err != nil {
-        fmt.Println(err, "=======xxxxxxxxxxxxx")
+        this.Abort("404")
+        return
+    }
+    c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+    shop := models.ShopItem{}
+    err = c.Find(bson.M{"shop_info.sid": sid}).One(&shop)
+    if err != nil || shop.ShopInfo == nil {
         this.Abort("404")
         return
     }
@@ -114,7 +119,7 @@ func (this *TaobaoShopDetailController) Get() {
     if perr != nil {
         page = 1
     }
-    c := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    c = MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
     results := make([]models.TaobaoItem, 0)
     err = c.Find(bson.M{"sid" : sid}).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
     if err != nil {
@@ -122,11 +127,35 @@ func (this *TaobaoShopDetailController) Get() {
         return
     }
     total, _ := c.Find(bson.M{"sid" : sid}).Count()
-    fmt.Println("total", total)
-    this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, NumInOnePage, this.Input())
+    this.Data["Shop"] = shop
+    params := this.Ctx.Request.URL.Query()
+    this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, NumInOnePage, params)
     this.Data["ItemList"] = results
     this.Layout = DefaultLayoutFile
     this.TplNames = "taobao_shop_detail.tpl"
+}
+
+type TaobaoItemDetailController struct {
+    SchedulerController
+}
+
+
+func (this *TaobaoItemDetailController) Get() {
+    num_iid, err := this.GetInt("id")
+    if err != nil {
+        this.Abort("404")
+        return
+    }
+    c := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    result := models.TaobaoItem{}
+    err = c.Find(bson.M{"num_iid" : num_iid }).One(&result)
+    if err != nil {
+        this.Abort("500")
+        return
+    }
+    this.Data["Item"] = result
+    this.Layout = DefaultLayoutFile
+    this.TplNames = "taobao_item_detail.tpl"
 }
 
 type CrawlerApiController struct {

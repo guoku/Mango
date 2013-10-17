@@ -11,7 +11,7 @@
         <th>Status</th>
         {{ range .ShopList }}
         <tr>
-            <td><a href="/scheduler/shop_detail/taobao/{{ .ShopInfo.Sid }}">{{ .ShopInfo.Nick }}</a></td>
+            <td><a href="/scheduler/shop_detail/taobao/?sid={{ .ShopInfo.Sid }}">{{ .ShopInfo.Nick }}</a></td>
             <td>{{ .ShopInfo.Title }} </td>
             <td>{{ .Status }}</td>
         </tr>

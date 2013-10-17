@@ -5,12 +5,18 @@ import (
     "github.com/jason-zou/taobaosdk/rest"
 )
 
+type CrawlerInfo struct {
+    Priority int `bson:"priority"`
+    Cycle int   `bson:"cycle"`
+}
+
 type ShopItem struct {
 	ShopInfo        *rest.Shop   `bson:"shop_info"`
 	Status          string      `bson:"status"`
 	CreatedTime     time.Time   `bson:"created_time"`
 	LastUpdatedTime time.Time   `bson:"last_updated_time"`
 	LastCrawledTime time.Time   `bson:"last_crawled_time"`
+    CrawlerInfo *CrawlerInfo    `bson:"crawler_info"`
 }
 
 type CrawlerData struct {

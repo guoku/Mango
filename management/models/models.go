@@ -1,7 +1,7 @@
 package models
 
 import (
-    "fmt"
+    //"fmt"
     "time"
 )
 
@@ -115,7 +115,6 @@ func (this *Tab) IsPassword() bool {
 }
 
 func (this *Tab) IsScheduler() bool {
-    fmt.Println("fniwnfiwneifnweifiweno")
     return this.TabName == "Scheduler"
 }
 
