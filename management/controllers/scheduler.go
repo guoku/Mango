@@ -97,6 +97,7 @@ func addShopItem(shopInfo *rest.Shop) bool {
 	result.LastUpdatedTime = time.Now()
 	result.Status = "queued"
     result.CrawlerInfo = &models.CrawlerInfo{Priority:10, Cycle:720}
+    result.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type : "unknown", Orientational : false, CommissionRate : -1}
 	err := c.Insert(&result)
 	if err != nil {
 		return false
@@ -272,7 +273,7 @@ type UpdateTaobaoShopController struct {
 }
 
 func (this *UpdateTaobaoShopController) Post() {
-    sid, _ := this.GetInt("sid") 
+    sid, _ := this.GetInt("sid")
     priority, _ := this.GetInt("priority")
     cycle, _ := this.GetInt("cycle")
     shop_type := this.GetString("shoptype")
