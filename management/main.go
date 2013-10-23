@@ -14,22 +14,22 @@ import (
 )
 
 func init() {
-    /*
-	var env string
-	flag.StringVar(&env, "env", "debug", "program environment")
-	flag.Parse()
-	if env != "prod" && env != "staging" && env != "debug" {
-		panic(errors.New("Wrong Environment Flag Value. Should be 'debug', 'staging' or 'prod'"))
-	}
-	beego.AppConfigPath = fmt.Sprintf("conf/%s.conf", env)
-    */
+	/*
+		var env string
+		flag.StringVar(&env, "env", "debug", "program environment")
+		flag.Parse()
+		if env != "prod" && env != "staging" && env != "debug" {
+			panic(errors.New("Wrong Environment Flag Value. Should be 'debug', 'staging' or 'prod'"))
+		}
+		beego.AppConfigPath = fmt.Sprintf("conf/%s.conf", env)
+	*/
 	beego.ParseConfig()
 	mysqlUser := beego.AppConfig.String("mysqluser")
 	mysqlPass := beego.AppConfig.String("mysqlpass")
 	mysqlProtocol := beego.AppConfig.String("mysqlprotocol")
 	mysqlHost := beego.AppConfig.String("mysqlhost")
 	mysqlPort := beego.AppConfig.String("mysqlport")
-    mongoHost := beego.AppConfig.String("mongohost")
+	mongoHost := beego.AppConfig.String("mongohost")
 	orm.RegisterDriver("mysql", orm.DR_MySQL)
 	orm.RegisterDataBase("default", "mysql", fmt.Sprintf("%s%s@%s(%s%s)/guokuer?charset=utf8", mysqlUser, mysqlPass, mysqlProtocol, mysqlHost, mysqlPort), 30)
 	//orm.RegisterDataBase("default", "mysql", "root@unix(/tmp/mysql.sock)/guokuer?charset=utf8", 30)
@@ -43,19 +43,19 @@ func init() {
 
 	orm.RunCommand()
 	//orm.Debug = true
-	beego.UseHttps, _ = beego.AppConfig.Bool("usehttps")
-	beego.CertFile = "server.crt"
-	beego.KeyFile = "server.key"
+	beego.HttpTLS, _ = beego.AppConfig.Bool("usehttps")
+	beego.HttpCertFile = "server.crt"
+	beego.HttpKeyFile = "server.key"
 	beego.SessionOn = true
 	beego.SessionProvider = "redis"
 	beego.SessionSavePath = beego.AppConfig.String("redispath")
-    //beego.UseFcgi = true
-    session, err := mgo.Dial(mongoHost)
-    if err != nil {
-        panic(err)
-    }
-    controllers.MgoSession = session
-    controllers.MgoDbName = beego.AppConfig.String("mongodbname")
+	//beego.UseFcgi = true
+	session, err := mgo.Dial(mongoHost)
+	if err != nil {
+		panic(err)
+	}
+	controllers.MgoSession = session
+	controllers.MgoDbName = beego.AppConfig.String("mongodbname")
 }
 
 func main() {
@@ -72,6 +72,7 @@ func main() {
 	beego.Router("/edit_pass_permission/:id([0-9]+)", &controllers.EditPassPermissionController{})
 	beego.Router("/scheduler/list_shops", &controllers.ShopListController{})
 	beego.Router("/scheduler/shop_detail/taobao/", &controllers.TaobaoShopDetailController{})
+	beego.Router("/scheduler/update_taobaoshop_info", &controllers.UpdateTaobaoShopController{})
 	beego.Router("/scheduler/item_detail/taobao/", &controllers.TaobaoItemDetailController{})
 	beego.Router("/scheduler/add_shop", &controllers.AddShopController{})
 	beego.Router("/scheduler/api/add_shop", &controllers.AddShopFromApiController{})

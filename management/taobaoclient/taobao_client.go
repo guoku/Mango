@@ -6,7 +6,7 @@ import (
     "github.com/jason-zou/taobaosdk/rest"
 )
 
-var GUOKU_MOBI_APP_INFO taobaosdk.AppInfo = taobaosdk.AppInfo{"12313170", "90797bd8d5859aac971f8cc9d4e51105"}
+var GUOKU_MOBI_APP_INFO taobaosdk.AppInfo = taobaosdk.AppInfo{"21419640", "df91464ae934bacca326450f8ade67f7"}
 
 func GetTaobaoShopInfo(nick string) (*rest.Shop, *taobaosdk.TopError) {
     r := rest.ShopGetRequest{}

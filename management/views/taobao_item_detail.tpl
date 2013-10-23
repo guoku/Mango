@@ -2,14 +2,19 @@
 
 <div class="container-fluid">
     <div class="span10">
+        {{ if .Item.ApiDataReady }}
         <h3><a href="{{.Item.ApiData.DetailUrl}}">{{ .Item.ApiData.Title }}</a></h3>
+        {{ else }}
+        <h3>Data Not Ready</h3>
+        {{ end }}
         <div class="span8">
             <h3>API Data</h3>
             <table class="table table-bordered table-striped">
                 <tr>
                     <td>NumIid</td>
-                    <td>{{.Item.ApiData.NumIid }} </td>
+                    <td><a href="http://item.taobao.com/item.html?id={{.Item.NumIid }}">{{.Item.NumIid}} </a> </td>
                 </tr>
+                {{ if .Item.ApiDataReady }}
                 <tr>
                     <td>Shop</td>
                     <td><a href="http://shop{{.Sid}}.taobao.com">{{.Item.ApiData.Nick}}</a></td>
@@ -50,6 +55,9 @@
                     <td>Desc</td>
                     <td>{{ str2html .Item.ApiData.Desc}}</td>
                 </tr>
+                {{ else }}
+                <tr> <td>Data Not Ready </td>  <td>Data Not Ready </td> </tr>
+                {{ end }}
 
             </table>
         </div>

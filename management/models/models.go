@@ -1,8 +1,8 @@
 package models
 
 import (
-    //"fmt"
-    "time"
+	//"fmt"
+	"time"
 )
 
 // User definition
@@ -75,15 +75,15 @@ type PasswordPermission struct {
 }
 
 func (this *PasswordPermission) CanRead() bool {
-    return this.Level >= CanRead
+	return this.Level >= CanRead
 }
 
 func (this *PasswordPermission) CanUpdate() bool {
-    return this.Level >= CanUpdate
+	return this.Level >= CanUpdate
 }
 
 func (this *PasswordPermission) CanManage() bool {
-    return this.Level >= CanManage
+	return this.Level >= CanManage
 }
 
 func (this *PasswordPermission) TableUnique() [][]string {
@@ -93,28 +93,27 @@ func (this *PasswordPermission) TableUnique() [][]string {
 }
 
 type MPKey struct {
-	Id  int `orm:"auto"`
+	Id      int `orm:"auto"`
 	DataKey string
 }
 
 type MPApiToken struct {
-    Id int `orm:"auto"`
-    Token string 
+	Id    int `orm:"auto"`
+	Token string
 }
 
 type Tab struct {
-    TabName string
+	TabName string
 }
 
 func (this *Tab) IsIndex() bool {
-    return this.TabName == "Index"
+	return this.TabName == "Index"
 }
 
 func (this *Tab) IsPassword() bool {
-    return this.TabName == "Password"
+	return this.TabName == "Password"
 }
 
 func (this *Tab) IsScheduler() bool {
-    return this.TabName == "Scheduler"
+	return this.TabName == "Scheduler"
 }
-

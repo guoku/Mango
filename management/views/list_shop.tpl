@@ -5,6 +5,10 @@
         <input type="text" class="input-medium search-query" name="shop_name">
         <button type="submit" class="btn">添加店铺昵称</button>
     </form>   
+    <form class="well form-search" method="GET" action="/scheduler/list_shops">
+        <input type="text" class="input-medium search-query" name="nick">
+        <button type="submit" class="btn">查找店铺昵称</button>
+    </form>   
     <table class="table table-bordered table-striped">
         <th>Name</th>
         <th>Title</th>

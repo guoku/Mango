@@ -17,6 +17,7 @@ import (
 var MgoSession *mgo.Session
 var dbName string
 
+const NUM_EVERY_TIME = 100000
 func init() {
     var env string
     flag.StringVar(&env, "env", "test", "program environment")
@@ -48,8 +49,13 @@ func getApiData(c *mgo.Collection, numIid int) {
     itemInfo, topErr := taobaoclient.GetTaobaoItemInfo(numIid)
     if topErr != nil {
         fmt.Println(topErr.Error())
-        if topErr.SubCode == "isv.item-get-service-error:ITEM_NOT_FOUND" || topErr.SubCode == "isv.item-is-delete:invalid-numIid" {
-           c.RemoveAll(bson.M{"num_iid" : numIid})
+        if topErr.SubCode == "isv.item-get-service-error:ITEM_NOT_FOUND" || topErr.SubCode == "isv.item-is-delete:invalid-numIid-or-iid" {
+            fmt.Println("remove")
+            info, err := c.RemoveAll(bson.M{"num_iid" : numIid})
+            fmt.Println(info)
+            if err != nil {
+                fmt.Println(err.Error())
+            }
         }
         return
     }
@@ -64,7 +70,7 @@ func getApiData(c *mgo.Collection, numIid int) {
 func scanTaobaoItems() {
     c := MgoSession.DB(dbName).C("raw_taobao_items_depot")
     results := make([]models.TaobaoItem, 0)
-    err := c.Find(bson.M{"api_data_ready" : false}).All(&results)
+    err := c.Find(bson.M{"api_data_ready" : false}).Limit(NUM_EVERY_TIME).All(&results)
     if err != nil {
         panic(err)
     }
@@ -77,6 +83,6 @@ func scanTaobaoItems() {
 func main() {
     for {
         scanTaobaoItems()
-        time.Sleep(5 * time.Minute)
+        time.Sleep(1 * time.Minute)
     }
 }
