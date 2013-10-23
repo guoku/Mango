@@ -1,8 +1,11 @@
+go build -o scheduler -x scheduler.go
 go build -o management -x main.go
 go build -o api_crawler -x apicrawler/api_crawler.go
+
 mkdir upload
 cp management upload
 cp api_crawler upload
+cp scheduler upload
 cp -r conf upload
 cp -r views upload
 cp -r static upload

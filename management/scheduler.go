@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Mango/management/revision"
+	"Mango/management/jobs"
 	"flag"
 	"fmt"
 )
@@ -14,10 +14,10 @@ func main() {
 
 	if *change {
 		fmt.Println((*change))
-		go revision.Run_statu_revision()
+		go jobs.Run_statu_revision()
 	}
 	if *update {
-		go revision.Update_statu()
+		go jobs.Update_statu()
 	}
 	select {}
 
