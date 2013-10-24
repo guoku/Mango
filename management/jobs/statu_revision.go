@@ -43,7 +43,7 @@ func change() {
 		diff := now.Sub(lastupdatetime)
 		fmt.Println(diff.Hours())
 		if diff.Hours() > 3*24 {
-			c.Update(bson.M{"_id": shop.ObjectId}, bson.M{"$set": bson.M{"status": "queued"}})
+			c.Update(bson.M{"sid": shop.ShopInfo.Sid}, bson.M{"$set": bson.M{"status": "queued"}})
 			log.Print("update one shop statu to queued")
 		}
 	}
@@ -62,5 +62,6 @@ func Run_statu_revision() {
 	}()
 	time.Sleep(time.Hour * 24 * 3)
 	ticker.Stop()
+
 	log.Print("now the change status(crawling to queued) jop is over")
 }

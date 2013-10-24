@@ -31,7 +31,7 @@ func update() {
 		diff := now.Sub(lastupdatetime)
 		cycle := shop.CrawlerInfo.Cycle
 		if diff.Hours() > float64(cycle) {
-			c.Update(bson.M{"_id": shop.ObjectId}, bson.M{"$set": bson.M{"status": "queued"}})
+			c.Update(bson.M{"shop_info.sid": shop.ShopInfo.Sid}, bson.M{"$set": bson.M{"status": "queued"}})
 			log.Print("update one shop statu to queued")
 		}
 	}
