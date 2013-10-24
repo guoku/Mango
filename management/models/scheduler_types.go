@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/jason-zou/taobaosdk/rest"
+	"labix.org/v2/mgo/bson"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type TaobaoShopExtendedInfo struct {
 }
 
 type ShopItem struct {
+	ObjectId        bson.ObjectId           "_id"
 	ShopInfo        *rest.Shop              `bson:"shop_info"`
 	Status          string                  `bson:"status"`
 	CreatedTime     time.Time               `bson:"created_time"`

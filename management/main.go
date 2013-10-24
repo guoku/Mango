@@ -40,7 +40,6 @@ func init() {
 	orm.RegisterModel(new(models.PasswordPermission))
 	orm.RegisterModel(new(models.MPKey))
 	orm.RegisterModel(new(models.MPApiToken))
-
 	orm.RunCommand()
 	//orm.Debug = true
 	beego.HttpTLS, _ = beego.AppConfig.Bool("usehttps")
