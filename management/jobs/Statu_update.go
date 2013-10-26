@@ -21,7 +21,7 @@ func update() {
 		panic(err)
 	}
 	defer session.Close()
-	c := session.DB("test").C("taobao_shops_depot")
+	c := session.DB("mango").C("taobao_shops_depot")
 	shops := make([]models.ShopItem, 100)
 	//c.Update(bson.M{"status":"crawling"},bson.M{"$set":bson.M{"status":"queued"})
 	c.Find(bson.M{"status": "finished"}).All(&shops)
