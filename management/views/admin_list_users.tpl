@@ -19,7 +19,7 @@
             {{ range .Users}}
             <tr>
                 <td>{{.Id}}</td>
-                <td>{{.Name}}</td>
+                <td><a href="/admin_view?id={{.Id}}">{{.Name}}</a></td>
                 <td>{{.Nickname}}</td>
                 <td>{{.Email}}</td>
                 <td>{{.Profile.Mobile}}</td>

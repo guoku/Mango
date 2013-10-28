@@ -33,7 +33,7 @@ func init() {
 
 func change() {
 	defer MgoSession.Close()
-	c := MgoSession.DB("test").C("taobao_shops_depot")
+	c := MgoSession.DB("mango").C("taobao_shops_depot")
 	shops := make([]models.ShopItem, 100)
 	//c.Update(bson.M{"status":"crawling"},bson.M{"$set":bson.M{"status":"queued"})
 	c.Find(bson.M{"status": "crawling"}).All(&shops)
@@ -43,7 +43,7 @@ func change() {
 		diff := now.Sub(lastupdatetime)
 		fmt.Println(diff.Hours())
 		if diff.Hours() > 3*24 {
-			c.Update(bson.M{"_id": shop.ObjectId}, bson.M{"$set": bson.M{"status": "queued"}})
+			c.Update(bson.M{"shop_info.sid": shop.ShopInfo.Sid}, bson.M{"$set": bson.M{"status": "queued"}})
 			log.Print("update one shop statu to queued")
 		}
 	}
@@ -62,5 +62,6 @@ func Run_statu_revision() {
 	}()
 	time.Sleep(time.Hour * 24 * 3)
 	ticker.Stop()
+
 	log.Print("now the change status(crawling to queued) jop is over")
 }

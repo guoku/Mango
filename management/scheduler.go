@@ -14,6 +14,7 @@ func main() {
 
 	if *change {
 		fmt.Println((*change))
+
 		go jobs.Run_statu_revision()
 	}
 	if *update {

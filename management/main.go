@@ -25,6 +25,7 @@ func init() {
 	*/
 	beego.ParseConfig()
 	mysqlUser := beego.AppConfig.String("mysqluser")
+
 	mysqlPass := beego.AppConfig.String("mysqlpass")
 	mysqlProtocol := beego.AppConfig.String("mysqlprotocol")
 	mysqlHost := beego.AppConfig.String("mysqlhost")
@@ -65,6 +66,7 @@ func main() {
 	beego.Router("/logout", &controllers.LogoutController{})
 	beego.Router("/invite", &controllers.InviteController{})
 	beego.Router("/list_pass", &controllers.ListPassController{})
+	beego.Router("/admin_view", &controllers.AdminPermissionController{})
 	beego.Router("/add_pass", &controllers.AddPassController{})
 	beego.Router("/edit_pass/:id([0-9]+)", &controllers.EditPassController{})
 	beego.Router("/delete_pass/:id([0-9]+)", &controllers.DeletePassController{})

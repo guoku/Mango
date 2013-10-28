@@ -50,8 +50,122 @@ func (this *AdminSessionController) Prepare() {
 	this.UserSessionController.Prepare()
 	user := this.Data["User"].(*models.User)
 	if !user.IsAdmin {
+		fmt.Println("not admin")
 		this.Redirect("/list_users", 301)
+	} else {
+		//admins have their own view which lists permission
+		fmt.Println("is admin")
+		this.Redirect("/admins_view", 301)
 	}
+}
+
+type AdminPermissionController struct {
+	UserSessionController
+}
+
+type UserData struct {
+	Id            int
+	Name          string
+	Perm_password bool
+	Perm_crawler  bool
+	Perm_product  bool
+}
+
+func (this *AdminPermissionController) Post() {
+
+	flash := beego.NewFlash()
+	rForm := UserData{}
+	if err := this.ParseForm(&rForm); err != nil {
+		this.Ctx.WriteString("Error!")
+		return
+	}
+
+	valid := validation.Validation{}
+	b, vErr := valid.Valid(rForm)
+	if vErr != nil {
+		this.Ctx.WriteString("Error!")
+		return
+	}
+
+	if !b {
+		for _, e := range valid.Errors {
+			flash.Error(fmt.Sprintf("%s %s", e.Key, e.Message))
+			flash.Store(&this.Controller)
+			this.Ctx.WriteString("have some err")
+			//this.Redirect("/register?token="+rForm.Token, 302)
+			break
+		}
+		return
+	}
+
+	o := orm.NewOrm()
+	var permissions []*models.Permission
+	perm := models.Permission{}
+
+	if rForm.Perm_password == true {
+
+		p := models.Permission{}
+		o.QueryTable(&perm).Filter("ContentTypeId", 1).One(&p)
+		permissions = append(permissions, &p)
+	}
+	if rForm.Perm_crawler == true {
+		p := models.Permission{}
+		o.QueryTable(&perm).Filter("ContentTypeId", 2).One(&p)
+		permissions = append(permissions, &p)
+	}
+	if rForm.Perm_product == true {
+		p := models.Permission{}
+		o.QueryTable(&perm).Filter("ContentTypeId", 3).One(&p)
+		permissions = append(permissions, &p)
+	}
+	user := models.User{Id: rForm.Id}
+
+	if o.Read(&user) == nil && len(permissions) > 0 {
+
+		m2m := o.QueryM2M(&user, "Permissions")
+		for _, temp := range permissions {
+			if !m2m.Exist(temp) {
+
+				m2m.Add(temp)
+			}
+		}
+
+	}
+
+	this.Redirect("/list_users", 302)
+	return
+
+}
+func (this *AdminPermissionController) Get() {
+	id, _ := this.GetInt("id")
+	var target models.User
+	user := models.User{}
+	o := orm.NewOrm()
+	o.QueryTable(&user).Filter("id", id).One(&target)
+
+	ud := new(UserData)
+	ud.Id = target.Id
+	ud.Name = target.Name
+
+	permission := models.Permission{}
+	var pm []*models.Permission
+	o.QueryTable(&permission).Filter("Users__User__Id", target.Id).All(&pm)
+
+	for _, p := range pm {
+		if p.ContentTypeId == 1 {
+			ud.Perm_password = true
+		} else if p.ContentTypeId == 2 {
+			ud.Perm_crawler = true
+		} else {
+			ud.Perm_product = true
+		}
+	}
+
+	this.Data["UserData"] = &ud
+	this.Data["Tab"] = &models.Tab{TabName: "Admin"}
+
+	this.Layout = DefaultLayoutFile
+	this.TplNames = "admin_view.tpl"
 }
 
 type IndexController struct {
@@ -167,7 +281,21 @@ type ListUsersController struct {
 	UserSessionController
 }
 
+func (this *ListUsersController) Prepare() {
+
+	this.UserSessionController.Prepare()
+	user := this.Data["User"].(*models.User)
+	this.Layout = DefaultLayoutFile
+
+	if !user.IsAdmin {
+		this.TplNames = "list_users.tpl"
+	} else {
+		this.TplNames = "admin_list_users.tpl"
+	}
+}
+
 func (this *ListUsersController) Get() {
+	fmt.Println(this.GetSession("is_admin"))
 	var users []*models.User
 	user := models.User{}
 	o := orm.NewOrm()
@@ -179,8 +307,7 @@ func (this *ListUsersController) Get() {
 	}
 	this.Data["Users"] = &users
 	this.Data["Tab"] = &models.Tab{TabName: "Index"}
-	this.Layout = DefaultLayoutFile
-	this.TplNames = "list_users.tpl"
+
 }
 
 type LoginController struct {
@@ -190,6 +317,7 @@ type LoginController struct {
 func (this *LoginController) Get() {
 	v := this.GetSession("user_id")
 	if v != nil {
+
 		this.Redirect("/list_users", 302)
 		return
 	}
@@ -211,6 +339,8 @@ func (this *LoginController) Post() {
 		o.QueryTable(&additional).Filter("user_id", user.Id).One(&additional)
 		if user.Password == utils.EncryptPassword(password, additional.Salt) {
 			this.SetSession("user_id", int(user.Id))
+			fmt.Println(user.IsAdmin)
+			this.SetSession("is_admin", user.IsAdmin)
 			this.Redirect("/list_users", 302)
 			return
 		}
