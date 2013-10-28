@@ -2,7 +2,6 @@ package models
 
 import (
 	"github.com/jason-zou/taobaosdk/rest"
-	"labix.org/v2/mgo/bson"
 	"time"
 )
 
@@ -18,7 +17,6 @@ type TaobaoShopExtendedInfo struct {
 }
 
 type ShopItem struct {
-	ObjectId        bson.ObjectId           "_id"
 	ShopInfo        *rest.Shop              `bson:"shop_info"`
 	Status          string                  `bson:"status"`
 	CreatedTime     time.Time               `bson:"created_time"`
@@ -33,6 +31,12 @@ type CrawlerData struct {
 	Volume int `bson:"volume"`
 }
 
+type ScoreInfo struct {
+    Likes int `bson:"likes"`
+    IsSelection bool `bson:"is_selection"`
+    UpdatedTime time.Time `bson:"updated_time"`
+}
+
 type TaobaoItem struct {
 	Sid                    int          `bson:"sid"`
 	NumIid                 int          `bson:"num_iid"`
@@ -42,4 +46,7 @@ type TaobaoItem struct {
 	ApiData                *rest.Item   `bson:"api_data"`
 	CrawlerData            *CrawlerData `bson:"crawler_data"`
 	CreatedTime            time.Time    `bson:"created_time"`
+    ScoreInfo              *ScoreInfo   `bson:"score_info"`
+    Score                  float64      `bson:"score"`
+    ScoreUpdatedTime       time.Time    `bson:"score_updated_time"`
 }

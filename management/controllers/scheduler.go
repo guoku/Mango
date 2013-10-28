@@ -76,10 +76,13 @@ func (this *AddShopController) Post() {
 	shopName := this.GetString("shop_name")
 	shopInfo, topErr := taobaoclient.GetTaobaoShopInfo(shopName)
 	if topErr != nil {
+        fmt.Println(topErr.Error())
 		this.Redirect("/scheduler/list_shops", 301)
 		return
 	}
+    fmt.Println("aaaa")
 	addShopItem(shopInfo)
+    fmt.Println("aaab")
 	this.Redirect("/scheduler/list_shops", 302)
 }
 

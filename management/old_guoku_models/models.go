@@ -1,5 +1,9 @@
 package old_guoku_models
 
+import (
+    "time"
+)
+
 type AuthUser struct{
 }
 
@@ -12,12 +16,14 @@ type BaseEntity struct {
 }
 
 type BaseItem struct {
+    Id int `orm:"auto;index"`
     Source string
     Entity *BaseEntity `orm:"rel(fk)"`
     Weigth int
 }
 
 type BaseTaobaoItem struct {
+    Id int `orm:"auto;index"`
     TaobaoId string
     TaobaoCategoryId int
     Item *BaseItem `orm:"rel(fk)"`
@@ -26,8 +32,9 @@ type BaseTaobaoItem struct {
 }
 
 type GuokuEntityLike struct {
-   EntityId int
-   UserId int
-   CreatedTime time.Time 
+    Id int `orm:"auto;index"`
+    EntityId int
+    UserId int
+    CreatedTime time.Time 
 }
 

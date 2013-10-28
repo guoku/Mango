@@ -1,4 +1,4 @@
-package controllers
+.(string)package controllers
 
 import (
 	"fmt"
