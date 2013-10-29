@@ -67,6 +67,7 @@ func main() {
 	beego.Router("/invite", &controllers.InviteController{})
 	beego.Router("/list_pass", &controllers.ListPassController{})
 	beego.Router("/admin_view", &controllers.AdminPermissionController{})
+	beego.Router("/user_profile", &controllers.UserProfileController{})
 	beego.Router("/add_pass", &controllers.AddPassController{})
 	beego.Router("/edit_pass/:id([0-9]+)", &controllers.EditPassController{})
 	beego.Router("/delete_pass/:id([0-9]+)", &controllers.DeletePassController{})

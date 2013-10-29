@@ -295,7 +295,7 @@ func (this *ListUsersController) Prepare() {
 }
 
 func (this *ListUsersController) Get() {
-	fmt.Println(this.GetSession("is_admin"))
+
 	var users []*models.User
 	user := models.User{}
 	o := orm.NewOrm()
@@ -308,6 +308,94 @@ func (this *ListUsersController) Get() {
 	this.Data["Users"] = &users
 	this.Data["Tab"] = &models.Tab{TabName: "Index"}
 
+}
+
+type UserProfileController struct {
+	UserSessionController
+}
+
+/*
+个人信息的展示和修改
+*/
+func (this *UserProfileController) Get() {
+	this.UserSessionController.Prepare()
+	user := this.Data["User"].(*models.User)
+	o := orm.NewOrm()
+	permission := models.Permission{}
+	var pm []*models.Permission
+	o.QueryTable(&permission).Filter("Users__User__Id", user.Id).All(&pm)
+
+	user.Permissions = pm
+	var profile models.UserProfile
+	err := o.QueryTable("user_profile").Filter("User__Id", user.Id).One(&profile)
+	if err == nil {
+		user.Profile = &profile
+	}
+	option := "<option id=\"selected\" selected=\"selected\" >" + profile.Department + "</option>"
+	//fmt.Print(option)
+	this.Data["Option"] = option
+	this.Data["User"] = &user
+	this.Data["Tab"] = &models.Tab{TabName: "Profile"}
+
+	this.Layout = DefaultLayoutFile
+	this.TplNames = "user_profile.tpl"
+}
+
+type User_Profile struct {
+	Name       string
+	Nickname   string
+	Mobile     string
+	Department string
+}
+
+func (this *UserProfileController) Post() {
+	//密码修改此处不涉及
+	flash := beego.NewFlash()
+	rForm := User_Profile{}
+	if err := this.ParseForm(&rForm); err != nil {
+		this.Ctx.WriteString("Error!")
+		return
+	}
+
+	valid := validation.Validation{}
+	b, vErr := valid.Valid(rForm)
+	if vErr != nil {
+		this.Ctx.WriteString("Error!")
+		return
+	}
+
+	if !b {
+		for _, e := range valid.Errors {
+			flash.Error(fmt.Sprintf("%s %s", e.Key, e.Message))
+			flash.Store(&this.Controller)
+			this.Ctx.WriteString("have some err")
+			//this.Redirect("/register?token="+rForm.Token, 302)
+			break
+		}
+		return
+	}
+
+	o := orm.NewOrm()
+	this.UserSessionController.Prepare()
+	var user *models.User = this.Data["User"].(*models.User)
+
+	var profile models.UserProfile
+	o.QueryTable("user_profile").Filter("User__Id", user.Id).One(&profile)
+	profile.Mobile = rForm.Mobile
+	profile.Department = rForm.Department
+	if o.Read(&profile) == nil {
+		o.Update(&profile)
+	}
+
+	user.Name = rForm.Name
+	user.Nickname = rForm.Nickname
+	if o.Read(user) == nil {
+		o.Update(user)
+
+	}
+
+	this.Redirect("/list_users", 302)
+	return
 }
 
 type LoginController struct {

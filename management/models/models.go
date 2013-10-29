@@ -117,3 +117,7 @@ func (this *Tab) IsPassword() bool {
 func (this *Tab) IsScheduler() bool {
 	return this.TabName == "Scheduler"
 }
+
+func (this *Tab) IsProfile() bool {
+	return this.TabName == "Profile"
+}
