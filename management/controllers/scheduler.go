@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"fmt"
 	"Mango/management/models"
 	"Mango/management/models/apiresponse"
 	"Mango/management/taobaoclient"
+	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"github.com/jason-zou/taobaosdk/rest"
@@ -22,6 +22,7 @@ var shopLock sync.Mutex
 var itemLock sync.Mutex
 var Priorities = [10]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 var TaobaoShopTypes = [3]string{"unknown", "tmall", "global"}
+
 const SchedulerCodeName = "manage_crawler"
 const NumInOnePage = 50
 
@@ -76,13 +77,13 @@ func (this *AddShopController) Post() {
 	shopName := this.GetString("shop_name")
 	shopInfo, topErr := taobaoclient.GetTaobaoShopInfo(shopName)
 	if topErr != nil {
-        fmt.Println(topErr.Error())
+		fmt.Println(topErr.Error())
 		this.Redirect("/scheduler/list_shops", 301)
 		return
 	}
-    fmt.Println("aaaa")
+	fmt.Println("aaaa")
 	addShopItem(shopInfo)
-    fmt.Println("aaab")
+	fmt.Println("aaab")
 	this.Redirect("/scheduler/list_shops", 302)
 }
 
@@ -99,8 +100,8 @@ func addShopItem(shopInfo *rest.Shop) bool {
 	result.CreatedTime = time.Now()
 	result.LastUpdatedTime = time.Now()
 	result.Status = "queued"
-    result.CrawlerInfo = &models.CrawlerInfo{Priority:10, Cycle:720}
-    result.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type : "unknown", Orientational : false, CommissionRate : -1}
+	result.CrawlerInfo = &models.CrawlerInfo{Priority: 10, Cycle: 720}
+	result.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type: "unknown", Orientational: false, CommissionRate: -1}
 	err := c.Insert(&result)
 	if err != nil {
 		return false
@@ -140,8 +141,8 @@ func (this *TaobaoShopDetailController) Get() {
 	this.Data["Shop"] = shop
 	this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, NumInOnePage, this.Input())
 	this.Data["ItemList"] = results
-    this.Data["Priorities"] = Priorities
-    this.Data["TaobaoShopTypes"] = TaobaoShopTypes
+	this.Data["Priorities"] = Priorities
+	this.Data["TaobaoShopTypes"] = TaobaoShopTypes
 	this.Layout = DefaultLayoutFile
 	this.TplNames = "taobao_shop_detail.tpl"
 }
@@ -234,18 +235,20 @@ func (this *SendItemsController) Post() {
 	sid, _ := strconv.Atoi(this.GetString("sid"))
 	itemsString := this.GetString("item_ids")
 	itemIds := strings.Split(itemsString, ",")
-    for _, v := range itemIds {
+	for _, v := range itemIds {
 		numIid, err := strconv.Atoi(v)
 		if err != nil {
 			continue
 		}
 		addTaobaoItem(sid, numIid)
 	}
-    finish, _ := this.GetInt("finish")
-    if finish == 1 {
-        c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
-        c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set" : bson.M{"status" : "finished"}})
-    }
+	finish, _ := this.GetInt("finish")
+	if finish == 1 {
+		c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+		c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"status": "finished"}})
+		t := MgoSession.DB("test").C("status")
+		t.Update(bson.M{"_id": 1}, bson.M{"$set": bson.M{"timestamp": time.Now()}})
+	}
 	this.Data["json"] = map[string]string{"status": "succeeded"}
 	this.ServeJson()
 }
@@ -272,23 +275,23 @@ func (this *GetShopFromQueueController) Get() {
 }
 
 type UpdateTaobaoShopController struct {
-    SchedulerController
+	SchedulerController
 }
 
 func (this *UpdateTaobaoShopController) Post() {
-    sid, _ := this.GetInt("sid")
-    priority, _ := this.GetInt("priority")
-    cycle, _ := this.GetInt("cycle")
-    shop_type := this.GetString("shoptype")
-    orientational, _ := this.GetBool("orientational")
-    commission_rate, _ := this.GetFloat("commission_rate")
-    extended_info := &models.TaobaoShopExtendedInfo{Type : shop_type, Orientational : orientational, CommissionRate : float32(commission_rate)}
-    crawler_info := &models.CrawlerInfo{Priority: int(priority), Cycle : int(cycle)}
+	sid, _ := this.GetInt("sid")
+	priority, _ := this.GetInt("priority")
+	cycle, _ := this.GetInt("cycle")
+	shop_type := this.GetString("shoptype")
+	orientational, _ := this.GetBool("orientational")
+	commission_rate, _ := this.GetFloat("commission_rate")
+	extended_info := &models.TaobaoShopExtendedInfo{Type: shop_type, Orientational: orientational, CommissionRate: float32(commission_rate)}
+	crawler_info := &models.CrawlerInfo{Priority: int(priority), Cycle: int(cycle)}
 	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
-	err := c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set" : bson.M{"extended_info" : extended_info, "crawler_info" : crawler_info}})
+	err := c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"extended_info": extended_info, "crawler_info": crawler_info}})
 	if err != nil {
 		this.Abort("404")
 		return
 	}
-    this.Redirect(fmt.Sprintf("/scheduler/shop_detail/taobao/?sid=%d", sid), 301)
+	this.Redirect(fmt.Sprintf("/scheduler/shop_detail/taobao/?sid=%d", sid), 301)
 }
