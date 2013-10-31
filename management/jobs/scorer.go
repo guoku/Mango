@@ -2,6 +2,7 @@ package main
 
 import (
     "fmt"
+    "math"
     "strconv"
     "time"
 
@@ -84,7 +85,7 @@ func getTaobaoShopScoreInfo() {
     c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
     ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
     results := make([]models.ShopItem, 0)
-    c.Find(nil).Select(bson.M{"shop_info.nick": 1}).All(&results)
+    c.Find(nil).Select(bson.M{"shop_info.nick": 1, "shop_info.sid" : 1}).All(&results)
     o := orm.NewOrm()
     for _, record := range results {
         fmt.Println("sid:" , record.ShopInfo.Sid, record.ShopInfo.Nick)
@@ -93,6 +94,7 @@ func getTaobaoShopScoreInfo() {
         o.QueryTable("base_taobao_item").Filter("shop_nick", nick).All(&items)
         totalLikes := 0
         totalSelections := 0
+        tbItems := make([]models.TaobaoItem, 0)
         for _, item := range items {
             entity := &old_guoku_models.BaseEntity{}
             err := o.QueryTable("base_entity").Filter("BaseItem__BaseTaobaoItem__TaobaoId", item.TaobaoId).One(entity)
@@ -118,20 +120,61 @@ func getTaobaoShopScoreInfo() {
                 totalSelections += 1
             }
             scoreInfo.UpdatedTime =  time.Now()
+            taobaoItem.ScoreInfo = &scoreInfo
+            tbItems = append(tbItems, taobaoItem)
             ic.Update(bson.M{"num_iid" : tNumIid},
                       bson.M{"$set" : bson.M{"score_info":&scoreInfo}})
             totalLikes += count
+
         }
         fmt.Println("total:", totalLikes, totalSelections)
         err := c.Update(bson.M{"shop_info.sid": record.ShopInfo.Sid}, bson.M{"$set": bson.M{"score_info.total_likes" : totalLikes,
-                                                  "score_info.total_selections" : totalSelections, "score_info.updated_time" : time.Now()}})
+                                                  "score_info.total_selections" : totalSelections, 
+                                                  "score_info.total_items" : len(items),
+                                                  "score_info.updated_time" : time.Now()}})
         if err != nil {
             fmt.Println(err.Error())
         }
+        shopScore := math.Log(float64(1 + totalLikes + 20.0 * totalSelections + 10.0 * totalLikes / (1 + totalSelections)))
+        for _, item := range tbItems {
+            score := float64(item.ScoreInfo.Likes * 10.0)
+            if item.ScoreInfo.IsSelection {
+                score = score * 1.1
+            }
+            score = (1 + math.Log(score + 1) * math.Log(score + 1)) * ( 1 + shopScore)
+            fmt.Println(score)
+            ic.Update(bson.M{"num_iid" : item.NumIid}, bson.M{"$set" : bson.M{"score": score, "score_updated_time" : time.Now()}})
+        }
+
     }
 }
 
 func calculateScore() {
+    c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+    shops := make([]models.ShopItem, 0)
+    c.Find(nil).All(&shops)
+    ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    for _, shop := range shops {
+        items := make([]models.TaobaoItem, 0)
+        ic.Find(bson.M{"sid" : shop.ShopInfo.Sid}).All(&items)
+        totalLikes := shop.ScoreInfo.TotalLikes
+        totalSelections := shop.ScoreInfo.TotalSelections
+        shopScore := math.Log(float64(1 + totalLikes + 20.0 * totalSelections + 10.0 * totalLikes / (1 + totalSelections)))
+        for _, item := range items {
+            var score float64
+            if item.ScoreInfo == nil {
+                item.ScoreInfo = &models.ScoreInfo{Likes : 0, IsSelection:false, UpdatedTime:time.Now()}
+                ic.Update(bson.M{"num_iid" : item.NumIid}, bson.M{"$set" : bson.M{"score_info": item.ScoreInfo}})
+            }
+            score = float64(item.ScoreInfo.Likes * 10.0)
+            if item.ScoreInfo.IsSelection {
+                score = score * 1.1
+            }
+            score = (1 + math.Log(score + 1) * math.Log(score + 1)) * ( 1 + shopScore)
+            fmt.Println(score)
+            ic.Update(bson.M{"num_iid" : item.NumIid}, bson.M{"$set" : bson.M{"score": score, "score_updated_time" : time.Now()}})
+        }
+    }
 }
 
 func main() {
@@ -142,7 +185,7 @@ func main() {
    }
    */
     //go getTaobaoItemLikes()
-    getTaobaoShopScoreInfo()
-
+    //getTaobaoShopScoreInfo()
+    calculateScore()
 }
 

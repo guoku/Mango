@@ -1,6 +1,8 @@
 go build -o scheduler -x scheduler.go
 go build -o management -x main.go
 go build -o api_crawler -x apicrawler/api_crawler.go
+go build -o jobs/scorer -x jobs/scorer.go
+go build -o jobs/get_cats -x jobs/get_taobao_cats.go
 
 mkdir upload
 cp management upload

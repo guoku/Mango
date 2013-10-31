@@ -23,7 +23,7 @@ var itemLock sync.Mutex
 var Priorities = [10]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 var TaobaoShopTypes = [3]string{"unknown", "tmall", "global"}
 const SchedulerCodeName = "manage_crawler"
-const NumInOnePage = 100
+const NumInOnePage = 50
 
 type SchedulerController struct {
 	UserSessionController
@@ -257,7 +257,7 @@ type GetShopFromQueueController struct {
 func (this *GetShopFromQueueController) Get() {
 	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
 	result := models.ShopItem{}
-	c.Find(bson.M{"status": "queued"}).Sort("crawler_info.priority").One(&result)
+	c.Find(bson.M{"status": "queued"}).Sort("crawler_info.priority", "last_crawled_time").One(&result)
 	if result.ShopInfo == nil {
 		this.Ctx.WriteString("0")
 		return

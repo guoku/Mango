@@ -41,3 +41,24 @@ func GetTaobaoItemInfo(numIid int) (*rest.Item, *taobaosdk.TopError) {
     }
     return resp.Item, topErr
 }
+
+
+func GetItemCatsInfo(parentCid int) ([]*rest.ItemCat, *taobaosdk.TopError) {
+    r := rest.ItemCatsGetRequest{}
+    r.SetAppInfo(GUOKU_MOBI_APP_INFO.AppKey,
+                 GUOKU_MOBI_APP_INFO.Secret)
+    r.SetParentCid(parentCid)
+    r.SetFields("features,attr_key,attr_value,cid,parent_cid,name,is_parent,status,sort_order")
+    resp, progErr, topErr := r.GetResponse()
+    if progErr != nil {
+        fmt.Println(progErr.Error())
+        return nil, topErr
+    }
+    if topErr != nil || resp == nil {
+        return nil, topErr
+    }
+    for _, v := range resp.ItemCats.ItemCatArray {
+        fmt.Println(v.Cid)
+    }
+    return resp.ItemCats.ItemCatArray, topErr
+}
