@@ -59,10 +59,27 @@ type TaobaoItem struct {
     ScoreUpdatedTime       time.Time    `bson:"score_updated_time"`
 }
 
-
 type TaobaoItemCat struct {
     Id  bson.ObjectId   `bson:"_id"`
     ItemCat *rest.ItemCat `bson:"item_cat"`
     ItemNum int `bson:"item_num"`
+    MatchedGuokuCid int `bson:"matched_guoku_cid"`
     UpdatedTime time.Time  `bson:"updated_time"`
+}
+
+type GuokuCat struct {
+    CategoryId int `json:"category_id" bson:"category_id"`
+    IconSmall string `json:"category_icon_small" bson:"icon_small"`
+    Title string `json:"category_title" bson:"title"`
+    IconLarge string `json:"category_icon_large" bson:"icon_large"`
+    GroupId int `json:"-" bson:"group_id"`
+    MatchedTaobaoCats []*TaobaoItemCat `json:"-" bson:"-"`
+}
+
+type GuokuCatGroup struct {
+    Status int `json:"status" bson:"status"`
+    Content []*GuokuCat `json:"content" bson:"-"`
+    CategoryCount int `json:"category_count" bson:"category_count"`
+    GroupId int `json:"group_id" bson:"group_id"`
+    Title string `json:"title" bson:"title"`
 }

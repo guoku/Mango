@@ -2,6 +2,7 @@
 
 <div class="container-fluid">
     <div class="span10">
+        <a href="/commodity/category_manage/">类目管理</a>
         <form class="well form-search" method="GET" action="/commodity/category/">
             <input type="text" class="input-medium search-query" name="q">
             <button type="submit" class="btn">搜索类目</button>

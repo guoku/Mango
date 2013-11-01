@@ -1,7 +1,10 @@
 package controllers
 
 import (
+    "encoding/json"
     "fmt"
+    "io/ioutil"
+    "net/http"
 	"Mango/management/models"
 	//"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -119,6 +122,60 @@ type CategoryManageController struct {
 }
 
 func (this *CategoryManageController) Get() {
-    //gc := MgoSession.DB(MgoDbName).C("guoku_cats")
-    //guokuCats := make([]models.GuokuCat, 0)
+    update := this.GetString("update")
+    gc := MgoSession.DB(MgoDbName).C("guoku_cats")
+    cc := MgoSession.DB(MgoDbName).C("taobao_cats")
+    gcg := MgoSession.DB(MgoDbName).C("guoku_cat_groups")
+    if update == "" {
+        guokuCats := make([]models.GuokuCat, 0)
+        gc.Find(nil).All(&guokuCats)
+        for i, _ := range guokuCats {
+            cc.Find(bson.M{"matched_guoku_cid" : guokuCats[i].CategoryId}).All(&guokuCats[i].MatchedTaobaoCats)
+        }
+        this.Data["GuokuCats"] = guokuCats
+        this.Layout = DefaultLayoutFile
+        this.TplNames = "categories_manage.tpl"
+    } else {
+        resp, err := http.Get("http://api.guoku.com:10080/management/category/sync/")
+        if err != nil {
+            fmt.Println(err.Error())
+            this.Redirect("/commodity/category_manage", 301)
+            return
+        }
+        body, err := ioutil.ReadAll(resp.Body)
+        if err != nil {
+            fmt.Println(err.Error())
+            this.Redirect("/commodity/category_manage", 301)
+            return
+        }
+        guokuCatsGroups := make([]models.GuokuCatGroup, 0)
+        err = json.Unmarshal(body, &guokuCatsGroups)
+        if err != nil {
+            fmt.Println(err.Error())
+            this.Redirect("/commodity/category_manage", 301)
+            return
+        }
+        gcg.RemoveAll(nil)
+        gc.RemoveAll(nil)
+        for _, v := range guokuCatsGroups {
+            gcg.Insert(&v)
+            for _, c := range v.Content {
+                c.GroupId = v.GroupId
+                gc.Insert(&c)
+            }
+        }
+        this.Redirect("/commodity/category_manage", 301)
+    }
+}
+
+type AddMatchedCategoryController struct {
+    CommodityController
+}
+
+func (this *AddMatchedCategoryController) Post() {
+    gcid, _ := this.GetInt("guoku_cid")
+    tcid, _ := this.GetInt("taobao_cid")
+    cc := MgoSession.DB(MgoDbName).C("taobao_cats")
+    cc.Update(bson.M{"item_cat.cid" : tcid}, bson.M{"$set" : bson.M{"matched_guoku_cid" : gcid}})
+    this.Redirect("/commodity/category_manage", 301)
 }
