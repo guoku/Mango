@@ -119,6 +119,6 @@ type CategoryManageController struct {
 }
 
 func (this *CategoryManageController) Get() {
-    gc := MgoSession.DB(MgoDbName).C("guoku_cats")
-    guokuCats := make([]models.GuokuCat, 0)
+    //gc := MgoSession.DB(MgoDbName).C("guoku_cats")
+    //guokuCats := make([]models.GuokuCat, 0)
 }

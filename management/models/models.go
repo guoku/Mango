@@ -121,3 +121,7 @@ func (this *Tab) IsScheduler() bool {
 func (this *Tab) IsCommodity() bool {
 	return this.TabName == "Commodity"
 }
+
+func (this *Tab) IsProfile() bool {
+	return this.TabName == "Profile"
+}

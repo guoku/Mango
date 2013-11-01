@@ -26,7 +26,7 @@ func update() {
 	//c.Update(bson.M{"status":"crawling"},bson.M{"$set":bson.M{"status":"queued"})
 	c.Find(bson.M{"status": "finished"}).All(&shops)
 	for _, shop := range shops {
-		lastupdatetime := shop.LastUpdatedTime
+		lastupdatetime := shop.LastCrawledTime
 		now := time.Now()
 		diff := now.Sub(lastupdatetime)
 		cycle := shop.CrawlerInfo.Cycle
