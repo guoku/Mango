@@ -2,19 +2,36 @@
 
 <div class="container-fluid">
     <div class="span10">
+        <form class="well form-search" method="GET" action="/commodity/category/">
+            <input type="text" class="input-medium search-query" name="q">
+            <button type="submit" class="btn">搜索类目</button>
+        </form>   
+        
         <div class="span9">
             <ul class="breadcrumb">
-                <li><a href="/commodity/category">All</a></li>
+                <li><a href="/commodity/category/">All</a></li>
+                {{ if eq .IsSearch false }} 
                 {{ range .CatsPath }}
                 <li><span class="divider">/</span><a href="/commodity/category/?taobao_cid={{.ItemCat.Cid}}">{{.ItemCat.Name}}</a></li>
                 {{ end }}
+                {{ end }}
             </ul>
         </div>
+        {{ if .IsSearch }}
+        <div class="span9">
+            <ul class="breadcrumb">
+                {{ range .SearchCats }}
+                <li><a href="/commodity/category/?taobao_cid={{.ItemCat.Cid}}">{{.ItemCat.Name}}</a>(Cid:{{.ItemCat.Cid}})({{.ItemNum}})<span class="divider">.</span></li>
+                {{ end }}
+            </ul>
+        </div>
+        
+        {{ else }}
         {{ if .HasSubCats}}
         <div class="span9">
             <ul class="breadcrumb">
                 {{ range .DirectSubCats }}
-                <li><a href="/commodity/category/?taobao_cid={{.ItemCat.Cid}}">{{.ItemCat.Name}}({{.ItemNum}}) <span class="divider">.</span></a></li>
+                <li><a href="/commodity/category/?taobao_cid={{.ItemCat.Cid}}">{{.ItemCat.Name}}</a>(Cid:{{.ItemCat.Cid}})({{.ItemNum}}) <span class="divider">.</span></li>
                 {{ end }}
             </ul>
         </div>
@@ -49,6 +66,7 @@
                 {{ end }}
             </table>
         </div>
+        {{ end }}
     </div>
 </div>
 {{ template "paginator.tpl" .}}
