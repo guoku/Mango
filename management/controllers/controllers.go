@@ -64,62 +64,53 @@ type AdminPermissionController struct {
 }
 
 type UserData struct {
-	Id            int
-	Name          string
-	Perm_password bool
-	Perm_crawler  bool
-	Perm_product  bool
+	Id    int
+	Name  string
+	Perms []*Permdata
 }
 
 func (this *AdminPermissionController) Post() {
 
-	flash := beego.NewFlash()
-	rForm := UserData{}
-	if err := this.ParseForm(&rForm); err != nil {
-		this.Ctx.WriteString("Error!")
-		return
-	}
+	/*
+		o := orm.NewOrm()
+		var permissions []*models.Permission
+		perm := models.Permission{}
 
-	valid := validation.Validation{}
-	b, vErr := valid.Valid(rForm)
-	if vErr != nil {
-		this.Ctx.WriteString("Error!")
-		return
-	}
+		if rForm.Perm_password == true {
 
-	if !b {
-		for _, e := range valid.Errors {
-			flash.Error(fmt.Sprintf("%s %s", e.Key, e.Message))
-			flash.Store(&this.Controller)
-			this.Ctx.WriteString("have some err")
-			//this.Redirect("/register?token="+rForm.Token, 302)
-			break
+			p := models.Permission{}
+			o.QueryTable(&perm).Filter("ContentTypeId", 1).One(&p)
+			permissions = append(permissions, &p)
 		}
-		return
-	}
-
-	o := orm.NewOrm()
+		if rForm.Perm_crawler == true {
+			p := models.Permission{}
+			o.QueryTable(&perm).Filter("ContentTypeId", 2).One(&p)
+			permissions = append(permissions, &p)
+		}
+		if rForm.Perm_product == true {
+			p := models.Permission{}
+			o.QueryTable(&perm).Filter("ContentTypeId", 3).One(&p)
+			permissions = append(permissions, &p)
+		}
+		user := models.User{Id: rForm.Id}
+	*/
+	Id := this.Input().Get("Id")
+	Uid, _ := strconv.Atoi(Id)
+	Name := this.GetString("Name")
+	user := models.User{Id: Uid, Name: Name}
+	permission := models.Permission{}
 	var permissions []*models.Permission
-	perm := models.Permission{}
-
-	if rForm.Perm_password == true {
-
-		p := models.Permission{}
-		o.QueryTable(&perm).Filter("ContentTypeId", 1).One(&p)
-		permissions = append(permissions, &p)
+	var allpm []*models.Permission
+	o := orm.NewOrm()
+	o.QueryTable(&permission).All(&allpm)
+	for _, p := range allpm {
+		perm := this.GetString(p.Codename)
+		if perm == "on" {
+			pm := models.Permission{}
+			o.QueryTable(&permission).Filter("codename", p.Codename).One(&pm)
+			permissions = append(permissions, &pm)
+		}
 	}
-	if rForm.Perm_crawler == true {
-		p := models.Permission{}
-		o.QueryTable(&perm).Filter("ContentTypeId", 2).One(&p)
-		permissions = append(permissions, &p)
-	}
-	if rForm.Perm_product == true {
-		p := models.Permission{}
-		o.QueryTable(&perm).Filter("ContentTypeId", 3).One(&p)
-		permissions = append(permissions, &p)
-	}
-	user := models.User{Id: rForm.Id}
-
 	if o.Read(&user) == nil && len(permissions) > 0 {
 
 		m2m := o.QueryM2M(&user, "Permissions")
@@ -136,6 +127,13 @@ func (this *AdminPermissionController) Post() {
 	return
 
 }
+
+type Permdata struct {
+	PermName string
+	Hold     bool
+	Id       int
+}
+
 func (this *AdminPermissionController) Get() {
 	id, _ := this.GetInt("id")
 	var target models.User
@@ -146,20 +144,26 @@ func (this *AdminPermissionController) Get() {
 	ud := new(UserData)
 	ud.Id = target.Id
 	ud.Name = target.Name
-
 	permission := models.Permission{}
 	var pm []*models.Permission
 	o.QueryTable(&permission).Filter("Users__User__Id", target.Id).All(&pm)
-
+	var allpm []*models.Permission
+	o.QueryTable(&permission).All(&allpm)
+	var allPermData []*Permdata
+	for _, p := range allpm {
+		pd := new(Permdata)
+		pd.PermName = p.Codename
+		pd.Id = p.ContentTypeId
+		allPermData = append(allPermData, pd)
+	}
 	for _, p := range pm {
-		if p.ContentTypeId == 1 {
-			ud.Perm_password = true
-		} else if p.ContentTypeId == 2 {
-			ud.Perm_crawler = true
-		} else {
-			ud.Perm_product = true
+		for _, q := range allPermData {
+			if p.Codename == q.PermName {
+				q.Hold = true
+			}
 		}
 	}
+	ud.Perms = allPermData
 
 	this.Data["UserData"] = &ud
 	this.Data["Tab"] = &models.Tab{TabName: "Admin"}
