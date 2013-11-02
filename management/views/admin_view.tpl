@@ -10,9 +10,9 @@
             <tr>
                 <th>Id</th>
                 <th>Name</th>
-                <th>Manage password</th>
-                <th>Manage crawler</th>
-                <th>Manage product</th>
+				{{range .UserData.Perms}}
+					<th>{{.PermName}}</th>
+				{{ end }}
 
             </tr>
         </thead>
@@ -22,20 +22,12 @@
             <tr>
                 <td><input type="hidden" name="Id" value={{.UserData.Id}}>{{.UserData.Id}}</input></td>
                 <td><input type="hidden" name="Name" value={{.UserData.Name}}>{{.UserData.Name}}</input></td>
-				{{if .UserData.Perm_password}}
-					<td><input id="assword" type="checkbox" name="Perm_password" checked="true"/></td>
-				{{else}}
-					<td><input id="Password" type="checkbox" name="Perm_password"/></td>
-				{{end}}
-				{{if .UserData.Perm_crawler}}
-					<td><input id="Crawler" name="Perm_crawler" type="checkbox"  checked="true"/></td>
-				{{else}}
-					<td><input id="Crawler" name="Perm_crawler" type="checkbox"  /></td>
-				{{end}}
-				{{if .UserData.Perm_product}}
-					<td><input id="Product" name="Perm_product" type="checkbox"   checked="true"/></td>
-				{{else}}
-					<td><input id="Product" name="Perm_product" type="checkbox" /></td>
+				{{range .UserData.Perms}}
+					{{if .Hold}}
+						<td><input id="{{.Id}}" type="checkbox" name="{{.PermName}}" checked="true"/></td>
+					{{else}}
+						<td><input id="{{.Id}}" type="checkbox" name="{{.PermName}}"/></td>
+					{{end}}
 				{{end}}
 
 
