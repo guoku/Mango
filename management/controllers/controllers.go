@@ -46,20 +46,21 @@ type AdminSessionController struct {
 	UserSessionController
 }
 
-/*
+
 func (this *AdminSessionController) Prepare() {
 	this.UserSessionController.Prepare()
 	user := this.Data["User"].(*models.User)
 	if !user.IsAdmin {
 		fmt.Println("not admin")
 		this.Redirect("/list_users", 301)
-	} else {
+	} 
+    /*else {
 		//admins have their own view which lists permission
 		fmt.Println("is admin")
 		this.Redirect("/admins_view", 301)
-	}
+	}*/
 }
-*/
+
 type AdminPermissionController struct {
 	UserSessionController
 }

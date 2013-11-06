@@ -36,7 +36,10 @@ func EncryptPassword(origin, salt string) string {
 }
 
 func GenerateRegisterUrl(token string) string {
-	return fmt.Sprintf("https://%s/register?token=%s", beego.AppConfig.String("apphost"), token)
+    if beego.HttpTLS { 
+	    return fmt.Sprintf("https://%s/register?token=%s", beego.AppConfig.String("apphost"), token)
+    }
+	return fmt.Sprintf("http://%s/register?token=%s", beego.AppConfig.String("apphost"), token)
 }
 
 func GenerateRegisterToken(emailAddr string) string {
