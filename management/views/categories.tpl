@@ -1,5 +1,4 @@
 {{ template "nav.tpl" .}}
-
 <div class="container-fluid">
     <div class="span10">
         <a href="/commodity/category_manage/">类目管理</a>
@@ -39,6 +38,7 @@
         {{end}}
         <div class="span9">
             <table class="table table-bordered table-striped">
+                <th>Select</th>
                 <th>Taobao ID</th>
                 <th>Image</th>
                 <th>Title</th>
@@ -47,6 +47,13 @@
                 <th>Score</th>
                 {{ range .Items }}
                 <tr>
+                    <td>
+                        {{ if eq .ItemId "" }}
+                        <input type="checkbox" class="mul_taobao_id" value="{{.NumIid}}">
+                        {{ else }}
+                        Uploaded
+                        {{ end }}
+                    </td>
                     <td><a href="/scheduler/item_detail/taobao/?id={{.NumIid}}">{{.NumIid}}</a></td>
                     {{ if .ApiDataReady }}
                         {{with index .ApiData.ItemImgs.ItemImgArray 0 }}
@@ -66,8 +73,37 @@
                 </tr>
                 {{ end }}
             </table>
+            <button id="add_items">Add Items</button>
         </div>
         {{ end }}
     </div>
 </div>
+<script>
+    $(document).ready(function () {
+        $("#add_items").click(function() {
+            var boxes = $(".mul_taobao_id")
+            var ids = []
+            boxes.each(function() {
+                if (this.checked) {
+                    ids.push($(this).attr("value"))
+                }
+            });
+            //alert(ids.join(","))
+            $.post("/commodity/add_online_items/",
+                    {
+                        taobao_ids:ids.join(","),
+                        cid: "{{.Cid}}"
+                    },
+                    function(data, status) {
+                        if (status == "success") {
+                            window.location.href=window.location.href;
+                        }
+                        else {
+                            alert(status)
+                        }
+                    });
+        });
+    });
+</script>
 {{ template "paginator.tpl" .}}
+

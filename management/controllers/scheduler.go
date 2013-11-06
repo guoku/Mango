@@ -271,7 +271,6 @@ func (this *GetShopFromQueueController) Get() {
 		this.Data["json"] = &shopResult
 	}
 	this.ServeJson()
-
 }
 
 type UpdateTaobaoShopController struct {

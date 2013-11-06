@@ -57,6 +57,7 @@ type TaobaoItem struct {
     ScoreInfo              *ScoreInfo   `bson:"score_info"`
     Score                  float64      `bson:"score"`
     ScoreUpdatedTime       time.Time    `bson:"score_updated_time"`
+    ItemId                 string       `bson:"item_id"`
 }
 
 type TaobaoItemCat struct {
