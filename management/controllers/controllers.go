@@ -46,6 +46,7 @@ type AdminSessionController struct {
 	UserSessionController
 }
 
+/*
 func (this *AdminSessionController) Prepare() {
 	this.UserSessionController.Prepare()
 	user := this.Data["User"].(*models.User)
@@ -58,7 +59,7 @@ func (this *AdminSessionController) Prepare() {
 		this.Redirect("/admins_view", 301)
 	}
 }
-
+*/
 type AdminPermissionController struct {
 	UserSessionController
 }
