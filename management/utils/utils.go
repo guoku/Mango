@@ -7,9 +7,10 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
     "encoding/hex"
+    "net/url"
 	"fmt"
+    "strconv"
 	"time"
-
 	"Mango/management/models"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
@@ -89,4 +90,20 @@ func NewRegisterMail(emailAddr, token string) *models.MangoMail {
 		HtmlVar:    fmt.Sprintf("<a href='%s'>点此进入</a>", url),
 	}
 	return m
+}
+
+func GetUploadItemParams(item *models.TaobaoItem, params *url.Values, matchedGuokuCid int) {
+        params.Add("taobao_id", strconv.Itoa(item.NumIid))
+        params.Add("cid", strconv.Itoa(item.ApiData.Cid))
+        params.Add("taobao_title", item.ApiData.Title)
+        params.Add("taobao_shop_nick", item.ApiData.Nick)
+        params.Add("taobao_price", fmt.Sprintf("%f", item.ApiData.Price))
+        itemImgs := item.ApiData.ItemImgs
+        if itemImgs != nil && len(itemImgs.ItemImgArray) > 0 {
+            params.Add("chief_image_url", itemImgs.ItemImgArray[0].Url)
+            for i, _ := range itemImgs.ItemImgArray {
+                params.Add("image_url", itemImgs.ItemImgArray[i].Url)
+            }
+        }
+        params.Add("category_id", strconv.Itoa(matchedGuokuCid))
 }

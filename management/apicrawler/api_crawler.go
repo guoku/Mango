@@ -4,6 +4,7 @@ import (
     "errors"
     "flag"
     "fmt"
+    "runtime"
     "time"
 
     "Mango/management/models"
@@ -17,6 +18,8 @@ import (
 var MgoSession *mgo.Session
 var dbName string
 
+const NUM_CPU = 4
+var channel = make(chan int, NUM_CPU)
 const NUM_EVERY_TIME = 100000
 func init() {
     var env string
@@ -46,6 +49,7 @@ func init() {
 }
 
 func getApiData(c *mgo.Collection, numIid int) {
+    channel <- 1
     itemInfo, topErr := taobaoclient.GetTaobaoItemInfo(numIid)
     if topErr != nil {
         fmt.Println(topErr.Error())
@@ -65,6 +69,7 @@ func getApiData(c *mgo.Collection, numIid int) {
     fmt.Println(numIid, itemInfo.Title)
     change := bson.M{"$set" : bson.M{"api_data" : *itemInfo, "api_data_ready" : true, "api_data_updated_time" : time.Now()}}
     c.Update(bson.M{"num_iid" : numIid, "api_data_ready" : false}, change)
+    <-channel
 }
 
 func scanTaobaoItems() {
@@ -76,11 +81,12 @@ func scanTaobaoItems() {
     }
     for _, record := range results {
         fmt.Println(record.Sid, record.NumIid)
-        getApiData(c, record.NumIid)
+        go getApiData(c, record.NumIid)
     }
 }
 
 func main() {
+    runtime.GOMAXPROCS(NUM_CPU)
     for {
         scanTaobaoItems()
         time.Sleep(1 * time.Minute)

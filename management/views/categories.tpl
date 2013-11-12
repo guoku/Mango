@@ -21,7 +21,7 @@
         <div class="span9">
             <ul class="breadcrumb">
                 {{ range .SearchCats }}
-                <li><a href="/commodity/category/?taobao_cid={{.ItemCat.Cid}}">{{.ItemCat.Name}}</a>(Cid:{{.ItemCat.Cid}})({{.ItemNum}})<span class="divider">.</span></li>
+                <li><a href="/commodity/category/?taobao_cid={{.ItemCat.Cid}}">{{.ItemCat.Name}}</a>(Cid:{{.ItemCat.Cid}})({{.ItemNum}})(精选:{{.SelectionNum}})<span class="divider">.</span></li>
                 {{ end }}
             </ul>
         </div>
@@ -31,7 +31,7 @@
         <div class="span9">
             <ul class="breadcrumb">
                 {{ range .DirectSubCats }}
-                <li><a href="/commodity/category/?taobao_cid={{.ItemCat.Cid}}">{{.ItemCat.Name}}</a>(Cid:{{.ItemCat.Cid}})({{.ItemNum}}) <span class="divider">.</span></li>
+                <li><a href="/commodity/category/?taobao_cid={{.ItemCat.Cid}}">{{.ItemCat.Name}}</a>(Cid:{{.ItemCat.Cid}})({{.ItemNum}})(精选:{{.SelectionNum}})<span class="divider">.</span></li>
                 {{ end }}
             </ul>
         </div>

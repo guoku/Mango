@@ -58,12 +58,14 @@ type TaobaoItem struct {
     Score                  float64      `bson:"score"`
     ScoreUpdatedTime       time.Time    `bson:"score_updated_time"`
     ItemId                 string       `bson:"item_id"`
+    Uploaded               bool         `bson:"uploaded"`
 }
 
 type TaobaoItemCat struct {
     Id  bson.ObjectId   `bson:"_id"`
     ItemCat *rest.ItemCat `bson:"item_cat"`
     ItemNum int `bson:"item_num"`
+    SelectionNum int `bson:"selection_num"`
     MatchedGuokuCid int `bson:"matched_guoku_cid"`
     UpdatedTime time.Time  `bson:"updated_time"`
 }

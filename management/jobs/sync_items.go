@@ -4,12 +4,14 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
+    "net/url"
     "io/ioutil"
     "strconv"
     "time"
     "labix.org/v2/mgo"
     "labix.org/v2/mgo/bson"
     "Mango/management/models"
+    "Mango/management/utils"
     "Mango/management/taobaoclient"
 )
 
@@ -37,12 +39,12 @@ func syncOnlineItems() {
     for {
         resp, err := http.Get(fmt.Sprintf("http://api.guoku.com:10080/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
         if err != nil {
-            time.Sleep(60)
+            time.Sleep(time.Minute)
             continue
         }
         body, err := ioutil.ReadAll(resp.Body)
         if err != nil {
-            time.Sleep(60)
+            time.Sleep(time.Minute)
             continue
         }
         r := make([]Response, 0)
@@ -74,7 +76,6 @@ func syncOnlineItems() {
                             fmt.Println("shop error", te.Error())
                             continue
                         }
-
                         shop.ShopInfo = ts
                         shop.CreatedTime = time.Now()
                         shop.LastUpdatedTime = time.Now()
@@ -110,14 +111,58 @@ func syncOnlineItems() {
     }
 }
 
-func uploadOfflineItems() {
-    
+type CreateItemsResp struct {
+    ItemId string `json:"item_id"`
+    EntityId string `json:"entity_id"`
+    Status string `json:"status"`
 }
+
+func uploadOfflineItems() {
+    cc := MgoSession.DB(MgoDbName).C("taobao_cats")
+    ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    readyCats := make([]models.TaobaoItemCat, 0)
+    cc.Find(bson.M{"matched_guoku_cid" :bson.M{"$gt" : 0}}).All(&readyCats)
+    for _, v := range readyCats {
+        fmt.Println("start", v.ItemCat.Cid)
+        items := make([]models.TaobaoItem, 0)
+        ic.Find(bson.M{"api_data.cid" : v.ItemCat.Cid, "uploaded" : false, "score" : bson.M{"$gt" : 3}}).All(&items)
+        fmt.Println("items length:", len(items))
+        for j := range items {
+            fmt.Println("deal with ", items[j].NumIid)
+            if !items[j].ApiDataReady {
+                continue
+            }
+            params := url.Values{}
+            utils.GetUploadItemParams(&items[j], &params, v.MatchedGuokuCid)
+            resp, err := http.PostForm("http://api.guoku.com:10080/management/entity/create/offline/", params)
+            if err != nil {
+                continue
+            }
+            body, _ := ioutil.ReadAll(resp.Body)
+            r := CreateItemsResp{}
+            json.Unmarshal(body, &r)
+            fmt.Println(r)
+            if r.Status == "success" {
+                ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set" : bson.M{"item_id" : r.ItemId, "uploaded" : true }})
+            }
+
+        }
+
+    }
+}
+
 func main() {
     go func() {
-        syncOnlineItems()
-        time.Sleep(60 * 60 * 2)
+        for {
+            syncOnlineItems()
+            time.Sleep(2 * time.Hour)
+        }
     }()
-    g
+    go func() {
+        for {
+            uploadOfflineItems() 
+            time.Sleep(time.Hour)
+        }
+    }()
     select {}
 }
