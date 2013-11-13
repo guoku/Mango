@@ -60,7 +60,7 @@ func getTaobaoCats() {
     }
 }
 
-func getCatsItemNum(parentCid int) int {
+func getCatsItemNum(parentCid int) (int, int) {
     fmt.Println("start", parentCid)
     c := MgoSession.DB(MgoDbName).C("taobao_cats")
     cats := make([]models.TaobaoItemCat, 0)
@@ -74,18 +74,26 @@ func getCatsItemNum(parentCid int) int {
     if err != nil {
         itemNum = 0
     }
+    selectionNum, err := ic.Find(bson.M{"api_data.cid" : parentCid, "score_info.is_selection" : true}).Count()
+    if err != nil {
+        selectionNum = 0
+    }
     for _, v := range cats {
         fmt.Println("son", v.ItemCat.Cid)
-        itemNum += getCatsItemNum(v.ItemCat.Cid)
-        
-        fmt.Println("after son", v.ItemCat.Cid, itemNum)
+        in, sn := getCatsItemNum(v.ItemCat.Cid)
+        itemNum += in
+        selectionNum += sn
+        fmt.Println("after son", v.ItemCat.Cid, itemNum, selectionNum)
     }
-    fmt.Println("p === ", parentCid, itemNum)
-    c.Update(bson.M{"item_cat.cid" : parentCid}, bson.M{"$set" : bson.M{"item_num" : itemNum}})
-    return itemNum
+    fmt.Println("p === ", parentCid, itemNum, selectionNum)
+    c.Update(bson.M{"item_cat.cid" : parentCid}, bson.M{"$set" : bson.M{"item_num" : itemNum, "selection_num" : selectionNum}})
+    return itemNum, selectionNum
 }
 
 func main() {
      //getTaobaoCats()
-     getCatsItemNum(0)
+     for {
+        getCatsItemNum(0)
+        time.Sleep(time.Hour * 12)
+     }
 }
