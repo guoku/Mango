@@ -222,16 +222,16 @@ func calculateScore() {
     shops := make([]models.ShopItem, 0)
     c.Find(nil).All(&shops)
     ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
-    for _, shop := range shops {
+    for i := range shops {
         items := make([]models.TaobaoItem, 0)
-        ic.Find(bson.M{"sid" : shop.ShopInfo.Sid, "score" : bson.M{"$eq" : 0}}).All(&items)
-        if shop.ScoreInfo == nil {
+        ic.Find(bson.M{"sid" : shops[i].ShopInfo.Sid, "score" : bson.M{"$eq" : 0}}).All(&items)
+        if shops[i].ScoreInfo == nil {
             fmt.Println("score info null")
-            getSingleTaobaoShopScoreInfo(&shop)
-            fmt.Println("after", shop.ScoreInfo.TotalLikes)
+            getSingleTaobaoShopScoreInfo(&shop[i])
+            fmt.Println("after", shops[i].ScoreInfo.TotalLikes)
         }
-        totalLikes := shop.ScoreInfo.TotalLikes
-        totalSelections := shop.ScoreInfo.TotalSelections
+        totalLikes := shops[i].ScoreInfo.TotalLikes
+        totalSelections := shops[i].ScoreInfo.TotalSelections
         shopScore := math.Log(float64(1 + totalLikes + 20.0 * totalSelections + 10.0 * totalLikes / (1 + totalSelections)))
         for _, item := range items {
             var score float64
@@ -244,7 +244,7 @@ func calculateScore() {
                 score = score * 1.1
             }
             score = (1 + math.Log(score + 1) * math.Log(score + 1)) * ( 1 + shopScore)
-            fmt.Println(score)
+            fmt.Println(item.NumIid, score)
             ic.Update(bson.M{"num_iid" : item.NumIid}, bson.M{"$set" : bson.M{"score": score, "score_updated_time" : time.Now()}})
         }
     }

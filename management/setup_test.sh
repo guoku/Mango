@@ -4,6 +4,7 @@ go build -o api_crawler -x apicrawler/api_crawler.go
 go build -o jobs/scorer -x jobs/scorer.go
 go build -o jobs/get_cats -x jobs/get_taobao_cats.go
 go build -o jobs/sync_items -x jobs/sync_items.go
+go build -o jobs/get_taobao_guoku_cats_match -x jobs/get_taobao_guoku_cats_match.go
 
 mkdir upload
 cp management upload

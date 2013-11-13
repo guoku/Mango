@@ -93,7 +93,7 @@ func getCatsItemNum(parentCid int) (int, int) {
 func main() {
      //getTaobaoCats()
      for {
-        getCatsItemNum(0)
+        fmt.Println("all:", getCatsItemNum(0))
         time.Sleep(time.Hour * 12)
      }
 }
