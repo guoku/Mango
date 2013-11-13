@@ -303,20 +303,61 @@ func (this *Crawler) MongoInsert() {
 		this.Parsed.Insert(data)
 	}
 }
-func main() {
-	crawler := new(Crawler)
-	crawler.Init()
-	for {
-		shopid, itemids := crawler.LoadItems()
-		if len(itemids) == 0 {
-			log.Println("There is no more data, and Sleep to wait")
-			time.Sleep(3600 * time.Second)
-		}
-		runtime.GOMAXPROCS(runtime.NumCPU())
-		go crawler.ParallelRequest(itemids, shopid)
-		fmt.Println("start to run")
-		<-crawler.NextChans
-		log.Printf("店铺 %s 已经爬取完毕，休息100秒", shopid)
-		time.Sleep(100 * time.Second)
+
+func (this *Crawler) FailedUpdate() (string, []string) {
+	//把failed库里面的商品再爬一遍，因为这些之前爬取失败了
+	var tmp *IDStruct
+	this.Failed.Find(nil).One(&tmp)
+	fmt.Println(tmp.Shopid, " get from failed shopid ")
+	var again []*IDStruct
+	this.Failed.Find(bson.M{"shopid": tmp.Shopid}).All(&again)
+	var itemids []string
+	for _, v := range again {
+		itemids = append(itemids, v.Itemid)
 	}
+
+	this.Failed.RemoveAll(bson.M{"shopid": tmp.Shopid})
+	return tmp.Shopid, itemids
+
+}
+func main() {
+	var mes chan bool = make(chan bool)
+
+	go func() {
+		failedCrawler := new(Crawler)
+		failedCrawler.Init()
+		for {
+			shopid, itemids := failedCrawler.FailedUpdate()
+
+			if len(itemids) == 0 {
+				log.Println("There is no more data, and Sleep to wait")
+				time.Sleep(3600 * time.Second)
+			}
+			runtime.GOMAXPROCS(runtime.NumCPU())
+			go failedCrawler.ParallelRequest(itemids, shopid)
+			fmt.Println("开始重新抓取之前抓取失败的商品")
+			<-failedCrawler.NextChans
+			log.Printf("店铺 %s 已经重新爬取完毕，休息100秒", shopid)
+			mes <- true
+		}
+	}()
+	go func() {
+		<-mes
+		crawler := new(Crawler)
+		crawler.Init()
+		for {
+			shopid, itemids := crawler.LoadItems()
+			if len(itemids) == 0 {
+				log.Println("There is no more data, and Sleep to wait")
+				time.Sleep(3600 * time.Second)
+			}
+			runtime.GOMAXPROCS(runtime.NumCPU())
+			go crawler.ParallelRequest(itemids, shopid)
+			fmt.Println("start to run")
+			<-crawler.NextChans
+			log.Printf("店铺 %s 已经爬取完毕，休息100秒", shopid)
+			time.Sleep(100 * time.Second)
+		}
+	}()
+	select {}
 }
