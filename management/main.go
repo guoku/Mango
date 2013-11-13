@@ -52,6 +52,7 @@ func init() {
 	//beego.UseFcgi = true
 	session, err := mgo.Dial(mongoHost)
 	if err != nil {
+        fmt.Println(err.Error())
 		panic(err)
 	}
 	controllers.MgoSession = session
