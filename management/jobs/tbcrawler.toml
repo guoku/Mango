@@ -1,5 +1,5 @@
 [mongodb]
-host = "localhost"
+host = "10.0.1.23"
 db = "zerg"
 collection = "minerals"
 parser = "parser"

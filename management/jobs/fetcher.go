@@ -17,18 +17,27 @@ import (
 	"time"
 )
 
+const (
+	FIRST  string = "first"
+	FAILED string = "failed"
+	UPDATE string = "update"
+)
+
+//保存failed的商品结构
 type IDStruct struct {
 	Itemid string
 	Shopid string
 	From   string
 }
 
+//保持爬虫成功的商品结构
 type DetailData struct {
 	Salescount int
 	Reviews    int
 	From       string
 	Shopid     string
 	Itemid     string
+	UpdateTime time.Time
 }
 type Crawler struct {
 	ExecChans   chan bool      //设置可同时运行多少个的通道
@@ -222,7 +231,7 @@ func (this *Crawler) Fetch(i int, itemid string, shopid string, flag bool) {
 		match := this.reReviews.FindStringSubmatch(string(nbody))
 		//	log.Println(match)
 		if len(match) == 0 {
-			log.Printf("item %d 没有提供评论数据，可能淘宝禁止了", itemid)
+			log.Printf("item %s 没有提供评论数据，可能淘宝禁止了", itemid)
 			ids := IDStruct{Itemid: itemid, Shopid: shopid, From: Type}
 			this.FailChans <- &ids
 			this.DoneChans <- isOk
@@ -241,7 +250,8 @@ func (this *Crawler) Fetch(i int, itemid string, shopid string, flag bool) {
 		return
 	}
 	log.Printf("商品:%s ,评价:%d,销量:%d", itemid, reviews, salescount)
-	detail := DetailData{From: Type, Reviews: reviews, Salescount: salescount, Shopid: shopid, Itemid: itemid}
+	now := time.Now()
+	detail := DetailData{From: Type, Reviews: reviews, Salescount: salescount, Shopid: shopid, Itemid: itemid, UpdateTime: now}
 	this.DetailChans <- &detail
 	defer nresp.Body.Close()
 	log.Printf("item  %d had fetched:%s", i, itemid)
@@ -288,8 +298,8 @@ func (this *Crawler) MongoUpdate(shopid string) {
 func (this *Crawler) FailedSave() {
 	i := 0
 	for data := range this.FailChans {
-		if i > 50 {
-			log.Println("错误页面超过50个，可能淘宝禁止了，先休眠5分钟")
+		if i > 200 {
+			log.Println("错误页面超过200个，可能淘宝禁止了，先休眠5分钟")
 			time.Sleep(5 * 60 * time.Second)
 			i = 0
 		}
@@ -316,47 +326,57 @@ func (this *Crawler) FailedUpdate() (string, []string) {
 		itemids = append(itemids, v.Itemid)
 	}
 
-	this.Failed.RemoveAll(bson.M{"shopid": tmp.Shopid})
+	change, err := this.Failed.RemoveAll(bson.M{"shopid": tmp.Shopid})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%d 条记录已经被删除了\n", change.Removed)
 	return tmp.Shopid, itemids
 
 }
+
+func (this *Crawler) Update() (string, []string) {
+	//定期更新已爬取过的商品数据
+	now = time.Now()
+	//一个星期更新一次
+	lastupdate := now.Add(-7 * 24 * time.Hours())
+	var tmp *DetailData
+	this.Parsed.Find(bson.M{"updatetime": {"$lte": lastupdate}}).One(&tmp)
+	var again []*DetailData
+	this.Parsed.Find(bson.M{"updatetime": {"$lte": lastupdate}, "shopid": tmp.Shopid}).All(&again)
+
+}
+
 func main() {
-	var mes chan bool = make(chan bool)
 
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	go func() {
-		failedCrawler := new(Crawler)
-		failedCrawler.Init()
-		for {
-			shopid, itemids := failedCrawler.FailedUpdate()
-
-			if len(itemids) == 0 {
-				log.Println("There is no more data, and Sleep to wait")
-				time.Sleep(3600 * time.Second)
-			}
-			runtime.GOMAXPROCS(runtime.NumCPU())
-			go failedCrawler.ParallelRequest(itemids, shopid)
-			fmt.Println("开始重新抓取之前抓取失败的商品")
-			<-failedCrawler.NextChans
-			log.Printf("店铺 %s 已经重新爬取完毕，休息100秒", shopid)
-			mes <- true
-		}
-	}()
-	go func() {
-		<-mes
 		crawler := new(Crawler)
 		crawler.Init()
 		for {
 			shopid, itemids := crawler.LoadItems()
 			if len(itemids) == 0 {
-				log.Println("There is no more data, and Sleep to wait")
-				time.Sleep(3600 * time.Second)
+				continue
 			}
-			runtime.GOMAXPROCS(runtime.NumCPU())
+
 			go crawler.ParallelRequest(itemids, shopid)
 			fmt.Println("start to run")
 			<-crawler.NextChans
 			log.Printf("店铺 %s 已经爬取完毕，休息100秒", shopid)
 			time.Sleep(100 * time.Second)
+			failedCrawler := new(Crawler)
+			failedCrawler.Init()
+
+			shopid, itemids = failedCrawler.FailedUpdate()
+			if len(itemids) == 0 {
+				runtime.Gosched()
+				continue
+			}
+			go failedCrawler.ParallelRequest(itemids, shopid)
+			fmt.Println("开始重新抓取之前抓取失败的商品")
+			<-failedCrawler.NextChans
+
+			time.Sleep(30 * time.Second)
 		}
 	}()
 	select {}

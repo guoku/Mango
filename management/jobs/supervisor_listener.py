@@ -6,7 +6,7 @@ from threading import Timer
 import time
 def detect():
 
-	con = Connection()
+	con = Connection(host="10.0.1.23")
 
 	db = con.test
 
@@ -24,7 +24,7 @@ def detect():
 
 	if deltasec > 1800:
 		#超过半个小时爬虫没有发送数据就让supervisor重启爬虫
-		s = xmlrpclib.Server("http://guoku:123456@10.0.1.23:9001/RPC2")
+		s = xmlrpclib.Server("http://guoku:123456@10.0.1.100:9001/RPC2")
 		#statuinfo = s.supervisor.getProcessInfo("node_crawler")
 		#state = statuinfo['statename']
 		#if state=='RUNNING':
