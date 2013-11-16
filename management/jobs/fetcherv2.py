@@ -47,7 +47,7 @@ class crawler:
         imgtags = imgtable.findChildren('img')
         for tag in imgtags:
             imgurl = tag['src']
-            imgurl = imgurl.replace('_70x70','_480x480')
+            imgurl = imgurl.replace('_70x70.jpg','')
             self.imgurls.append(imgurl)
 
         detail = soup.find_all('div',class_ = 'detail')[1]
