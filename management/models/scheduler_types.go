@@ -61,6 +61,38 @@ type TaobaoItem struct {
     Uploaded               bool         `bson:"uploaded"`
 }
 
+type TaobaoItemStd struct {
+    DetailUrl string `bson:"detail_url"`
+    NumIid  int  `bson:"num_iid"`
+    Title   string `bson:"title"`
+    Nick    string `bson:"nick"`
+    Desc    string `bson:"desc"`
+    Cid int   `bson:"cid"`
+    Sid int   `bson:"sid"`
+    Price float32 `bson:"price"`
+    Location *rest.Location `bson:"location"`
+    PromotionPrice float32 `bson:"promotion_price"`
+    ItemImgs []string `bson:"item_imgs"`
+    ShopType string `bson:"shop_type"`
+    ReviewsCount int `bson:"reviews_count"`
+    MonthlySalesVolume int  `bson:"monthly_sales_volume"`
+    Props map[string]string `bson:"props"`
+    CreatedTime   time.Time  `bson:"created_time"`
+    DataUpdatedTime time.Time `bson:"data_updated_time"`
+    ScoreInfo              *ScoreInfo   `bson:"score_info"`
+    Score                  float64      `bson:"score"`
+    ScoreUpdatedTime       time.Time    `bson:"score_updated_time"`
+    ItemId                 string       `bson:"item_id"`
+    InStock                bool         `bson:"in_stock"`
+    Uploaded               bool         `bson:"uploaded"`
+}
+
+type TaobaoProp struct {
+    TaobaoId int `bson:"taobao_id"`
+    Name    string `bson:"name"`
+    Type    string `bson:"type"`
+}
+
 type TaobaoItemCat struct {
     Id  bson.ObjectId   `bson:"_id"`
     ItemCat *rest.ItemCat `bson:"item_cat"`

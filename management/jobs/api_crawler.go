@@ -19,7 +19,7 @@ var MgoSession *mgo.Session
 var dbName string
 
 const NUM_CPU = 4
-var channel = make(chan int, NUM_CPU)
+var channel = make(chan int, 20)
 const NUM_EVERY_TIME = 5000
 func init() {
     var env string
@@ -40,7 +40,8 @@ func init() {
             panic(errors.New("Wrong Environment Flag Value. Should be 'debug', 'staging' or 'prod'"))
     }
     fmt.Println(mongoSetting.Get("host").(string), mongoSetting.Get("db").(string))
-    session, err := mgo.Dial(mongoSetting.Get("host").(string))
+    //session, err := mgo.Dial(mongoSetting.Get("host").(string))
+    session, err := mgo.Dial("10.0.1.23")
     if err != nil {
         panic(err)
     }
@@ -53,7 +54,9 @@ func getApiData(c *mgo.Collection, numIid int) {
     fmt.Println("getting data", numIid)
     if topErr != nil {
         fmt.Println(topErr.Error())
-        if topErr.SubCode == "isv.item-get-service-error:ITEM_NOT_FOUND" || topErr.SubCode == "isv.item-is-delete:invalid-numIid-or-iid" {
+        if topErr.SubCode == "isv.item-get-service-error:ITEM_NOT_FOUND" ||
+           topErr.SubCode == "isv.item-is-delete:invalid-numIid-or-iid" ||
+           topErr.SubCode == "isv.invalid-permission:get-item" {
             fmt.Println("remove")
             info, err := c.RemoveAll(bson.M{"num_iid" : numIid})
             fmt.Println(info)

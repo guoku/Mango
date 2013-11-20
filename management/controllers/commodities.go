@@ -24,6 +24,7 @@ func (this *CommodityController) Prepare() {
     this.UserSessionController.Prepare()
     user := this.Data["User"].(*models.User)
     this.Data["Tab"] = &models.Tab{TabName : "Commodity"}
+    fmt.Println("pre", this.Input())
     if !CheckPermission(user.Id, CommodityCodeName) {
         this.Abort("401")
         return
@@ -100,24 +101,24 @@ func (this *CategoryController) Get() {
             num = 1
         }
         p := int(num)
-        ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+        ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
         //subCids := getSubCats(cid)
         //subCids = append(subCids, cid)
         directSubCats := make([]models.TaobaoItemCat, 0)
         cc.Find(bson.M{"item_cat.parent_cid": cid}).Sort("-item_num").All(&directSubCats)
-        items := make([]models.TaobaoItem, 0)
-        var total int
+        items := make([]models.TaobaoItemStd, 0)
+        var total int = 0
             //ic.Find(bson.M{"api_data_ready" : true, "api_data.cid" : bson.M{"$in" : subCids}}).Sort("-score").Skip(int((p-1) * NumInOnePage)).Limit(int(NumInOnePage)).All(&items)
         if cid != 0 && !category.ItemCat.IsParent {
             //ic.Find(bson.M{"api_data.cid" : cid}).Sort("-score").Skip(int((p-1) * NumInOnePage)).Limit(int(NumInOnePage)).All(&items)
-            ic.Find(bson.M{"api_data.cid" : cid}).Sort("-score").Skip(int((p-1) * NumInOnePage)).Limit(int(NumInOnePage)).All(&items)
+            ic.Find(bson.M{"cid" : cid}).Sort("-score").Skip(int((p-1) * NumInOnePage)).Limit(int(NumInOnePage)).All(&items)
             /*m := bson.M{}
             ic.Find(bson.M{"api_data.cid" : cid, "api_data_ready" : true}).Sort("-score").Skip(int((p-1) * NumInOnePage)).Explain(m)
             fmt.Printf("Explain: %#v\n",m) */
         //ic.Find(bson.M{"api_data.cid" : cid, "api_data_ready" : true}).Skip(int((p-1) * NumInOnePage)).Limit(int(NumInOnePage)).All(&items)
             //total, _ = ic.Find(bson.M{"api_data_ready" : true, "api_data.cid" : bson.M{"$in" : subCids}}).Count()
+            total, _ = ic.Find(bson.M{"cid" : cid}).Count()
         }
-        total, _ = ic.Find(bson.M{"api_data.cid" : cid}).Count()
         paginator := models.NewSimplePaginator(p, total, NumInOnePage, this.Input())
         this.Data["Items"] = items
         this.Data["DirectSubCats"] = directSubCats
@@ -157,25 +158,25 @@ func (this *CreateOnlineItemsController) Post() {
         return
     }
 
-    ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
     for _, v := range taobaoIdArr {
         taobaoId, _ := strconv.Atoi(v)
-        item := models.TaobaoItem{}
+        item := models.TaobaoItemStd{}
         err := ic.Find(bson.M{"num_iid" : taobaoId}).One(&item)
         if err != nil {
             continue
         }
         params := url.Values{}
         params.Add("taobao_id", v)
-        params.Add("cid", strconv.Itoa(item.ApiData.Cid))
-        params.Add("taobao_title", item.ApiData.Title)
-        params.Add("taobao_shop_nick", item.ApiData.Nick)
-        params.Add("taobao_price", fmt.Sprintf("%f", item.ApiData.Price))
-        itemImgs := item.ApiData.ItemImgs
-        if itemImgs != nil && len(itemImgs.ItemImgArray) > 0 {
-            params.Add("chief_image_url", itemImgs.ItemImgArray[0].Url)
-            for i, _ := range itemImgs.ItemImgArray {
-                params.Add("image_url", itemImgs.ItemImgArray[i].Url)
+        params.Add("cid", strconv.Itoa(item.Cid))
+        params.Add("taobao_title", item.Title)
+        params.Add("taobao_shop_nick", item.Nick)
+        params.Add("taobao_price", fmt.Sprintf("%f", item.Price))
+        itemImgs := item.ItemImgs
+        if itemImgs != nil && len(itemImgs) > 0 {
+            params.Add("chief_image_url", itemImgs[0])
+            for i, _ := range itemImgs {
+                params.Add("image_url", itemImgs[i])
             }
         }
         params.Add("category_id", strconv.Itoa(taobaoCat.MatchedGuokuCid))
@@ -202,9 +203,11 @@ type CategoryManageController struct {
 
 func (this *CategoryManageController) Get() {
     update := this.GetString("update")
+    fmt.Println(this.Input())
     gc := MgoSession.DB(MgoDbName).C("guoku_cats")
     cc := MgoSession.DB(MgoDbName).C("taobao_cats")
     gcg := MgoSession.DB(MgoDbName).C("guoku_cat_groups")
+    fmt.Println("update", update)
     if update == "" {
         guokuCats := make([]models.GuokuCat, 0)
         gc.Find(nil).All(&guokuCats)
@@ -218,32 +221,38 @@ func (this *CategoryManageController) Get() {
         resp, err := http.Get("http://api.guoku.com:10080/management/category/sync/")
         if err != nil {
             fmt.Println(err.Error())
-            this.Redirect("/commodity/category_manage", 301)
+            this.Redirect("/commodity/category_manage", 302)
             return
         }
         body, err := ioutil.ReadAll(resp.Body)
         if err != nil {
             fmt.Println(err.Error())
-            this.Redirect("/commodity/category_manage", 301)
+            this.Redirect("/commodity/category_manage", 302)
             return
         }
         guokuCatsGroups := make([]models.GuokuCatGroup, 0)
         err = json.Unmarshal(body, &guokuCatsGroups)
         if err != nil {
             fmt.Println(err.Error())
-            this.Redirect("/commodity/category_manage", 301)
+            this.Redirect("/commodity/category_manage", 302)
             return
         }
         gcg.RemoveAll(nil)
         gc.RemoveAll(nil)
         for _, v := range guokuCatsGroups {
-            gcg.Insert(&v)
+            err = gcg.Insert(&v)
+            if err != nil {
+                fmt.Println(err)
+            }
             for _, c := range v.Content {
                 c.GroupId = v.GroupId
-                gc.Insert(&c)
+                err = gc.Insert(&c)
+                if err != nil {
+                    fmt.Println(err)
+                }
             }
         }
-        this.Redirect("/commodity/category_manage", 301)
+        this.Redirect("/commodity/category_manage", 302)
     }
 }
 
@@ -256,5 +265,5 @@ func (this *AddMatchedCategoryController) Post() {
     tcid, _ := this.GetInt("taobao_cid")
     cc := MgoSession.DB(MgoDbName).C("taobao_cats")
     cc.Update(bson.M{"item_cat.cid" : tcid}, bson.M{"$set" : bson.M{"matched_guoku_cid" : gcid}})
-    this.Redirect("/commodity/category_manage/", 301)
+    this.Redirect("/commodity/category_manage/", 302)
 }

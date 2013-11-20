@@ -30,7 +30,7 @@ func init() {
     MgoSession = session
 }
 
-func getLikes(c *mgo.Collection, item models.TaobaoItem) {
+func getLikes(c *mgo.Collection, item models.TaobaoItemStd) {
     o := orm.NewOrm()
     taobaoId := strconv.Itoa(item.NumIid)
     entity := &old_guoku_models.BaseEntity{}
@@ -66,8 +66,8 @@ func getTaobaoItemLikes() {
         }
     }
     for {
-        c := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot") 
-        results := make([]models.TaobaoItem, 0)
+        c := MgoSession.DB(MgoDbName).C("taobao_items_depot") 
+        results := make([]models.TaobaoItemStd, 0)
         err = c.Find(bson.M{"score_info.likes" : nil, "num_iid" : bson.M{"$in" : array}}).Limit(NUM_EVERY_TIME).All(&results)
         if err != nil {
             fmt.Println(err.Error())
@@ -83,14 +83,14 @@ func getTaobaoItemLikes() {
 
 func getSingleTaobaoShopScoreInfo(record *models.ShopItem) {
         c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
-        ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+        ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
         o := orm.NewOrm()
         nick := record.ShopInfo.Nick
         items := make([]old_guoku_models.BaseTaobaoItem, 0)
         o.QueryTable("base_taobao_item").Filter("shop_nick", nick).All(&items)
         totalLikes := 0
         totalSelections := 0
-        tbItems := make([]models.TaobaoItem, 0)
+        tbItems := make([]models.TaobaoItemStd, 0)
         for _, item := range items {
             entity := &old_guoku_models.BaseEntity{}
             err := o.QueryTable("base_entity").Filter("BaseItem__BaseTaobaoItem__TaobaoId", item.TaobaoId).One(entity)
@@ -100,7 +100,7 @@ func getSingleTaobaoShopScoreInfo(record *models.ShopItem) {
             }
             temp, _ := o.QueryTable("guoku_entity_like").Filter("EntityId", entity.Id).Count()
             count := int(temp)
-            taobaoItem := models.TaobaoItem{}
+            taobaoItem := models.TaobaoItemStd{}
             tNumIid, _ :=  strconv.Atoi(item.TaobaoId)
             ic.Find(bson.M{"num_iid" : tNumIid}).One(&taobaoItem)
             if taobaoItem.NumIid == 0 {
@@ -221,13 +221,14 @@ func calculateScore() {
     c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
     shops := make([]models.ShopItem, 0)
     c.Find(nil).All(&shops)
-    ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
     for i := range shops {
-        items := make([]models.TaobaoItem, 0)
+        fmt.Println("shop_name", shops[i].ShopInfo.Nick)
+        items := make([]models.TaobaoItemStd, 0)
         ic.Find(bson.M{"sid" : shops[i].ShopInfo.Sid, "score" : bson.M{"$eq" : 0}}).All(&items)
         if shops[i].ScoreInfo == nil {
             fmt.Println("score info null")
-            getSingleTaobaoShopScoreInfo(&shop[i])
+            getSingleTaobaoShopScoreInfo(&shops[i])
             fmt.Println("after", shops[i].ScoreInfo.TotalLikes)
         }
         totalLikes := shops[i].ScoreInfo.TotalLikes
@@ -247,6 +248,7 @@ func calculateScore() {
             fmt.Println(item.NumIid, score)
             ic.Update(bson.M{"num_iid" : item.NumIid}, bson.M{"$set" : bson.M{"score": score, "score_updated_time" : time.Now()}})
         }
+        fmt.Println("score ends")
     }
 }
 

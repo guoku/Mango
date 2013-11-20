@@ -92,17 +92,17 @@ func NewRegisterMail(emailAddr, token string) *models.MangoMail {
 	return m
 }
 
-func GetUploadItemParams(item *models.TaobaoItem, params *url.Values, matchedGuokuCid int) {
+func GetUploadItemParams(item *models.TaobaoItemStd, params *url.Values, matchedGuokuCid int) {
         params.Add("taobao_id", strconv.Itoa(item.NumIid))
-        params.Add("cid", strconv.Itoa(item.ApiData.Cid))
-        params.Add("taobao_title", item.ApiData.Title)
-        params.Add("taobao_shop_nick", item.ApiData.Nick)
-        params.Add("taobao_price", fmt.Sprintf("%f", item.ApiData.Price))
-        itemImgs := item.ApiData.ItemImgs
-        if itemImgs != nil && len(itemImgs.ItemImgArray) > 0 {
-            params.Add("chief_image_url", itemImgs.ItemImgArray[0].Url)
-            for i, _ := range itemImgs.ItemImgArray {
-                params.Add("image_url", itemImgs.ItemImgArray[i].Url)
+        params.Add("cid", strconv.Itoa(item.Cid))
+        params.Add("taobao_title", item.Title)
+        params.Add("taobao_shop_nick", item.Nick)
+        params.Add("taobao_price", fmt.Sprintf("%f", item.Price))
+        itemImgs := item.ItemImgs
+        if itemImgs != nil && len(itemImgs) > 0 {
+            params.Add("chief_image_url", itemImgs[0])
+            for i, _ := range itemImgs {
+                params.Add("image_url", itemImgs[i])
             }
         }
         params.Add("category_id", strconv.Itoa(matchedGuokuCid))

@@ -52,7 +52,7 @@ func (this *AdminSessionController) Prepare() {
 	user := this.Data["User"].(*models.User)
 	if !user.IsAdmin {
 		fmt.Println("not admin")
-		this.Redirect("/list_users", 301)
+		this.Redirect("/list_users", 302)
 	} 
     /*else {
 		//admins have their own view which lists permission

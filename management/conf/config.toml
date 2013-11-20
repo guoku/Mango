@@ -3,7 +3,7 @@
         host = "localhost"
         db = "test"
     [mongodb.test]
-        host = "localhost"
+        host = "10.0.1.23"
         db = "mango"
     [mongodb.staging]
         host = "localhost"

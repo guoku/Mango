@@ -2,10 +2,10 @@
 
 <div class="container-fluid">
     <div class="span10">
-        <form method="GET" action="/commodity/category_manage/">
-            <input type="hidden" name="update" value="true">
-            <button type="submit" class="btn">Update</button>
-        </form>
+        <a href="/commodity/category_manage/?update=1">
+            Update
+        </a>
+        
         <div class="span9">
             <table class="table table-bordered table-striped">
                 <th> Category ID </th>

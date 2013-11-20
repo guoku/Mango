@@ -188,7 +188,7 @@ func (this *EditPassController) Post() {
 	passInfo.Desc = passwordInfo.Desc
 	o := orm.NewOrm()
 	o.Update(passInfo)
-	this.Redirect("edit_pass", 301)
+	this.Redirect("/edit_pass", 302)
 }
 
 type DeletePassController struct {
@@ -205,7 +205,7 @@ func (this *DeletePassController) Get() {
 	}
 	o := orm.NewOrm()
 	o.Delete(passInfo)
-	this.Redirect("/list_pass", 301)
+	this.Redirect("/list_pass", 302)
 }
 
 type EditPassPermissionController struct {
@@ -248,7 +248,7 @@ func (this *EditPassPermissionController) Post() {
 	} else {
 		o.Update(permission)
 	}
-	this.Redirect(fmt.Sprintf("/edit_pass/%d", passInfo.Id), 301)
+	this.Redirect(fmt.Sprintf("/edit_pass/%d", passInfo.Id), 302)
 }
 
 func GetPassPermissionLevel(userId, passId int) int {

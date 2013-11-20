@@ -33,7 +33,7 @@ func init() {
 func syncOnlineItems() {
     count := 1000
     offset := 0
-    ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
     sc := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
     for {
         resp, err := http.Get(fmt.Sprintf("http://api.guoku.com:10080/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
@@ -57,7 +57,7 @@ func syncOnlineItems() {
         for _, v := range r {
             fmt.Println("taobao_id", v.TaobaoId)
             iid, _ := strconv.Atoi(v.TaobaoId)
-            item := models.TaobaoItem{}
+            item := models.TaobaoItemStd{}
             err := ic.Find(bson.M{"num_iid" : int(iid)}).One(&item)
             if err != nil && err.Error() == "not found" {
                 //fmt.Println("not found", iid)
@@ -121,12 +121,12 @@ type CreateItemsResp struct {
 
 func uploadOfflineItems() {
     cc := MgoSession.DB(MgoDbName).C("taobao_cats")
-    ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
     readyCats := make([]models.TaobaoItemCat, 0)
     cc.Find(bson.M{"matched_guoku_cid" :bson.M{"$gt" : 0}}).All(&readyCats)
     for _, v := range readyCats {
         fmt.Println("start", v.ItemCat.Cid)
-        items := make([]models.TaobaoItem, 0)
+        items := make([]models.TaobaoItemStd, 0)
         ic.Find(bson.M{"api_data.cid" : v.ItemCat.Cid, "uploaded" : false, "score" : bson.M{"$gt" : 2}}).All(&items)
         fmt.Println("items length:", len(items))
         for j := range items {
@@ -147,9 +147,15 @@ func uploadOfflineItems() {
             //fmt.Printf("%x", body)
             fmt.Println(r)
             if r.Status == "success" {
-                ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set" : bson.M{"item_id" : r.ItemId, "uploaded" : true }})
+                err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set" : bson.M{"item_id" : r.ItemId, "uploaded" : true }})
+                if err != nil {
+                    fmt.Println(err.Error())
+                }
             } else if r.ItemId != "" {
-                ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set" : bson.M{"item_id" : r.ItemId, "uploaded" : true }})
+                err =ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set" : bson.M{"item_id" : r.ItemId, "uploaded" : true }})
+                if err != nil {
+                    fmt.Println(err.Error())
+                }
             }
 
         }
