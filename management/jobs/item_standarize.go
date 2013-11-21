@@ -18,6 +18,7 @@ const NUM_EVERY_TIME = 50000
 var c *mgo.Collection
 var nc *mgo.Collection
 var pc *mgo.Collection
+var cpc *mgo.Collection
 func init() {
     session, err := mgo.Dial("10.0.1.23")
     if err != nil {
@@ -27,6 +28,7 @@ func init() {
     c = MgoSession.DB(dbName).C("raw_taobao_items_depot")
     nc = MgoSession.DB(dbName).C("taobao_items_depot")
     pc = MgoSession.DB(dbName).C("taobao_props")
+    cpc = MgoSession.DB(dbName).C("taobao_cat_props")
 }
 
 func extractProps(propsName string, props *map[string]string) {
@@ -126,6 +128,7 @@ func scanTaobaoItems() {
         }
     }
 }
+
 func convertItemImgs(item *models.TaobaoItem) {
     itemStd := models.TaobaoItemStd{}
     err := nc.Find(bson.M{"num_iid":item.NumIid}).One(&itemStd)
@@ -146,20 +149,16 @@ func convertItemImgs(item *models.TaobaoItem) {
 
 func scanTaobaoItemImgs() {
     for {
-        fmt.Println("start")
         results := make([]models.TaobaoItem, 0)
         err := c.Find(bson.M{"img_converted" : nil}).Limit(NUM_EVERY_TIME).All(&results)
-        fmt.Println("2")
         if err != nil {
             fmt.Println(err.Error())
             time.Sleep(time.Minute)
             continue
         }
-        fmt.Println("3")
         if len(results) == 0 {
             break
         }
-        fmt.Println("4")
         for i := range results {
             channel <- 1
             fmt.Println(results[i].NumIid)
@@ -168,7 +167,54 @@ func scanTaobaoItemImgs() {
     }
 }
 
+func propsAnalyze(item *models.TaobaoItem) {
+    if item.ApiDataReady {
+        if strings.Trim(item.ApiData.PropsName, " ") != "" {
+            propsArray := strings.Split(item.ApiData.PropsName, ";")
+            for _, v := range propsArray {
+                fmt.Println(v)
+                ps := strings.Split(v, ":")
+                if len(ps) != 4 {
+                    continue
+                }
+                fmt.Println(ps)
+                pid, _ := strconv.Atoi(ps[0])
+                vid, _ := strconv.Atoi(ps[1])
+                //pname := strings.Trim(ps[2], " ")
+                //vname := strings.Trim(ps[3], " ")
+                pc.Update(bson.M{"type" : "Prop", "taobao_id" : int(pid)},
+                                  bson.M{"$inc" : bson.M{"count" : 1}})
+                pc.Update(bson.M{"type" : "Value", "taobao_id" : int(vid)},
+                                     bson.M{"$inc" : bson.M{"count" : 1}})
+                cpc.Upsert(bson.M{"taobao_pid" : int(pid), "cid" : item.ApiData.Cid}, bson.M{"$inc" : bson.M{"count" : 1}})
+            }
+        }
+    }
+    c.Update(bson.M{"num_iid" : item.NumIid}, bson.M{"$set" : bson.M{"analyzed" : true}})
+    <-channel
+}
+func propsStat() {
+    for {
+        results := make([]models.TaobaoItem, 0)
+        err := c.Find(bson.M{"analyzed" : nil}).Limit(NUM_EVERY_TIME).All(&results)
+        if err != nil {
+            fmt.Println(err.Error())
+            time.Sleep(time.Minute)
+            continue
+        }
+        if len(results) == 0 {
+            break
+        }
+        for i := range results {
+            channel <- 1
+            fmt.Println(results[i].NumIid)
+            go propsAnalyze(&results[i])
+        }
+    }
+}
+
 func main() {
     runtime.GOMAXPROCS(NUM_CPU)
-    scanTaobaoItemImgs()
+    //scanTaobaoItemImgs()
+    propsStat()
 }
