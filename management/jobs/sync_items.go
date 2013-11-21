@@ -19,7 +19,6 @@ var MgoSession *mgo.Session
 var MgoDbName string = "mango"
 type Response struct {
     ItemId string `json:"item_id"`
-    EntityId string `json:"entity_id"`
     TaobaoId string `json:"taobao_id"`
 }
 
@@ -34,10 +33,11 @@ func init() {
 func syncOnlineItems() {
     count := 1000
     offset := 0
-    ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
     sc := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
     for {
         resp, err := http.Get(fmt.Sprintf("http://api.guoku.com:10080/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
+        //resp, err := http.Get(fmt.Sprintf("http://10.0.1.109:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
         if err != nil {
             time.Sleep(time.Minute)
             continue
@@ -49,13 +49,15 @@ func syncOnlineItems() {
         }
         r := make([]Response, 0)
         json.Unmarshal(body, &r)
+        fmt.Println(r)
         if len(r) == 0 {
             break;
         }
         allNew := true
         for _, v := range r {
+            fmt.Println("taobao_id", v.TaobaoId)
             iid, _ := strconv.Atoi(v.TaobaoId)
-            item := models.TaobaoItem{}
+            item := models.TaobaoItemStd{}
             err := ic.Find(bson.M{"num_iid" : int(iid)}).One(&item)
             if err != nil && err.Error() == "not found" {
                 //fmt.Println("not found", iid)
@@ -119,13 +121,13 @@ type CreateItemsResp struct {
 
 func uploadOfflineItems() {
     cc := MgoSession.DB(MgoDbName).C("taobao_cats")
-    ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
     readyCats := make([]models.TaobaoItemCat, 0)
     cc.Find(bson.M{"matched_guoku_cid" :bson.M{"$gt" : 0}}).All(&readyCats)
     for _, v := range readyCats {
         fmt.Println("start", v.ItemCat.Cid)
-        items := make([]models.TaobaoItem, 0)
-        ic.Find(bson.M{"api_data.cid" : v.ItemCat.Cid, "uploaded" : false, "score" : bson.M{"$gt" : 3}}).All(&items)
+        items := make([]models.TaobaoItemStd, 0)
+        ic.Find(bson.M{"api_data.cid" : v.ItemCat.Cid, "uploaded" : false, "score" : bson.M{"$gt" : 2}}).All(&items)
         fmt.Println("items length:", len(items))
         for j := range items {
             fmt.Println("deal with ", items[j].NumIid)
@@ -135,15 +137,25 @@ func uploadOfflineItems() {
             params := url.Values{}
             utils.GetUploadItemParams(&items[j], &params, v.MatchedGuokuCid)
             resp, err := http.PostForm("http://api.guoku.com:10080/management/entity/create/offline/", params)
+            //resp, err := http.PostForm("http://10.0.1.109:8000/management/entity/create/offline/", params)
             if err != nil {
                 continue
             }
             body, _ := ioutil.ReadAll(resp.Body)
             r := CreateItemsResp{}
             json.Unmarshal(body, &r)
+            //fmt.Printf("%x", body)
             fmt.Println(r)
             if r.Status == "success" {
-                ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set" : bson.M{"item_id" : r.ItemId, "uploaded" : true }})
+                err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set" : bson.M{"item_id" : r.ItemId, "uploaded" : true }})
+                if err != nil {
+                    fmt.Println(err.Error())
+                }
+            } else if r.ItemId != "" {
+                err =ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set" : bson.M{"item_id" : r.ItemId, "uploaded" : true }})
+                if err != nil {
+                    fmt.Println(err.Error())
+                }
             }
 
         }

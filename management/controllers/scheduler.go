@@ -78,7 +78,7 @@ func (this *AddShopController) Post() {
 	shopInfo, topErr := taobaoclient.GetTaobaoShopInfo(shopName)
 	if topErr != nil {
 		fmt.Println(topErr.Error())
-		this.Redirect("/scheduler/list_shops", 301)
+		this.Redirect("/scheduler/list_shops", 302)
 		return
 	}
 	fmt.Println("aaaa")
@@ -130,8 +130,8 @@ func (this *TaobaoShopDetailController) Get() {
 	if perr != nil {
 		page = 1
 	}
-	c = MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
-	results := make([]models.TaobaoItem, 0)
+	c = MgoSession.DB(MgoDbName).C("taobao_items_depot")
+	results := make([]models.TaobaoItemStd, 0)
 	err = c.Find(bson.M{"sid": sid}).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
 	if err != nil {
 		this.Abort("500")
@@ -157,8 +157,8 @@ func (this *TaobaoItemDetailController) Get() {
 		this.Abort("404")
 		return
 	}
-	c := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
-	result := models.TaobaoItem{}
+	c := MgoSession.DB(MgoDbName).C("taobao_items_depot")
+	result := models.TaobaoItemStd{}
 	err = c.Find(bson.M{"num_iid": num_iid}).One(&result)
 	if err != nil {
 		this.Abort("500")
@@ -211,8 +211,8 @@ func (this *AddShopFromApiController) Get() {
 func addTaobaoItem(sid, numIid int) bool {
 	itemLock.Lock()
 	defer itemLock.Unlock()
-	taobaoItem := models.TaobaoItem{}
-	c := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+	taobaoItem := models.TaobaoItemStd{}
+	c := MgoSession.DB(MgoDbName).C("taobao_items_depot")
 	c.Find(bson.M{"num_iid": numIid}).One(&taobaoItem)
 	if taobaoItem.NumIid == 0 {
 		taobaoItem.Sid = sid
@@ -251,6 +251,60 @@ func (this *SendItemsController) Post() {
 	}
 	this.Data["json"] = map[string]string{"status": "succeeded"}
 	this.ServeJson()
+}
+
+type SendItemDataController struct {
+    CrawlerApiController
+}
+
+func (this *SendItemDataController) Post() {
+    numIid, err := this.GetInt("num_iid")
+    if err != nil {
+        this.Abort("404")
+        return
+    }
+    url := fmt.Sprintf("http://item.taobao.com/item.htm?id=%d", numIid)
+    title := this.GetString("title")
+    nick := this.GetString("nick")
+    desc := this.GetString("desc")
+    cid, _ := this.GetInt("cid")
+    price, _ := this.GetFloat("price")
+    city := this.GetString("city")
+    state := this.GetString("state")
+    promotionPrice, _ := this.GetFloat("promotion_price")
+    shopType := this.GetString("shop_type")
+    reviewsCount, _ := this.GetInt("reviews_count")
+    salesNum, _ := this.GetInt("sales_num")
+    propsStr := this.GetString("props")
+    propsArray := strings.Split(propsStr, ";")
+    props := make(map[string]string)
+    inStockFlag := this.GetString("instock")
+    inStock := inStockFlag == "1" 
+    for _, v := range propsArray {
+        vs := strings.Split(v, ":")
+        props[vs[0]] = vs[1]
+    }
+    itemImgs := this.GetStrings("item_img")
+
+    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
+    ic.Update(bson.M{"num_iid": int(numIid)},
+              bson.M{"$set" : 
+                      bson.M {"detail_url": url,
+                              "title" : title,
+                              "nick" : nick,
+                              "desc" : desc,
+                              "cid" : cid,
+                              "price" : price,
+                              "location.city" : city,
+                              "location.state" : state,
+                              "promotion_price": promotionPrice,
+                              "shop_type" : shopType,
+                              "reviews_count" : reviewsCount,
+                              "monthly_sales_num" : salesNum,
+                              "props" : props,
+                              "item_imgs" : itemImgs,
+                              "in_stock" : inStock,
+                              "data_updated_time" : time.Now()}})
 }
 
 type GetShopFromQueueController struct {
@@ -292,5 +346,5 @@ func (this *UpdateTaobaoShopController) Post() {
 		this.Abort("404")
 		return
 	}
-	this.Redirect(fmt.Sprintf("/scheduler/shop_detail/taobao/?sid=%d", sid), 301)
+	this.Redirect(fmt.Sprintf("/scheduler/shop_detail/taobao/?sid=%d", sid), 302)
 }

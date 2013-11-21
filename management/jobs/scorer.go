@@ -30,7 +30,7 @@ func init() {
     MgoSession = session
 }
 
-func getLikes(c *mgo.Collection, item models.TaobaoItem) {
+func getLikes(c *mgo.Collection, item models.TaobaoItemStd) {
     o := orm.NewOrm()
     taobaoId := strconv.Itoa(item.NumIid)
     entity := &old_guoku_models.BaseEntity{}
@@ -66,8 +66,8 @@ func getTaobaoItemLikes() {
         }
     }
     for {
-        c := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot") 
-        results := make([]models.TaobaoItem, 0)
+        c := MgoSession.DB(MgoDbName).C("taobao_items_depot") 
+        results := make([]models.TaobaoItemStd, 0)
         err = c.Find(bson.M{"score_info.likes" : nil, "num_iid" : bson.M{"$in" : array}}).Limit(NUM_EVERY_TIME).All(&results)
         if err != nil {
             fmt.Println(err.Error())
@@ -83,14 +83,14 @@ func getTaobaoItemLikes() {
 
 func getSingleTaobaoShopScoreInfo(record *models.ShopItem) {
         c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
-        ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
+        ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
         o := orm.NewOrm()
         nick := record.ShopInfo.Nick
         items := make([]old_guoku_models.BaseTaobaoItem, 0)
         o.QueryTable("base_taobao_item").Filter("shop_nick", nick).All(&items)
         totalLikes := 0
         totalSelections := 0
-        tbItems := make([]models.TaobaoItem, 0)
+        tbItems := make([]models.TaobaoItemStd, 0)
         for _, item := range items {
             entity := &old_guoku_models.BaseEntity{}
             err := o.QueryTable("base_entity").Filter("BaseItem__BaseTaobaoItem__TaobaoId", item.TaobaoId).One(entity)
@@ -100,7 +100,7 @@ func getSingleTaobaoShopScoreInfo(record *models.ShopItem) {
             }
             temp, _ := o.QueryTable("guoku_entity_like").Filter("EntityId", entity.Id).Count()
             count := int(temp)
-            taobaoItem := models.TaobaoItem{}
+            taobaoItem := models.TaobaoItemStd{}
             tNumIid, _ :=  strconv.Atoi(item.TaobaoId)
             ic.Find(bson.M{"num_iid" : tNumIid}).One(&taobaoItem)
             if taobaoItem.NumIid == 0 {
@@ -221,17 +221,18 @@ func calculateScore() {
     c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
     shops := make([]models.ShopItem, 0)
     c.Find(nil).All(&shops)
-    ic := MgoSession.DB(MgoDbName).C("raw_taobao_items_depot")
-    for _, shop := range shops {
-        items := make([]models.TaobaoItem, 0)
-        ic.Find(bson.M{"sid" : shop.ShopInfo.Sid, "score" : bson.M{"$eq" : 0}}).All(&items)
-        if shop.ScoreInfo == nil {
+    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
+    for i := range shops {
+        fmt.Println("shop_name", shops[i].ShopInfo.Nick)
+        items := make([]models.TaobaoItemStd, 0)
+        ic.Find(bson.M{"sid" : shops[i].ShopInfo.Sid, "score" : bson.M{"$eq" : 0}}).All(&items)
+        if shops[i].ScoreInfo == nil {
             fmt.Println("score info null")
-            getSingleTaobaoShopScoreInfo(&shop)
-            fmt.Println("after", shop.ScoreInfo.TotalLikes)
+            getSingleTaobaoShopScoreInfo(&shops[i])
+            fmt.Println("after", shops[i].ScoreInfo.TotalLikes)
         }
-        totalLikes := shop.ScoreInfo.TotalLikes
-        totalSelections := shop.ScoreInfo.TotalSelections
+        totalLikes := shops[i].ScoreInfo.TotalLikes
+        totalSelections := shops[i].ScoreInfo.TotalSelections
         shopScore := math.Log(float64(1 + totalLikes + 20.0 * totalSelections + 10.0 * totalLikes / (1 + totalSelections)))
         for _, item := range items {
             var score float64
@@ -244,9 +245,10 @@ func calculateScore() {
                 score = score * 1.1
             }
             score = (1 + math.Log(score + 1) * math.Log(score + 1)) * ( 1 + shopScore)
-            fmt.Println(score)
+            fmt.Println(item.NumIid, score)
             ic.Update(bson.M{"num_iid" : item.NumIid}, bson.M{"$set" : bson.M{"score": score, "score_updated_time" : time.Now()}})
         }
+        fmt.Println("score ends")
     }
 }
 

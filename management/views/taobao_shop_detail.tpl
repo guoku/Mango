@@ -69,13 +69,15 @@
             {{ range .ItemList }}
             <tr>
                 <td><a href="/scheduler/item_detail/taobao/?id={{.NumIid}}">{{.NumIid}}</a></td>
-                {{ if .ApiDataReady }}
-                    {{with index .ApiData.ItemImgs.ItemImgArray 0 }}
-                        <td><img src="{{.Url}}" width="100" height="100"/></td>
-                    {{end}}
-                    <td>{{.ApiData.Title}}</td>
-                    <td><a href="{{.ApiData.DetailUrl}}">Link</a></td>
-                    <td>{{.ApiData.Price}}</td>
+                {{ if ne .Title "" }}
+                    <td>
+                    {{ if .ItemImgs }}
+                    <img src="{{index .ItemImgs 0 }}" width="100" height="100"/>
+                    {{ end }}
+                    </td>
+                    <td>{{.Title}}</td>
+                    <td><a href="{{.DetailUrl}}">Link</a></td>
+                    <td>{{.Price}}</td>
                 {{ else }}
                     <td>not ready</td>
                     <td>not ready</td>

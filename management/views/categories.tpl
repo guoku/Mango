@@ -48,20 +48,22 @@
                 {{ range .Items }}
                 <tr>
                     <td>
-                        {{ if eq .ItemId "" }}
+                        {{ if  .ItemId  }}
                         <input type="checkbox" class="mul_taobao_id" value="{{.NumIid}}">
                         {{ else }}
                         Uploaded
                         {{ end }}
                     </td>
                     <td><a href="/scheduler/item_detail/taobao/?id={{.NumIid}}">{{.NumIid}}</a></td>
-                    {{ if .ApiDataReady }}
-                        {{with index .ApiData.ItemImgs.ItemImgArray 0 }}
-                            <td><img src="{{.Url}}" width="100" height="100"/></td>
+                    {{ if .Title }}
+                        <td>
+                        {{if .ItemImgs}}
+                            <img src="{{index .ItemImgs 0}}" width="100" height="100"/>
                         {{end}}
-                        <td>{{.ApiData.Title}}</td>
-                        <td><a href="{{.ApiData.DetailUrl}}">Link</a></td>
-                        <td>{{.ApiData.Price}}</td>
+                        </td>
+                        <td>{{.Title}}</td>
+                        <td><a href="{{.DetailUrl}}">Link</a></td>
+                        <td>{{.Price}}</td>
                         <td>{{.Score}}</td>
                     {{ else }}
                         <td>not ready</td>
