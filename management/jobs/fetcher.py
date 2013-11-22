@@ -5,6 +5,7 @@ import re
 from urlparse import parse_qs
 from urlparse import urlparse
 import pymongo
+import time
 
 states = set([u"北京",u"上海",u"天津",u"重庆",u"广东",u"江苏",u"浙江",u"山东",u"河北",u"山西",u"辽宁"
     ,u"吉林",u"河南",u"安徽",u"福建",u"江西",u"黑龙江",u"湖南",u"湖北",u"海南",u"四川",u"贵州",u"云南",
@@ -12,7 +13,9 @@ states = set([u"北京",u"上海",u"天津",u"重庆",u"广东",u"江苏",u"浙�
 
 def fetch(html):
     soup = BeautifulSoup(html)
-    
+    title = soup.title.text
+    if title.find(u'商品屏蔽')>=0:
+        return None,'error'
     desc = soup.title.string[0:-9]
 
     cattag = soup.p
@@ -31,9 +34,7 @@ def fetch(html):
     imgurls = []      
     imgtag = details[0]
     src = imgtag.img['src']
-    jpgindex = src.index('.jpg')
-    if jpgindex>0:
-        src = src[0:jpgindex+4]
+    src = re.sub('_\d+x\d+\.jpg','',src)
     imgurls.append(src)
          
         
@@ -48,6 +49,9 @@ def fetch(html):
 
             
     detail = details[1]
+    instock = True
+    if len(detail.findChildren('table'))==1:
+       instock = False 
     judge = re.findall(ur'格：',detail.p.text)
     hasprom = True #默认都有促销
     if len(judge)>0:
@@ -120,11 +124,12 @@ def fetch(html):
             "state":state,
             "city":city,
             "reviews":reviews,
-            "nick":nick
+            "nick":nick,
+            "instock":instock
             } 
     print city
     print state
-    return result
+    return result,'success'
 
 
 def fetchdetail(html):
@@ -153,20 +158,59 @@ def fetchdetail(html):
 
     return attri
 
-def loaditem():
-    conn = pymongo.Connection()
-    db = conn['zerg']
-    pages = db['pages'] 
+
+host='127.0.0.1'
+def loaditem(pages):
     item = pages.find_one({'parsed':False})
     return item
 
+def removeItem(pages,itemid):
+    if len(itemid)>0:
+        #防止空参数把所有数据都删除掉了
+        pages.remove(itemid)
+
+def updateItem(pages,item):
+    pages.update({"_id":item["_id"]},item)
+
 def process():
-    item = loaditem()
-    print item.keys()
-    fontdata = fetch(item['fontpage'])
+    conn=pymongo.Connection(host)
+    db = conn['zerg']
+    pages=db['pages']
+    item = loaditem(pages)
+    result = {}
+    fontdata,statu = fetch(item['fontpage'])
+    if statu=='error':
+        #说明这个商品已经被屏蔽掉了，抓取下来的页面是错误页面，应该删除掉
+        removeItem(pages,item['itemid'])
+        return
     detaildata = fetchdetail(item['detailpage'])
     if detaildata['reviews']>0:
         fontdata['reviews']=detaildata['reviews']
+    detaildata.pop('reviews')
+
+    result['detail_url'] = 'http://a.m.taobao.com/da'+item['itemid']+".htm"
+    result['num_iid'] = item['itemid']
+    result['title'] = fontdata['desc']
+    result['nick'] = fontdata['nick']
+    result['desc'] = fontdata['desc']
+    result['cid'] = fontdata['cid']
+    result['sid'] = item['shopid']
+    result['price'] = fontdata['price']
+    result['promotion_price']=fontdata['promprice']
+    result['item_imgs'] = fontdata['imgs'] #数组
+    result['shop_type'] = item['shoptype']
+    result['reviews_count'] = fontdata['reviews']
+    result['monthly_sales_volume'] = fontdata['count']
+    result['props']= detaildata
+    result['in_stock'] = fontdata['instock']
+    result['item_id'] = item['itemid']
+
+    item['instock']=fontdata['instock']
+    item['parsed']=True
+    item['updatetime'] = int(time.time()) 
+    updateItem(pages,item)
+    conn.close()
+
     
 #fontdata =fetch("16356882686")
 #detaildata =  fetchdetail("16356882686")

@@ -38,8 +38,8 @@ func main() {
 	mgominer := mongoInit("minerals")
 	mgopage := mongoInit("pages")
 	mgofailed := mongoInit("failed")
-	for i := 0; i < 10; i++ {
-		if i == 3 {
+	for i := 0; i < 2; i++ {
+		if i == 1 {
 			refetch(mgopage, mgofailed)
 			i = 0
 		} else {
@@ -49,21 +49,6 @@ func main() {
 
 		}
 	}
-	/*
-		ticker := time.NewTicker(time.Second * 40)
-		i := 0
-
-		for _ = range ticker.C {
-			if i == 3 {
-				go refetch(mgopage, mgofailed)
-				i = 0
-			} else {
-				go run(mgominer, mgopage, mgofailed)
-				i = i + 1
-
-			}
-		}
-	*/
 }
 
 var proxys []string = []string{
@@ -327,9 +312,14 @@ func refetch(mgopage, mgofailed *mgo.Collection) {
 	var allowchan chan bool = make(chan bool, 5) //同一时刻不能有过多的请求，否则goagent都会受不了的
 	for _, item := range fails {
 		allowchan <- true
+		info, err := mgofailed.RemoveAll(bson.M{"itemid": item.ItemId})
+		if err != nil {
+			log.Println(info.Removed)
+
+			log.Println(err.Error())
+		}
 		go func() {
 			log.Printf("start to  refetch %s", item.ItemId)
-			mgofailed.RemoveAll(bson.M{"itemid": item.ItemId})
 			page, err, detail := fetch(item.ItemId, failed.ShopType)
 			if err != nil {
 				log.Printf("%s refetch failed", item.ItemId)
