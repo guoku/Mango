@@ -57,7 +57,7 @@ func syncOnlineItems() {
         for _, v := range r {
             fmt.Println("taobao_id", v.TaobaoId)
             iid, _ := strconv.Atoi(v.TaobaoId)
-            item := models.TaobaoItemStd{}
+            item := models.TaobaoItem{}
             err := ic.Find(bson.M{"num_iid" : int(iid)}).One(&item)
             if err != nil && err.Error() == "not found" {
                 //fmt.Println("not found", iid)
@@ -94,7 +94,6 @@ func syncOnlineItems() {
                 item.ItemId = v.ItemId
                 ic.Insert(&item)
                 fmt.Println("insert", item.NumIid)
-
                 continue
             }
             if item.ItemId != "" {
@@ -127,11 +126,11 @@ func uploadOfflineItems() {
     for _, v := range readyCats {
         fmt.Println("start", v.ItemCat.Cid)
         items := make([]models.TaobaoItemStd, 0)
-        ic.Find(bson.M{"api_data.cid" : v.ItemCat.Cid, "uploaded" : false, "score" : bson.M{"$gt" : 2}}).All(&items)
+        ic.Find(bson.M{"cid" : v.ItemCat.Cid, "uploaded" : false, "score" : bson.M{"$gt" : 2}}).All(&items)
         fmt.Println("items length:", len(items))
         for j := range items {
             fmt.Println("deal with ", items[j].NumIid)
-            if !items[j].ApiDataReady {
+            if items[j].Title == "" {
                 continue
             }
             params := url.Values{}
@@ -157,19 +156,19 @@ func uploadOfflineItems() {
                     fmt.Println(err.Error())
                 }
             }
-
         }
-
     }
 }
 
 func main() {
+    /*
     go func() {
         for {
             syncOnlineItems()
             time.Sleep(2 * time.Hour)
         }
     }()
+    */
     go func() {
         for {
             uploadOfflineItems() 

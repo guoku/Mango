@@ -259,8 +259,16 @@ type SendItemDataController struct {
 }
 
 func (this *SendItemDataController) Post() {
+    fmt.Println(this.Ctx.Input.RequestBody)
     item := models.TaobaoItemStd{}
-    json.Unmarshal(this.Ctx.Input.RequestBody, &item)
+    err := json.Unmarshal(this.Ctx.Input.RequestBody, &item)
+    if err != nil {
+        fmt.Println(err)
+        this.Data["json"] = map[string]string{"status": "Error"}
+        this.ServeJson()
+        return
+    }
+    fmt.Println(item)
     /*
     numIid, err := this.GetInt("num_iid")
     if err != nil {
@@ -317,6 +325,7 @@ func (this *SendItemDataController) Post() {
                               "title" : item.Title,
                               "nick" : item.Nick,
                               "desc" : item.Desc,
+                              "sid" : item.Sid,
                               "cid" : item.Cid,
                               "price" : item.Price,
                               "location" : item.Location,
@@ -329,6 +338,8 @@ func (this *SendItemDataController) Post() {
                               "in_stock" : item.InStock,
                               "data_updated_time" : time.Now()}})
 
+    this.Data["json"] = map[string]string{"status": "succeeded"}
+    this.ServeJson()
 }
 
 type GetShopFromQueueController struct {
