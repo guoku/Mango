@@ -5,6 +5,7 @@ import (
 	"Mango/management/models/apiresponse"
 	"Mango/management/taobaoclient"
 	"fmt"
+    "encoding/json"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"github.com/jason-zou/taobaosdk/rest"
@@ -258,6 +259,9 @@ type SendItemDataController struct {
 }
 
 func (this *SendItemDataController) Post() {
+    item := models.TaobaoItemStd{}
+    json.Unmarshal(this.Ctx.Input.RequestBody, &item)
+    /*
     numIid, err := this.GetInt("num_iid")
     if err != nil {
         this.Abort("404")
@@ -285,10 +289,10 @@ func (this *SendItemDataController) Post() {
         props[vs[0]] = vs[1]
     }
     itemImgs := this.GetStrings("item_img")
-
+    
     ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
     ic.Update(bson.M{"num_iid": int(numIid)},
-              bson.M{"$set" : 
+              bson.M{"$set" :
                       bson.M {"detail_url": url,
                               "title" : title,
                               "nick" : nick,
@@ -305,6 +309,26 @@ func (this *SendItemDataController) Post() {
                               "item_imgs" : itemImgs,
                               "in_stock" : inStock,
                               "data_updated_time" : time.Now()}})
+    */
+    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
+    ic.Upsert(bson.M{"num_iid": int(item.NumIid)},
+              bson.M{"$set" :
+                      bson.M {"detail_url": item.DetailUrl,
+                              "title" : item.Title,
+                              "nick" : item.Nick,
+                              "desc" : item.Desc,
+                              "cid" : item.Cid,
+                              "price" : item.Price,
+                              "location" : item.Location,
+                              "promotion_price": item.PromotionPrice,
+                              "shop_type" : item.ShopType,
+                              "reviews_count" : item.ReviewsCount,
+                              "monthly_sales_num" : item.MonthlySalesVolume,
+                              "props" : item.Props,
+                              "item_imgs" : item.ItemImgs,
+                              "in_stock" : item.InStock,
+                              "data_updated_time" : time.Now()}})
+
 }
 
 type GetShopFromQueueController struct {
