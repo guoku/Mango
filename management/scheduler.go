@@ -12,11 +12,6 @@ func main() {
 
 	flag.Parse()
 
-	if *change {
-		fmt.Println((*change))
-
-		go jobs.Run_statu_revision()
-	}
 	if *update {
 		go jobs.Update_statu()
 	}

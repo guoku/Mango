@@ -1,6 +1,0 @@
-[mongodb]
-host = "localhost"
-db = "zerg"
-collection = "minerals"
-parser = "parser"
-failed = "failed"
