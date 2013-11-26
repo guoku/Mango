@@ -1,4 +1,4 @@
-package jobs
+package main
 
 // Statu_update updates shop statu to "queued" whose statu is "finised"
 import (
@@ -7,16 +7,16 @@ import (
 	"log"
 	"time"
 
-	"github.com/pelletier/go-toml"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 )
 
+func main() {
+	Update_statu()
+
+}
 func update() {
-	conf, err := toml.LoadFile("conf/config.toml")
-	var mongoSetting *toml.TomlTree
-	mongoSetting = conf.Get("mongodb.test").(*toml.TomlTree)
-	session, err := mgo.Dial(mongoSetting.Get("host").(string))
+	session, err := mgo.Dial("10.0.1.23")
 	if err != nil {
 		panic(err)
 	}
