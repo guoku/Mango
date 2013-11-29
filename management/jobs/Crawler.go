@@ -234,7 +234,7 @@ func userAgentGen() string {
 }
 
 func run(mgominer, mgopage, mgofailed *mgo.Collection) {
-	var threads int = 1
+	var threads int = 6
 	var allowchan chan bool = make(chan bool, threads) //同一时刻不能有过多的请求，否则goagent都会受不了的
 	log.Printf("start to run fetch")
 	shopid, items := loadItems(mgominer)
@@ -308,7 +308,7 @@ func refetch(mgopage, mgofailed *mgo.Collection) {
 	log.Printf("start to run refetch")
 	var threads int = 6
 	var failed *FailedPages
-	err := mgofailed.Find(nil).One(&failed)
+	err := mgofailed.Find(bson.M{"updatetime": bson.M{"$lt": time.Now().Unix() - 1800}}).One(&failed)
 	if err != nil {
 		return
 	}
