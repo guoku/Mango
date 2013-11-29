@@ -1,7 +1,9 @@
 package main
 import (
     "fmt"
+    //"io"
     "math"
+    //"os"
     "regexp"
     "strings"
     "sort"
@@ -18,8 +20,9 @@ var MgoSession *mgo.Session
 var MgoDbName string = "mango"
 var Freq = make(map[string]int)
 var Ps = make(map[string]float64)
-var Words = make(map[string]bool)
-var FinalWords = make(map[string]bool)
+var Entropy = make(map[string]float64)
+//var Words = make(map[string]bool)
+//var FinalWords = make(map[string]bool)
 type Item struct {
     Title string
 }
@@ -40,13 +43,21 @@ func ReverseString(src string) string {
     }
     return string(des)
 }
+
+type Word struct {
+    Word string
+    Freq int
+    Prob float64
+    Pmi float64
+    Entropy float64
+}
 func DetectWord(items *[]Item) {
     //pattern := regexp.MustCompile(`[^-\p{Han}\w_\+]+`)
     pattern := regexp.MustCompile(`\P{Han}+`)
-    //total := 0
-    //allSentences := make([]string, 0)
+    total := 0
     suffixes := make([]string, 0)
     rSuffixes := make([]string, 0)
+    fmt.Println("start")
     for _, v := range *items {
         sentences := pattern.Split(v.Title, -1)
         for _, s := range sentences {
@@ -55,97 +66,148 @@ func DetectWord(items *[]Item) {
             if lenrs == 0 {
                 continue
             }
-            /*
-            for i := 1; i <= MAX_WORD_LEN; i++ {
-                for j := 0; j <= lenrs - i; j++ {
-                    count := Freq[string(rs[j : j + i])]
-                    Freq[string(rs[j : j + i])] = count + 1
-                    total += 1
-                }
-            }
-            */
             if lenrs < MAX_WORD_LEN + 1 {
                 suffixes = append(suffixes, s)
                 rSuffixes = append(rSuffixes, ReverseString(s))
             } else {
                 suffixes = append(suffixes, string(rs[0 : MAX_WORD_LEN + 1]))
-                suffixes = append(suffixes, ReverseString((string(rs[lenrs - MAX_WORD_LEN - 1 : lenrs]))))
+                rSuffixes = append(rSuffixes, ReverseString((string(rs[lenrs - MAX_WORD_LEN - 1 : lenrs]))))
             }
         }
-        //allSentences = append(allSentences, sentences...)
     }
+    fmt.Println("start sorting")
     sort.Sort(sort.StringSlice(suffixes))
-    for _, v := range suffixes {
-        fmt.Println(v)
+    sort.Sort(sort.StringSlice(rSuffixes))
+    fmt.Println("start counting freq and entropy")
+    ls := len(suffixes)
+    for l := 1; l <= MAX_WORD_LEN; l++ {
+        pos := 0
+        rs := []rune(suffixes[0])
+        rwf := make(map[string]int)
+        nTotal := 0
+        for pos < ls {
+            crs := []rune(suffixes[pos])
+            lenCrs := len(crs)
+            if lenCrs >= l {
+                if string(crs[0 : l]) == string(rs[0 : l]) {
+                    count := Freq[string(rs[0 : l])]
+                    Freq[string(rs[0 : l])] = count + 1
+                    total += 1
+                    if lenCrs > l {
+                        count = rwf[string(crs[l : l + 1])]
+                        rwf[string(crs[l : l + 1])] = count + 1
+                        nTotal ++
+                    }
+                    pos++
+                    continue
+                }
+            }
+            if len(rs) >= l {
+                if nTotal > 0 {
+                    Entropy[string(rs[0 : l])] = CalEntropy(&rwf, nTotal)
+                } else {
+                    Entropy[string(rs[0 : l])] = ENTROPY_THRESHOLD
+                }
+            }
+            rwf = make(map[string]int)
+            nTotal = 0
+            if lenCrs < l {
+                pos ++
+                if pos >= ls {
+                    break
+                }
+            }
+            rs = []rune(suffixes[pos])
+        }
+        if len(rs) >= l {
+            if nTotal > 0 {
+                Entropy[string(rs[0 : l])] = CalEntropy(&rwf, nTotal)
+            } else {
+                Entropy[string(rs[0 : l])] = 0
+            }
+        }
     }
-    fmt.Println("111111111111111111111111111111111111")
-    /*
+
+    ls = len(rSuffixes)
+    for l := 1; l <= MAX_WORD_LEN; l++ {
+        pos := 0
+        rs := []rune(rSuffixes[0])
+        rwf := make(map[string]int)
+        nTotal := 0
+        for pos < ls {
+            crs := []rune(rSuffixes[pos])
+            lenCrs := len(crs)
+            if lenCrs >= l {
+                if string(crs[0 : l]) == string(rs[0 : l]) {
+                    if lenCrs > l {
+                        count := rwf[string(crs[l : l + 1])]
+                        rwf[string(crs[l : l + 1])] = count + 1
+                        nTotal ++
+                    }
+                    pos++
+                    continue
+                }
+            }
+            if len(rs) > l {
+                str := ReverseString(string(rs[0 : l]))
+                if nTotal > 0 {
+                    Entropy[str] = math.Min(Entropy[str], CalEntropy(&rwf, nTotal))
+                } else {
+                    Entropy[str] = math.Min(Entropy[str], ENTROPY_THRESHOLD)
+                }
+            }
+            rwf = make(map[string]int)
+            nTotal = 0
+            if lenCrs < l {
+                pos ++
+                if pos >= ls {
+                    break
+                }
+            }
+            rs = []rune(rSuffixes[pos])
+
+        }
+        if len(rs) > l {
+            str := ReverseString(string(rs[0 : l]))
+            if nTotal > 0 {
+                Entropy[str] = math.Min(Entropy[str], CalEntropy(&rwf, nTotal))
+            } else {
+                Entropy[str] = math.Min(Entropy[str], ENTROPY_THRESHOLD)
+            }
+        }
+    }
+
     for k, v := range Freq {
         Ps[k] = float64(v) / float64(total)
     }
 
+    fmt.Println("start final word")
+    session, err := mgo.Dial("10.0.1.23")
+    if err != nil {
+        panic(err)
+    }
+    fc := session.DB("words").C("frequency")
+    wc := session.DB("words").C("dict")
     for k, v := range Ps {
         rk := []rune(k)
         lenrk := len(rk)
         if lenrk > 1 {
             p := float64(0)
-            for i := 0; i < lenrk; i++ {
+            for i := 1; i < lenrk; i++ {
                 t := Ps[string(rk[0 : i ])] * Ps[string(rk[i:])]
-                p = math.Max(p, t)
+                p = math.Min(p, t)
             }
-            if Freq[k] >= 3 && float64(v) / p > 100 {
-                Words[k] = true
+            word := Word{Word : k, Freq: Freq[k], Prob : v, Pmi : p, Entropy : Entropy[k]}
+            err := fc.Insert(&word)
+            if err!=nil {
+                fmt.Println(err)
+            }
+            //fmt.Println(Freq[k], v, p,  float64(v) / p,  Entropy[k])
+            if Freq[k] >= 5 && float64(v) / p > 80 && Entropy[k] > ENTROPY_THRESHOLD {
+                wc.Insert(&word)
             }
         }
     }
-    fmt.Println("1222222222222222222222222222222221")
-    lwf := make(map[string]int)
-    rwf := make(map[string]int)
-    for k := range Words {
-        lf := true
-        rf := true
-        rk := []rune(k)
-        ltotal := 0
-        rtotal := 0
-        spat := regexp.MustCompile(fmt.Sprintf(".?%s.?", k))
-        for _, st := range allSentences {
-            matches := spat.FindAllString(st, -1)
-            for i := range matches {
-                rm := []rune(matches[i])
-                if rm[0] != rk[0] {
-                    cnt := lwf[string(rm[0])]
-                    lwf[string(rm[0])] = cnt + 1
-                    ltotal++
-                } else {
-                    lf = false
-                }
-                if rm[len(rm) - 1] != rk[len(rk) - 1] {
-                    cnt := rwf[string(rm[len(rm) - 1])]
-                    rwf[string(rm[len(rm) - 1])] = cnt + 1
-                    rtotal++
-                } else {
-                    rf = false
-                }
-            }
-        }
-        leftEntropy := CalEntropy(&lwf, ltotal)
-        rightEntropy := CalEntropy(&rwf, rtotal)
-        if lf && len(lwf) >0 && leftEntropy > ENTROPY_THRESHOLD {
-            continue
-        }
-        if rf && len(rwf) >0 && rightEntropy > ENTROPY_THRESHOLD {
-            continue
-        }
-        FinalWords[k] = true
-    }
-
-    tt := 0
-    for k := range FinalWords {
-        tt ++
-        fmt.Println(k)
-    }
-    fmt.Println(tt)
-    */
 }
 
 func CalEntropy(wf *map[string]int, total int) float64 {
@@ -161,7 +223,7 @@ func main() {
     items := make([]Item, 0)
     ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
     startTime :=  time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC)
-    ic.Find(bson.M{"data_updated_time" : bson.M{"$gt" : startTime}}).Select(bson.M{"title": 1}).Limit(500).All(&items)
+    ic.Find(bson.M{"data_updated_time" : bson.M{"$gt" : startTime}}).Select(bson.M{"title": 1}).All(&items)
     DetectWord(&items)
 }
 
