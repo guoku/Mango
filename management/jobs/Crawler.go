@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -38,16 +39,9 @@ func main() {
 	mgominer := mongoInit("minerals")
 	mgopage := mongoInit("pages")
 	mgofailed := mongoInit("failed")
-	for i := 0; i < 2; i++ {
-		if i == 1 {
-			refetch(mgopage, mgofailed)
-			i = 0
-		} else {
-			log.Println("开始执行函数")
-			run(mgominer, mgopage, mgofailed)
-			log.Println("函数执行完毕")
-
-		}
+	for {
+		go refetch(mgopage, mgofailed)
+		run(mgominer, mgopage, mgofailed)
 	}
 }
 
@@ -240,8 +234,8 @@ func userAgentGen() string {
 }
 
 func run(mgominer, mgopage, mgofailed *mgo.Collection) {
-
-	var allowchan chan bool = make(chan bool, 5) //同一时刻不能有过多的请求，否则goagent都会受不了的
+	var threads int = 6
+	var allowchan chan bool = make(chan bool, threads) //同一时刻不能有过多的请求，否则goagent都会受不了的
 	log.Printf("start to run fetch")
 	shopid, items := loadItems(mgominer)
 	log.Printf("load items success")
@@ -261,11 +255,15 @@ func run(mgominer, mgopage, mgofailed *mgo.Collection) {
 		if it {
 			shoptype = "tmall.com"
 		}
+		var wg sync.WaitGroup
 		for _, itemid := range items {
 			allowchan <- true
-			go func() {
+			wg.Add(1)
+			go func(itemid string) {
+				defer wg.Done()
 				log.Printf("start to fetch %s", itemid)
 				page, err, detail := fetch(itemid, shoptype)
+
 				if err != nil {
 					log.Printf("%s failed", itemid)
 					failed := FailedPages{ItemId: itemid, ShopId: shopid, ShopType: shoptype, UpdateTime: time.Now().Unix(), InStock: true}
@@ -285,14 +283,17 @@ func run(mgominer, mgopage, mgofailed *mgo.Collection) {
 				}
 				<-allowchan
 
-			}()
+			}(itemid)
 
 		}
+		wg.Wait()
 	}
 	//确定所有数据都爬取完毕了，才对state进行更新，防止中途的停止导致数据丢失
-	for i := 0; i < 5; i++ {
-		allowchan <- true
-	}
+	/*
+		for i := 0; i < threads; i++ {
+			allowchan <- true
+		}
+	*/
 	close(allowchan)
 	sid, _ := strconv.Atoi(shopid)
 	err := mgominer.Update(bson.M{"shop_id": sid}, bson.M{"$set": bson.M{"state": "fetched", "date": time.Now()}})
@@ -305,11 +306,16 @@ func run(mgominer, mgopage, mgofailed *mgo.Collection) {
 func refetch(mgopage, mgofailed *mgo.Collection) {
 	//重新抓取失败的
 	log.Printf("start to run refetch")
+	var threads int = 6
 	var failed *FailedPages
-	mgofailed.Find(nil).One(&failed)
+	err := mgofailed.Find(bson.M{"updatetime": bson.M{"$lt": time.Now().Unix() - 1800}}).One(&failed)
+	if err != nil {
+		return
+	}
 	var fails []*FailedPages
 	mgofailed.Find(bson.M{"shopid": failed.ShopId}).All(&fails)
-	var allowchan chan bool = make(chan bool, 5) //同一时刻不能有过多的请求，否则goagent都会受不了的
+	var allowchan chan bool = make(chan bool, threads) //同一时刻不能有过多的请求，否则goagent都会受不了的
+	var wg sync.WaitGroup
 	for _, item := range fails {
 		allowchan <- true
 		info, err := mgofailed.RemoveAll(bson.M{"itemid": item.ItemId})
@@ -318,7 +324,9 @@ func refetch(mgopage, mgofailed *mgo.Collection) {
 
 			log.Println(err.Error())
 		}
-		go func() {
+		wg.Add(1)
+		go func(itemid string) {
+			defer wg.Done()
 			log.Printf("start to  refetch %s", item.ItemId)
 			page, err, detail := fetch(item.ItemId, failed.ShopType)
 			if err != nil {
@@ -340,12 +348,9 @@ func refetch(mgopage, mgofailed *mgo.Collection) {
 			}
 			<-allowchan
 
-		}()
+		}(item.ItemId)
 	}
-	//确定所有数据都爬取完毕了，才对state进行更新，防止中途的停止导致数据丢失
-	for i := 0; i < 5; i++ {
-		allowchan <- true
-	}
+	wg.Wait()
 	close(allowchan)
 
 }

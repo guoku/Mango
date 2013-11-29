@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"fmt"
-	"strconv"
-	"time"
-
 	"Mango/management/models"
 	"Mango/management/utils"
+	"fmt"
+	"log"
+	"strconv"
+	"time"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
@@ -28,6 +28,7 @@ func (this *UserSessionController) Prepare() {
 	v := this.GetSession("user_id")
 	if v == nil {
 		this.Redirect("/login", 302)
+		log.Printf("The user_id is null")
 		return
 	}
 	userId, _ := strconv.Atoi(string(v.([]byte)))
@@ -35,6 +36,7 @@ func (this *UserSessionController) Prepare() {
 	o := orm.NewOrm()
 	err := o.Read(&user)
 	if err != nil {
+		log.Println(err.Error())
 		this.DestroySession()
 		this.Redirect("/login", 302)
 		return
@@ -46,15 +48,14 @@ type AdminSessionController struct {
 	UserSessionController
 }
 
-
 func (this *AdminSessionController) Prepare() {
 	this.UserSessionController.Prepare()
 	user := this.Data["User"].(*models.User)
 	if !user.IsAdmin {
 		fmt.Println("not admin")
 		this.Redirect("/list_users", 302)
-	} 
-    /*else {
+	}
+	/*else {
 		//admins have their own view which lists permission
 		fmt.Println("is admin")
 		this.Redirect("/admins_view", 301)
@@ -301,7 +302,6 @@ func (this *ListUsersController) Prepare() {
 }
 
 func (this *ListUsersController) Get() {
-
 	var users []*models.User
 	user := models.User{}
 	o := orm.NewOrm()
@@ -406,6 +406,7 @@ func (this *UserProfileController) Post() {
 
 type LoginController struct {
 	beego.Controller
+	//UserSessionController
 }
 
 func (this *LoginController) Get() {
@@ -415,6 +416,7 @@ func (this *LoginController) Get() {
 		this.Redirect("/list_users", 302)
 		return
 	}
+	log.Println("there is no user id")
 	this.Layout = DefaultLayoutFile
 	this.TplNames = "login.tpl"
 }
@@ -427,13 +429,14 @@ func (this *LoginController) Post() {
 	o := orm.NewOrm()
 	err := o.QueryTable(&user).Filter("email", email).One(&user)
 	if err != nil {
+		log.Println(err.Error())
 	}
 	if user.Id != 0 {
 		fmt.Println("login", user.Id)
+		log.Printf("login name %s", user.Name)
 		o.QueryTable(&additional).Filter("user_id", user.Id).One(&additional)
 		if user.Password == utils.EncryptPassword(password, additional.Salt) {
-			this.SetSession("user_id", int(user.Id))
-			fmt.Println(user.IsAdmin)
+			this.SetSession("user_id", user.Id)
 			this.SetSession("is_admin", user.IsAdmin)
 			this.Redirect("/list_users", 302)
 			return

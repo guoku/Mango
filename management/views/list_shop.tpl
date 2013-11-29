@@ -3,7 +3,7 @@
     <div class="span10">
     <form class="well form-search" method="POST" action="/scheduler/add_shop">
         <input type="text" class="input-medium search-query" name="shop_name">
-        <button type="submit" class="btn">添加店铺昵称</button>
+        <button type="submit" class="btn">添加店铺首页URL</button>
     </form>   
     <form class="well form-search" method="GET" action="/scheduler/list_shops">
         <input type="text" class="input-medium search-query" name="nick">

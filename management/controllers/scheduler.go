@@ -4,13 +4,14 @@ import (
 	"Mango/management/models"
 	"Mango/management/models/apiresponse"
 	"Mango/management/taobaoclient"
+	"encoding/json"
 	"fmt"
-    "encoding/json"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"github.com/jason-zou/taobaosdk/rest"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -76,15 +77,17 @@ type AddShopController struct {
 
 func (this *AddShopController) Post() {
 	shopName := this.GetString("shop_name")
-	shopInfo, topErr := taobaoclient.GetTaobaoShopInfo(shopName)
+	re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
+	shopurl := re.FindString(shopName)
+	link := strings.Replace(shopurl, ".", ".m.", 1)
+	fmt.Println(link)
+	shopInfo, topErr := fetch(link)
 	if topErr != nil {
 		fmt.Println(topErr.Error())
 		this.Redirect("/scheduler/list_shops", 302)
 		return
 	}
-	fmt.Println("aaaa")
 	addShopItem(shopInfo)
-	fmt.Println("aaab")
 	this.Redirect("/scheduler/list_shops", 302)
 }
 
@@ -255,91 +258,90 @@ func (this *SendItemsController) Post() {
 }
 
 type SendItemDataController struct {
-    CrawlerApiController
+	CrawlerApiController
 }
 
 func (this *SendItemDataController) Post() {
-    fmt.Println(this.Ctx.Input.RequestBody)
-    item := models.TaobaoItemStd{}
-    err := json.Unmarshal(this.Ctx.Input.RequestBody, &item)
-    if err != nil {
-        fmt.Println(err)
-        this.Data["json"] = map[string]string{"status": "Error"}
-        this.ServeJson()
-        return
-    }
-    fmt.Println(item)
-    /*
-    numIid, err := this.GetInt("num_iid")
-    if err != nil {
-        this.Abort("404")
-        return
-    }
-    url := fmt.Sprintf("http://item.taobao.com/item.htm?id=%d", numIid)
-    title := this.GetString("title")
-    nick := this.GetString("nick")
-    desc := this.GetString("desc")
-    cid, _ := this.GetInt("cid")
-    price, _ := this.GetFloat("price")
-    city := this.GetString("city")
-    state := this.GetString("state")
-    promotionPrice, _ := this.GetFloat("promotion_price")
-    shopType := this.GetString("shop_type")
-    reviewsCount, _ := this.GetInt("reviews_count")
-    salesNum, _ := this.GetInt("sales_num")
-    propsStr := this.GetString("props")
-    propsArray := strings.Split(propsStr, ";")
-    props := make(map[string]string)
-    inStockFlag := this.GetString("instock")
-    inStock := inStockFlag == "1" 
-    for _, v := range propsArray {
-        vs := strings.Split(v, ":")
-        props[vs[0]] = vs[1]
-    }
-    itemImgs := this.GetStrings("item_img")
-    
-    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
-    ic.Update(bson.M{"num_iid": int(numIid)},
-              bson.M{"$set" :
-                      bson.M {"detail_url": url,
-                              "title" : title,
-                              "nick" : nick,
-                              "desc" : desc,
-                              "cid" : cid,
-                              "price" : price,
-                              "location.city" : city,
-                              "location.state" : state,
-                              "promotion_price": promotionPrice,
-                              "shop_type" : shopType,
-                              "reviews_count" : reviewsCount,
-                              "monthly_sales_num" : salesNum,
-                              "props" : props,
-                              "item_imgs" : itemImgs,
-                              "in_stock" : inStock,
-                              "data_updated_time" : time.Now()}})
-    */
-    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
-    ic.Upsert(bson.M{"num_iid": int(item.NumIid)},
-              bson.M{"$set" :
-                      bson.M {"detail_url": item.DetailUrl,
-                              "title" : item.Title,
-                              "nick" : item.Nick,
-                              "desc" : item.Desc,
-                              "sid" : item.Sid,
-                              "cid" : item.Cid,
-                              "price" : item.Price,
-                              "location" : item.Location,
-                              "promotion_price": item.PromotionPrice,
-                              "shop_type" : item.ShopType,
-                              "reviews_count" : item.ReviewsCount,
-                              "monthly_sales_num" : item.MonthlySalesVolume,
-                              "props" : item.Props,
-                              "item_imgs" : item.ItemImgs,
-                              "in_stock" : item.InStock,
-                              "data_updated_time" : time.Now()}})
+	fmt.Println(this.Ctx.Input.RequestBody)
+	item := models.TaobaoItemStd{}
+	err := json.Unmarshal(this.Ctx.Input.RequestBody, &item)
+	if err != nil {
+		fmt.Println(err)
+		this.Data["json"] = map[string]string{"status": "Error"}
+		this.ServeJson()
+		return
+	}
+	fmt.Println(item)
+	/*
+	   numIid, err := this.GetInt("num_iid")
+	   if err != nil {
+	       this.Abort("404")
+	       return
+	   }
+	   url := fmt.Sprintf("http://item.taobao.com/item.htm?id=%d", numIid)
+	   title := this.GetString("title")
+	   nick := this.GetString("nick")
+	   desc := this.GetString("desc")
+	   cid, _ := this.GetInt("cid")
+	   price, _ := this.GetFloat("price")
+	   city := this.GetString("city")
+	   state := this.GetString("state")
+	   promotionPrice, _ := this.GetFloat("promotion_price")
+	   shopType := this.GetString("shop_type")
+	   reviewsCount, _ := this.GetInt("reviews_count")
+	   salesNum, _ := this.GetInt("sales_num")
+	   propsStr := this.GetString("props")
+	   propsArray := strings.Split(propsStr, ";")
+	   props := make(map[string]string)
+	   inStockFlag := this.GetString("instock")
+	   inStock := inStockFlag == "1"
+	   for _, v := range propsArray {
+	       vs := strings.Split(v, ":")
+	       props[vs[0]] = vs[1]
+	   }
+	   itemImgs := this.GetStrings("item_img")
 
-    this.Data["json"] = map[string]string{"status": "succeeded"}
-    this.ServeJson()
+	   ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
+	   ic.Update(bson.M{"num_iid": int(numIid)},
+	             bson.M{"$set" :
+	                     bson.M {"detail_url": url,
+	                             "title" : title,
+	                             "nick" : nick,
+	                             "desc" : desc,
+	                             "cid" : cid,
+	                             "price" : price,
+	                             "location.city" : city,
+	                             "location.state" : state,
+	                             "promotion_price": promotionPrice,
+	                             "shop_type" : shopType,
+	                             "reviews_count" : reviewsCount,
+	                             "monthly_sales_num" : salesNum,
+	                             "props" : props,
+	                             "item_imgs" : itemImgs,
+	                             "in_stock" : inStock,
+	                             "data_updated_time" : time.Now()}})
+	*/
+	ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
+	ic.Upsert(bson.M{"num_iid": int(item.NumIid)},
+		bson.M{"$set": bson.M{"detail_url": item.DetailUrl,
+			"title":             item.Title,
+			"nick":              item.Nick,
+			"desc":              item.Desc,
+			"sid":               item.Sid,
+			"cid":               item.Cid,
+			"price":             item.Price,
+			"location":          item.Location,
+			"promotion_price":   item.PromotionPrice,
+			"shop_type":         item.ShopType,
+			"reviews_count":     item.ReviewsCount,
+			"monthly_sales_num": item.MonthlySalesVolume,
+			"props":             item.Props,
+			"item_imgs":         item.ItemImgs,
+			"in_stock":          item.InStock,
+			"data_updated_time": time.Now()}})
+
+	this.Data["json"] = map[string]string{"status": "succeeded"}
+	this.ServeJson()
 }
 
 type GetShopFromQueueController struct {
