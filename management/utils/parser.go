@@ -98,6 +98,9 @@ func Post(info *Info) error {
 	log.Println(string(st))
 	return nil
 }
+func ParseWithoutID(fontpage, detailpage string) (info *Info, missing bool, err error) {
+	return Parse(fontpage, detailpage, "", "", "")
+}
 func Parse(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info, missing bool, err error) {
 	font, err := parsefontpage(fontpage)
 	info = new(Info)
@@ -203,7 +206,7 @@ func parsefontpage(html string) (*Info, error) {
 			}
 		})
 	}
-
+	info.Imgs = imgs
 	instock := true
 	detail := doc.Find("div.detail").Eq(1).Find("table")
 	if detail.Size() == 1 {
