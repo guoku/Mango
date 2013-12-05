@@ -82,7 +82,9 @@ func Post(info *Info) error {
 	}
 	posturl := "http://10.0.1.23:8080/scheduler/api/send_item_detail?token=d61995660774083ccb8b533024f9b8bb"
 	reader := strings.NewReader(string(data))
-	var DefaultClinet = &http.Client{}
+	log.Println(string(data))
+	transport := &http.Transport{ResponseHeaderTimeout: time.Duration(30) * time.Second}
+	var DefaultClinet = &http.Client{Transport: transport}
 	resp, err := DefaultClinet.Post(posturl, "application/json", reader)
 	if err != nil {
 		return err
@@ -92,6 +94,7 @@ func Post(info *Info) error {
 		return err
 	}
 	defer resp.Body.Close()
+
 	log.Println(string(st))
 	return nil
 }
@@ -386,7 +389,11 @@ func parsedetail(html string) (*Info, error) {
 	attr.Each(func(i int, s *goquery.Selection) {
 		td := s.Find("td")
 		key := strings.TrimSpace(td.Eq(0).Text())
+		key = strings.Replace(key, "\r\n", " ", -1)
+		key = strings.Replace(key, "\n", " ", -1)
 		value := strings.TrimSpace(td.Eq(1).Text())
+		value = strings.Replace(value, "\r\n", " ", -1)
+		value = strings.Replace(value, "\n", " ", -1)
 		attrs[key] = value
 	})
 	detail.Attr = attrs

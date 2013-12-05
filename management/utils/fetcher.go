@@ -59,7 +59,18 @@ var proxys []string = []string{
 	"http://127.0.0.1:30064",
 	"http://127.0.0.1:30065",
 	"http://127.0.0.1:30066",
-	"http://127.0.0.1:30067"}
+	"http://127.0.0.1:30067",
+	"http://127.0.0.1:30068",
+	"http://127.0.0.1:30069",
+	"http://127.0.0.1:30070",
+	"http://127.0.0.1:30071",
+	"http://127.0.0.1:30072",
+	"http://127.0.0.1:30073",
+	"http://127.0.0.1:30074",
+	"http://127.0.0.1:30075",
+	"http://127.0.0.1:30076",
+	"http://127.0.0.1:30077",
+}
 
 func getTransport() (transport *http.Transport) {
 	length := len(proxys)
@@ -165,7 +176,8 @@ func Fetch(itemid string, shoptype string) (html string, err error, detail strin
 func IsTmall(itemid string) (bool, error) {
 	url := "http://a.m.taobao.com/i" + itemid + ".htm"
 	request, _ := http.NewRequest("GET", url, nil)
-	client := &http.Client{}
+	transport := getTransport()
+	client := &http.Client{Transport: transport}
 	resp, err := client.Do(request)
 	if err != nil {
 		return false, err

@@ -2,6 +2,7 @@ package main
 
 import (
 	"Mango/management/utils"
+	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"log"
 	"strconv"
@@ -33,11 +34,14 @@ func main() {
 		run(shopid, items)
 	}
 }
+
+var mgopages *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "pages")
+var mgofailed *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "failed")
+var mgominer *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "minerals")
+
 func run(shopid string, items []string) {
 	var allowchan chan bool = make(chan bool, THREADSNUM)
-	mgopages := utils.MongoInit(MGOHOST, MGODB, "pages")
-	mgofailed := utils.MongoInit(MGOHOST, MGODB, "failed")
-	mgominer := utils.MongoInit(MGOHOST, MGODB, "minerals")
+
 	log.Printf("\n\nStart to run fetch")
 	shoptype := TAOBAO
 	if len(items) == 0 {
@@ -60,6 +64,7 @@ func run(shopid string, items []string) {
 			wg.Add(1)
 			go func(itemid string) {
 				defer wg.Done()
+
 				defer func() { <-allowchan }()
 				log.Printf("start to fetch %s", itemid)
 				page, err, detail := utils.Fetch(itemid, shoptype)
@@ -76,9 +81,11 @@ func run(shopid string, items []string) {
 
 					log.Printf("%s 成功", itemid)
 					info, missing, err := utils.Parse(page, detail, itemid, shopid, shoptype)
+					log.Println("解析完毕")
 					instock := true
 					parsed := false
 					if err != nil {
+						log.Println(err.Error())
 						if missing {
 							parsed = true
 							instock = false
@@ -87,15 +94,28 @@ func run(shopid string, items []string) {
 							if err.Error() == "cattag" {
 								//有可能该商品找不到了
 								instock = false
+							} else {
+								failed := utils.FailedPages{ItemId: itemid, ShopId: shopid, ShopType: shoptype, UpdateTime: time.Now().Unix(), InStock: true}
+								err = mgofailed.Insert(&failed)
+								if err != nil {
+									log.Println(err.Error())
+									mgofailed.Update(bson.M{"itemid": itemid}, bson.M{"$set": failed})
+								}
+								return
 							}
 						}
-						log.Println(err.Error())
 					} else {
 						instock = info.InStock
+						log.Println("开始发送")
 						err = utils.Post(info)
 						if err != nil {
+							log.Println("发送出现错误")
 							log.Println(err.Error())
+							parsed = false
 
+						} else {
+							log.Println("发送完毕")
+							parsed = true
 						}
 					}
 					successpage := utils.Pages{ItemId: itemid, ShopId: shopid, ShopType: shoptype, FontPage: page, UpdateTime: time.Now().Unix(), DetailPage: detail, Parsed: parsed, InStock: instock}
