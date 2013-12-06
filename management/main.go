@@ -77,6 +77,8 @@ func main() {
 	beego.Router("/scheduler/shop_detail/taobao/", &controllers.TaobaoShopDetailController{})
 	beego.Router("/scheduler/update_taobaoshop_info", &controllers.UpdateTaobaoShopController{})
 	beego.Router("/scheduler/item_detail/taobao/", &controllers.TaobaoItemDetailController{})
+	beego.Router("/scheduler/dict_manage", &controllers.DictManagerController{})
+	beego.Router("/scheduler/dict_manage/update/", &controllers.DictManagerUpdateController{})
 	beego.Router("/commodity/category/", &controllers.CategoryController{})
 	beego.Router("/commodity/add_online_items/", &controllers.CreateOnlineItemsController{})
 	beego.Router("/commodity/category_manage/", &controllers.CategoryManageController{})

@@ -262,7 +262,7 @@ type SendItemDataController struct {
 }
 
 func (this *SendItemDataController) Post() {
-	fmt.Println(this.Ctx.Input.RequestBody)
+	//fmt.Println(this.Ctx.Input.RequestBody)
 	item := models.TaobaoItemStd{}
 	err := json.Unmarshal(this.Ctx.Input.RequestBody, &item)
 	if err != nil {
@@ -320,10 +320,17 @@ func (this *SendItemDataController) Post() {
 	                             "item_imgs" : itemImgs,
 	                             "in_stock" : inStock,
 	                             "data_updated_time" : time.Now()}})
-	*/
-	ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
-	ic.Upsert(bson.M{"num_iid": int(item.NumIid)},
-		bson.M{"$set": bson.M{"detail_url": item.DetailUrl,
+	
+	session := utils.GetNewMongoSession()
+    if session == nil {
+        this.Data["json"] = map[string]string{"status": "Error"}
+        this.ServeJson()
+        return
+    }*/
+    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
+    tItem := models.TaobaoItemStd{}
+    change := bson.M{
+		    "detail_url": item.DetailUrl,
 			"title":             item.Title,
 			"nick":              item.Nick,
 			"desc":              item.Desc,
@@ -338,7 +345,18 @@ func (this *SendItemDataController) Post() {
 			"props":             item.Props,
 			"item_imgs":         item.ItemImgs,
 			"in_stock":          item.InStock,
-			"data_updated_time": time.Now()}})
+        }
+    ic.Find(bson.M{"num_iid" : int(item.NumIid)}).One(&tItem)
+    if tItem.Title == "" {
+        t := time.Now()
+        change["data_updated_time"] = t
+        change["data_last_revised_time"] = t
+    } else {
+        change["data_last_revised_time"] = time.Now()
+    }
+
+	ic.Update(bson.M{"num_iid" :  int(item.NumIid)},
+              bson.M{"$set" : change})
 
 	this.Data["json"] = map[string]string{"status": "succeeded"}
 	this.ServeJson()
@@ -384,4 +402,41 @@ func (this *UpdateTaobaoShopController) Post() {
 		return
 	}
 	this.Redirect(fmt.Sprintf("/scheduler/shop_detail/taobao/?sid=%d", sid), 302)
+}
+
+
+type DictManagerController struct {
+    SchedulerController
+}
+
+
+func (this *DictManagerController) Get() {
+	page, err := this.GetInt("p")
+	if err != nil {
+		page = 1
+	}
+    numOnePage := 300
+    c := MgoSession.DB("words").C("dict_chi_eng")
+    words := make([]models.DictWord, 0)
+
+    c.Find(nil).Sort("-freq").Skip(int(page-1) * numOnePage).Limit(numOnePage).All(&words)
+    total, _ := c.Find(nil).Count()
+	this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, numOnePage, this.Input())
+    this.Data["Words"] = words
+    this.Layout = DefaultLayoutFile
+    this.TplNames = "dict_manage.tpl"
+}
+
+type DictManagerUpdateController struct {
+    SchedulerController
+}
+
+
+func (this *DictManagerUpdateController) Post() {
+    w := this.GetString("w")
+    fmt.Println(w)
+    blacklist, _ := this.GetBool("blacklist")
+    c := MgoSession.DB("words").C("dict_chi_eng")
+    c.Update(bson.M{"word": w} , bson.M{"$set" : bson.M{"blacklisted" : blacklist}})
+    this.Redirect(this.Ctx.Input.Refer(), 302)
 }

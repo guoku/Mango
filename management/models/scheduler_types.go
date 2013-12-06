@@ -118,3 +118,11 @@ type GuokuCatGroup struct {
     GroupId int `json:"group_id" bson:"group_id"`
     Title string `json:"title" bson:"title"`
 }
+
+type DictWord struct {
+    Word string `bson:"word"`
+    Freq int `bson:"freq"`
+    Prob float64 `bson:"prob"`
+    Weight float64 `bson:"weight"`
+    Blacklisted bool `bson:"blacklisted"`
+}

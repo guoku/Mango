@@ -113,7 +113,7 @@ type PassSelectController struct {
 
 func (this *PassSelectController) Prepare() {
 	this.UserSessionController.Prepare()
-	passId, err := strconv.Atoi(this.Ctx.Input.Params(":id"))
+	passId, err := strconv.Atoi(this.Input().Get(":id"))
 	if err != nil {
 		this.Abort("404")
 		return

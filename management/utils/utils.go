@@ -14,6 +14,7 @@ import (
 	"Mango/management/models"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
+	"labix.org/v2/mgo"
 )
 
 func GetMd5Digest(seed string) string {
@@ -106,4 +107,13 @@ func GetUploadItemParams(item *models.TaobaoItemStd, params *url.Values, matched
             }
         }
         params.Add("category_id", strconv.Itoa(matchedGuokuCid))
+}
+
+func GetNewMongoSession() *mgo.Session {
+	mongoHost := beego.AppConfig.String("mongohost")
+    session, err := mgo.Dial(mongoHost)
+    if err != nil {
+        return nil
+    }
+    return session
 }
