@@ -191,13 +191,14 @@ def fetchdetail(html):
         key = tds[0].text.strip()[0:-1]
         value = tds[1].text.strip()
         attri[key] = value
+        value = value.replace('\r\n',' ')
 
     attri["reviews"]=reviews
 
     return attri
 
 
-host='10.0.1.23'
+host='localhost'
 conn = pymongo.Connection(host)
 db = conn['zerg']
 mgopages = db['pages']
@@ -267,15 +268,15 @@ class GetHandler(BaseHTTPRequestHandler):
         if query.has_key('itemid'):
             self.wfile.write("has itemid")
             itemid = query['itemid'][0]
-            self.wfile.write("\n itemid is "+itemid)
+            #self.wfile.write("\n itemid is "+itemid)
         else:
-            self.wfile.write("no itemid")
+            #self.wfile.write("no itemid")
             return
         item = mgopages.find_one({"itemid":itemid})
         if item==None:
-            self.wfile.write("\nno item selected")
+            #self.wfile.write("\nno item selected")
             return
-        self.wfile.write("start to process")
+        #self.wfile.write("start to process")
         process(item)
         self.send_response(200)
         self.end_headers()

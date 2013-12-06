@@ -259,6 +259,7 @@ def process(pages,item):
         print 'http request error'
         return
     item = {}
+    print u"发送完成"
     item['instock']=fontdata['instock']
     item['parsed']=True
     item['updatetime'] = int(time.time()) 
@@ -279,5 +280,5 @@ if __name__=='__main__':
         print item['parsed'] 
         thread.start_new_thread(process,(pages,item))
         #process(pages2,cur.next())
-        time.sleep(0.1)
+        time.sleep(0.2)
 

@@ -83,7 +83,7 @@ func Post(info *Info) error {
 	posturl := "http://10.0.1.23:8080/scheduler/api/send_item_detail?token=d61995660774083ccb8b533024f9b8bb"
 	reader := strings.NewReader(string(data))
 	log.Println(string(data))
-	transport := &http.Transport{ResponseHeaderTimeout: time.Duration(30) * time.Second}
+	transport := &http.Transport{ResponseHeaderTimeout: time.Duration(30) * time.Second, DisableKeepAlives: true}
 	var DefaultClinet = &http.Client{Transport: transport}
 	resp, err := DefaultClinet.Post(posturl, "application/json", reader)
 	if err != nil {
