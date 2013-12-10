@@ -3,12 +3,19 @@ package segment
 import (
 	"log"
 	"testing"
+
+	"unicode"
 )
 
 func TestLoadData(t *testing.T) {
-	LoadData()
+	//LoadData()
 	s := SplitTextToWords([]byte("我在中国China北京12389 America美国"))
 	log.Println(TextSliceToString(s))
+	a := []string{"abc"}
+	r := []rune(a[0])
+	log.Println(len(r))
+	b := []rune("[]")
+	log.Println(unicode.IsSymbol(b[0]))
 }
 func TestLoadDictionary(t *testing.T) {
 	tree := new(TrieTree)
@@ -42,7 +49,7 @@ func TestCleanning(t *testing.T) {
 	t2 := "高端特供日本原装 原单双T100%真丝针织重磅双面加厚 短袖高腰淑女连衣裙"
 	t3 := "日本直送 JAM HOME MADE 男士黑玛瑙搭扣 手链/项链 2用"
 	t4 := "2013夏装 代购bags RED VALENTINO新款雪纺连衣裙韩版女装珍珠娃娃领百褶荷叶袖短袖裙子"
-	t5 := "百搭基本情侣款耳钉耳饰镶嵌超闪锆石水钻简单精神韩国饰品配饰"
+	t5 := "●● ●● ,基本情侣款耳钉耳饰镶嵌超闪锆石水钻简单精神韩国饰品配饰"
 
 	t1c := tree.Cleanning(t1)
 	log.Println(t1c)

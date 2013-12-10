@@ -1,7 +1,6 @@
 package segment
 
 import (
-	"log"
 	"regexp"
 	"sort"
 	"strings"
@@ -135,7 +134,7 @@ func (this *TrieTree) Cleanning(title string) string {
 	//在查找黑名单的路径上，如果有品牌名，则停止不对其进行清理
 	//如果找到一个要去掉的词，应该看其后继是否还存在品牌名
 	title = strings.ToLower(title)
-	re := regexp.MustCompile("(&[a-z0-9]*;([a-z0-9];)?)|(【)|(】)|★|!|(<>)|(。)|(___)|(\\(\\))|(◆)|(\\*)")
+	re := regexp.MustCompile("(&[a-z0-9]*;([a-z0-9];)?)|(【)|(】)|★|!|(<>)|(。)|(___)|(\\(\\))|(◆)|(\\*)|(\\p{S})")
 	title = re.ReplaceAllString(title, " ")
 	slicewords := SplitTextToWords([]byte(title))
 	texts := TextSliceToString(slicewords)
@@ -162,7 +161,6 @@ func (this *TrieTree) Cleanning(title string) string {
 		}
 
 	}
-	log.Println(result)
 	for _, v := range result {
 		title = strings.Replace(title, v, " ", 1)
 	}
@@ -171,7 +169,7 @@ func (this *TrieTree) Cleanning(title string) string {
 	title = re.ReplaceAllString(title, " ")
 	ta := strings.Split(title, " ")
 	for i := 0; i < len(ta); i++ {
-		r := []rune(ta[i])
+		r := []rune(strings.TrimSpace(ta[i]))
 		if len(ta[i]) <= 3 && len(r) == 1 {
 			//单个字，需要删除
 			if i < len(ta)-1 {
