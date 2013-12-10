@@ -5,6 +5,9 @@ go build -o jobs/get_cats -x jobs/get_taobao_cats.go
 go build -o jobs/sync_items -x jobs/sync_items.go
 go build -o jobs/item_standarize -x jobs/item_standarize.go
 go build -o jobs/get_taobao_guoku_cats_match -x jobs/get_taobao_guoku_cats_match.go
+go build -o jobs/word_detector -x jobs/word_detector.go
+go build -o jobs/word_detector_imp -x jobs/word_detector_imp.go
+go build -o jobs/addtional_extractor -x jobs/addtional_extractor.go
 
 mkdir upload
 cp management upload

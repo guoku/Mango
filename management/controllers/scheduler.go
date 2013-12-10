@@ -4,6 +4,7 @@ import (
 	"Mango/management/models"
 	"Mango/management/models/apiresponse"
 	"Mango/management/taobaoclient"
+	"Mango/management/utils"
 	"encoding/json"
 	"fmt"
 	"github.com/astaxie/beego"
@@ -267,96 +268,102 @@ func (this *SendItemDataController) Post() {
 	err := json.Unmarshal(this.Ctx.Input.RequestBody, &item)
 	if err != nil {
 		fmt.Println(err)
-		this.Data["json"] = map[string]string{"status": "Error"}
+		this.Data["json"] = map[string]string{"status": "Data Error"}
 		this.ServeJson()
 		return
 	}
 	fmt.Println(item)
 	/*
-	   numIid, err := this.GetInt("num_iid")
-	   if err != nil {
-	       this.Abort("404")
-	       return
-	   }
-	   url := fmt.Sprintf("http://item.taobao.com/item.htm?id=%d", numIid)
-	   title := this.GetString("title")
-	   nick := this.GetString("nick")
-	   desc := this.GetString("desc")
-	   cid, _ := this.GetInt("cid")
-	   price, _ := this.GetFloat("price")
-	   city := this.GetString("city")
-	   state := this.GetString("state")
-	   promotionPrice, _ := this.GetFloat("promotion_price")
-	   shopType := this.GetString("shop_type")
-	   reviewsCount, _ := this.GetInt("reviews_count")
-	   salesNum, _ := this.GetInt("sales_num")
-	   propsStr := this.GetString("props")
-	   propsArray := strings.Split(propsStr, ";")
-	   props := make(map[string]string)
-	   inStockFlag := this.GetString("instock")
-	   inStock := inStockFlag == "1"
-	   for _, v := range propsArray {
-	       vs := strings.Split(v, ":")
-	       props[vs[0]] = vs[1]
-	   }
-	   itemImgs := this.GetStrings("item_img")
+		   numIid, err := this.GetInt("num_iid")
+		   if err != nil {
+		       this.Abort("404")
+		       return
+		   }
+		   url := fmt.Sprintf("http://item.taobao.com/item.htm?id=%d", numIid)
+		   title := this.GetString("title")
+		   nick := this.GetString("nick")
+		   desc := this.GetString("desc")
+		   cid, _ := this.GetInt("cid")
+		   price, _ := this.GetFloat("price")
+		   city := this.GetString("city")
+		   state := this.GetString("state")
+		   promotionPrice, _ := this.GetFloat("promotion_price")
+		   shopType := this.GetString("shop_type")
+		   reviewsCount, _ := this.GetInt("reviews_count")
+		   salesNum, _ := this.GetInt("sales_num")
+		   propsStr := this.GetString("props")
+		   propsArray := strings.Split(propsStr, ";")
+		   props := make(map[string]string)
+		   inStockFlag := this.GetString("instock")
+		   inStock := inStockFlag == "1"
+		   for _, v := range propsArray {
+		       vs := strings.Split(v, ":")
+		       props[vs[0]] = vs[1]
+		   }
+		   itemImgs := this.GetStrings("item_img")
 
-	   ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
-	   ic.Update(bson.M{"num_iid": int(numIid)},
-	             bson.M{"$set" :
-	                     bson.M {"detail_url": url,
-	                             "title" : title,
-	                             "nick" : nick,
-	                             "desc" : desc,
-	                             "cid" : cid,
-	                             "price" : price,
-	                             "location.city" : city,
-	                             "location.state" : state,
-	                             "promotion_price": promotionPrice,
-	                             "shop_type" : shopType,
-	                             "reviews_count" : reviewsCount,
-	                             "monthly_sales_num" : salesNum,
-	                             "props" : props,
-	                             "item_imgs" : itemImgs,
-	                             "in_stock" : inStock,
-	                             "data_updated_time" : time.Now()}})
-	
+		   ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
+		   ic.Update(bson.M{"num_iid": int(numIid)},
+		             bson.M{"$set" :
+		                     bson.M {"detail_url": url,
+		                             "title" : title,
+		                             "nick" : nick,
+		                             "desc" : desc,
+		                             "cid" : cid,
+		                             "price" : price,
+		                             "location.city" : city,
+		                             "location.state" : state,
+		                             "promotion_price": promotionPrice,
+		                             "shop_type" : shopType,
+		                             "reviews_count" : reviewsCount,
+		                             "monthly_sales_num" : salesNum,
+		                             "props" : props,
+		                             "item_imgs" : itemImgs,
+		                             "in_stock" : inStock,
+		                             "data_updated_time" : time.Now()}})
+
+		session := utils.GetNewMongoSession()
+	    if session == nil {
+	        this.Data["json"] = map[string]string{"status": "Error"}
+	        this.ServeJson()
+	        return
+	    }*/
 	session := utils.GetNewMongoSession()
-    if session == nil {
-        this.Data["json"] = map[string]string{"status": "Error"}
-        this.ServeJson()
-        return
-    }*/
-    ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
-    tItem := models.TaobaoItemStd{}
-    change := bson.M{
-		    "detail_url": item.DetailUrl,
-			"title":             item.Title,
-			"nick":              item.Nick,
-			"desc":              item.Desc,
-			"sid":               item.Sid,
-			"cid":               item.Cid,
-			"price":             item.Price,
-			"location":          item.Location,
-			"promotion_price":   item.PromotionPrice,
-			"shop_type":         item.ShopType,
-			"reviews_count":     item.ReviewsCount,
-			"monthly_sales_num": item.MonthlySalesVolume,
-			"props":             item.Props,
-			"item_imgs":         item.ItemImgs,
-			"in_stock":          item.InStock,
-        }
-    ic.Find(bson.M{"num_iid" : int(item.NumIid)}).One(&tItem)
-    if tItem.Title == "" {
-        t := time.Now()
-        change["data_updated_time"] = t
-        change["data_last_revised_time"] = t
-    } else {
-        change["data_last_revised_time"] = time.Now()
-    }
+	if session == nil {
+		this.Data["json"] = map[string]string{"status": "DB Error"}
+		this.ServeJson()
+	}
+	defer session.Close()
+	ic := session.DB(MgoDbName).C("taobao_items_depot")
+	tItem := models.TaobaoItemStd{}
+	change := bson.M{
+		"detail_url":        item.DetailUrl,
+		"title":             item.Title,
+		"nick":              item.Nick,
+		"desc":              item.Desc,
+		"sid":               item.Sid,
+		"cid":               item.Cid,
+		"price":             item.Price,
+		"location":          item.Location,
+		"promotion_price":   item.PromotionPrice,
+		"shop_type":         item.ShopType,
+		"reviews_count":     item.ReviewsCount,
+		"monthly_sales_num": item.MonthlySalesVolume,
+		"props":             item.Props,
+		"item_imgs":         item.ItemImgs,
+		"in_stock":          item.InStock,
+	}
+	ic.Find(bson.M{"num_iid": int(item.NumIid)}).One(&tItem)
+	if tItem.Title == "" {
+		t := time.Now()
+		change["data_updated_time"] = t
+		change["data_last_revised_time"] = t
+	} else {
+		change["data_last_revised_time"] = time.Now()
+	}
 
-	ic.Update(bson.M{"num_iid" :  int(item.NumIid)},
-              bson.M{"$set" : change})
+	ic.Update(bson.M{"num_iid": int(item.NumIid)},
+		bson.M{"$set": change})
 
 	this.Data["json"] = map[string]string{"status": "succeeded"}
 	this.ServeJson()
@@ -402,41 +409,4 @@ func (this *UpdateTaobaoShopController) Post() {
 		return
 	}
 	this.Redirect(fmt.Sprintf("/scheduler/shop_detail/taobao/?sid=%d", sid), 302)
-}
-
-
-type DictManagerController struct {
-    SchedulerController
-}
-
-
-func (this *DictManagerController) Get() {
-	page, err := this.GetInt("p")
-	if err != nil {
-		page = 1
-	}
-    numOnePage := 300
-    c := MgoSession.DB("words").C("dict_chi_eng")
-    words := make([]models.DictWord, 0)
-
-    c.Find(nil).Sort("-freq").Skip(int(page-1) * numOnePage).Limit(numOnePage).All(&words)
-    total, _ := c.Find(nil).Count()
-	this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, numOnePage, this.Input())
-    this.Data["Words"] = words
-    this.Layout = DefaultLayoutFile
-    this.TplNames = "dict_manage.tpl"
-}
-
-type DictManagerUpdateController struct {
-    SchedulerController
-}
-
-
-func (this *DictManagerUpdateController) Post() {
-    w := this.GetString("w")
-    fmt.Println(w)
-    blacklist, _ := this.GetBool("blacklist")
-    c := MgoSession.DB("words").C("dict_chi_eng")
-    c.Update(bson.M{"word": w} , bson.M{"$set" : bson.M{"blacklisted" : blacklist}})
-    this.Redirect(this.Ctx.Input.Refer(), 302)
 }

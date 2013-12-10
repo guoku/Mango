@@ -17,8 +17,8 @@ import (
 
 const MAX_WORD_LEN = 5
 const ENTROPY_THRESHOLD = 2.5
-const NUM_EVERY_TIME = 200000
-const TIMES = 3
+const NUM_EVERY_TIME = 50000
+const TIMES = 12
 
 var MgoDbName string = "mango"
 var Freq = make(map[string]int)
