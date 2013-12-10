@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -39,9 +40,12 @@ func main() {
 	mgominer := mongoInit("minerals")
 	mgopage := mongoInit("pages")
 	mgofailed := mongoInit("failed")
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	for {
-		go refetch(mgopage, mgofailed)
+
+		refetch(mgopage, mgofailed)
 		run(mgominer, mgopage, mgofailed)
+
 	}
 }
 
@@ -234,7 +238,7 @@ func userAgentGen() string {
 }
 
 func run(mgominer, mgopage, mgofailed *mgo.Collection) {
-	var threads int = 6
+	var threads int = 12
 	var allowchan chan bool = make(chan bool, threads) //同一时刻不能有过多的请求，否则goagent都会受不了的
 	log.Printf("start to run fetch")
 	shopid, items := loadItems(mgominer)
@@ -306,10 +310,12 @@ func run(mgominer, mgopage, mgofailed *mgo.Collection) {
 func refetch(mgopage, mgofailed *mgo.Collection) {
 	//重新抓取失败的
 	log.Printf("start to run refetch")
-	var threads int = 6
+	var threads int = 10
 	var failed *FailedPages
 	err := mgofailed.Find(bson.M{"updatetime": bson.M{"$lt": time.Now().Unix() - 1800}}).One(&failed)
 	if err != nil {
+		log.Println("应该是找不到数据")
+		log.Println(err.Error())
 		return
 	}
 	var fails []*FailedPages
@@ -327,19 +333,19 @@ func refetch(mgopage, mgofailed *mgo.Collection) {
 		wg.Add(1)
 		go func(itemid string) {
 			defer wg.Done()
-			log.Printf("start to  refetch %s", item.ItemId)
-			page, err, detail := fetch(item.ItemId, failed.ShopType)
+			log.Printf("start to  refetch %s", itemid)
+			page, err, detail := fetch(itemid, failed.ShopType)
 			if err != nil {
-				log.Printf("%s refetch failed", item.ItemId)
-				newfail := FailedPages{ItemId: item.ItemId, ShopId: failed.ShopId, ShopType: failed.ShopType, UpdateTime: time.Now().Unix(), InStock: true}
+				log.Printf("%s refetch failed", itemid)
+				newfail := FailedPages{ItemId: itemid, ShopId: failed.ShopId, ShopType: failed.ShopType, UpdateTime: time.Now().Unix(), InStock: true}
 				err = mgofailed.Insert(&newfail)
 				if err != nil {
 					log.Println(err.Error())
-					mgofailed.Update(bson.M{"itemid": item.ItemId}, bson.M{"$set": newfail})
+					mgofailed.Update(bson.M{"itemid": itemid}, bson.M{"$set": newfail})
 				}
 			} else {
 				log.Printf("%s refetch successed", item.ItemId)
-				successpage := Pages{ItemId: item.ItemId, ShopId: failed.ShopId, ShopType: failed.ShopType, FontPage: page, DetailPage: detail, UpdateTime: time.Now().Unix(), Parsed: false, InStock: true}
+				successpage := Pages{ItemId: itemid, ShopId: failed.ShopId, ShopType: failed.ShopType, FontPage: page, DetailPage: detail, UpdateTime: time.Now().Unix(), Parsed: false, InStock: true}
 				err = mgopage.Insert(&successpage)
 				if err != nil {
 					log.Println(err.Error())

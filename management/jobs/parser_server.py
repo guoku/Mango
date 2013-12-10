@@ -1,5 +1,6 @@
 #encoding=utf-8
 
+from BaseHTTPServer import BaseHTTPRequestHandler
 from bs4 import BeautifulSoup
 import re
 from urlparse import parse_qs
@@ -11,12 +12,15 @@ import urllib
 import json
 import thread
 import codecs
+import urlparse
+import logging
 
 states = set([u"北京",u"上海",u"天津",u"重庆",u"广东",u"江苏",u"浙江",u"山东",u"河北",u"山西",u"辽宁"
     ,u"吉林",u"河南",u"安徽",u"福建",u"江西",u"黑龙江",u"湖南",u"湖北",u"海南",u"四川",u"贵州",u"云南",
     u"陕西",u"甘肃",u"青海",u"台湾",u"西藏",u"内蒙古",u"广西",u"宁夏",u"新疆",u"香港",u"澳门",u"海外"])
 
 def fetch(html):
+    logging.info("start to parser")
     soup = BeautifulSoup(html)
     title = soup.title.text
     if title.find(u'商品屏蔽')>=0:
@@ -187,39 +191,31 @@ def fetchdetail(html):
         key = tds[0].text.strip()[0:-1]
         value = tds[1].text.strip()
         attri[key] = value
+        value = value.replace('\r\n',' ')
 
     attri["reviews"]=reviews
 
     return attri
 
 
-host='10.0.1.23'
+host='localhost'
+conn = pymongo.Connection(host)
+db = conn['zerg']
+mgopages = db['pages']
 
-def removeItem(pages,itemid):
-    if len(itemid)>0:
-        #防止空参数把所有数据都删除掉了
-        pages.remove(itemid)
-
-def updateItem(pages,item):
-    pages.update({"itemid":item['itemid']},{'$set':item})
-def process(pages,item):
+def process(item):
     if item==None:
-        time.sleep(10)
         return
     result = {}
     fontdata,statu = fetch(item['fontpage'])
-    if statu=='error':
-        #说明这个商品已经被屏蔽掉了，抓取下来的页面是错误页面，应该删除掉
-        itemtmp = {}
-        itemtmp['instock']=False
-        itemtmp['parsed']=True
-        itemtmp['updatetime'] = int(time.time()) 
-        itemtmp['itemid']=item['itemid']
-        updateItem(pages,itemtmp)
-        print('这个商品被屏蔽了')
-        print item['itemid']
+    if statu=="error":
+        tmp = {}
+        tmp['instock']=False
+        tmp['parsed']=True
+        tmp['updatetime']=int(time.time())
+        tmp['itemid']=item['itemid']
+        mgopages.update({"itemid":item['itemid']},{'$set':tmp})
         return
-    detaildata={}
     detaildata = fetchdetail(item['detailpage'])
     if detaildata['reviews']>0:
         fontdata['reviews']=detaildata['reviews']
@@ -228,16 +224,14 @@ def process(pages,item):
         result['detail_url']='http://detail.tmall.com/item.htm?id='+item['itemid']
     else:
         result['detail_url'] = 'http://item.taobao.com/item.htm?id='+item['itemid']
-    print "正确的itemid:",fontdata['itemid']
+    
     result['num_iid'] =int(fontdata['itemid'])
     result['title'] = fontdata['desc']
-    print result['title']
     result['nick'] = fontdata['nick']
     result['desc'] = fontdata['desc']
     result['cid'] = int(fontdata['cid'])
     result['sid'] = int(item['shopid'])
     result['location'] = {"state":fontdata["state"],"city":fontdata['city']}
-    print fontdata['price']
     result['price'] = fontdata['price']
     result['promotion_price']=fontdata['promprice']
     result['item_imgs'] = fontdata['imgs'] #数组
@@ -247,7 +241,7 @@ def process(pages,item):
     result['props']= detaildata
     result['in_stock'] = fontdata['instock']
     result['data_updated_time'] = item['updatetime']
-
+    
     posturl = 'http://10.0.1.23:8080/scheduler/api/send_item_detail?token=d61995660774083ccb8b533024f9b8bb'
     js = json.dumps(result)
     #print js
@@ -259,26 +253,36 @@ def process(pages,item):
         print 'http request error'
         return
     item = {}
-    print u"发送完成"
     item['instock']=fontdata['instock']
     item['parsed']=True
     item['updatetime'] = int(time.time()) 
     item['itemid']=fontdata['itemid']
-    print "start to update" 
-    updateItem(pages,item)
-    #conn.close()
-    return result
+    mgopages.update({"itemid":item['itemid']},{'$set':item})
 
-if __name__=='__main__':
-    conn=pymongo.Connection(host)
-    db = conn['zerg']
-    pages=db['pages']
-    cur = pages.find({"parsed":False})
-    while True:
-        item = cur.next()
-        print item['itemid']
-        print item['parsed'] 
-        thread.start_new_thread(process,(pages,item))
-        #process(pages2,cur.next())
-        time.sleep(0.2)
 
+class GetHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        parsed_path = urlparse.urlparse(self.path)
+        query = parse_qs(parsed_path.query)
+        itemid = ''
+        if query.has_key('itemid'):
+            self.wfile.write("has itemid")
+            itemid = query['itemid'][0]
+            #self.wfile.write("\n itemid is "+itemid)
+        else:
+            #self.wfile.write("no itemid")
+            return
+        item = mgopages.find_one({"itemid":itemid})
+        if item==None:
+            #self.wfile.write("\nno item selected")
+            return
+        #self.wfile.write("start to process")
+        process(item)
+        self.send_response(200)
+        self.end_headers()
+        return
+if __name__=="__main__":
+    from BaseHTTPServer import HTTPServer
+    server = HTTPServer(('localhost',8088),GetHandler)
+    print "server start"
+    server.serve_forever()
