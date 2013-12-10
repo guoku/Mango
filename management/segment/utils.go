@@ -17,7 +17,7 @@ type Entity struct {
 type WordsText []byte
 
 func LoadData() {
-	resp, err := http.Get("http://10.0.1.109:8000/management/entity/without/title/sync/")
+	resp, err := http.Get("http://114.113.154.47:8000/management/entity/without/title/sync/")
 	if err != nil {
 		panic(err)
 	}
@@ -37,11 +37,12 @@ func LoadData() {
 			continue
 		}
 		title := ent.Titles[0]
+		log.Println("\n")
 		log.Println("原始的标题：", title)
-		title = tree.Cleanning(title)
-		log.Println("清理后的标题：", title)
 		brands := tree.Extract(title)
 		log.Println("抽取出来的品牌名：", brands)
+		title = tree.Cleanning(title)
+		log.Println("清理的标题：", title)
 	}
 }
 func SplitTextToWords(text WordsText) []WordsText {

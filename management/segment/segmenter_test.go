@@ -6,7 +6,7 @@ import (
 )
 
 func TestLoadData(t *testing.T) {
-	//	LoadData()
+	LoadData()
 	s := SplitTextToWords([]byte("我在中国China北京12389 America美国"))
 	log.Println(TextSliceToString(s))
 }
@@ -23,12 +23,11 @@ func TestLoadDictionary(t *testing.T) {
 func TestCleanning(t *testing.T) {
 	tree := new(TrieTree)
 	//	tree.LoadDictionary("10.0.1.23", "words", "brands")
-	//	tree.LoadBlackWords("10.0.1.23", "words", "dict_chi_eng")
+	tree.LoadBlackWords("10.0.1.23", "words", "dict_chi_eng")
 	tree.Add("valentino", 10)
 	tree.Add("valentino/华伦天奴", 20)
 	tree.Add("red", 30)
 	tree.Add("red valentino", 20)
-	tree.Add("高档品牌", 30)
 	tree.AddBlackWord("roland")
 	tree.AddBlackWord("高档品")
 	tree.AddBlackWord("高档")
@@ -37,11 +36,13 @@ func TestCleanning(t *testing.T) {
 	tree.AddBlackWord("代购")
 	tree.AddBlackWord("同款")
 	tree.AddBlackWord("2013")
-	t1 := "高档品100%重磅真丝怪料软垂 长袖收腰 春秋淑女连衣裙 原价3000"
-	t2 := "高端特供 原单双T100%真丝针织重磅双面加厚 短袖高腰淑女连衣裙"
-	t3 := "2013秋季新款ROLAND MOURET EbonyNO no 可爱猫咪针织裙娃娃领毛衣裙"
-	t4 := "2013夏装 代购RED VALENTINO新款雪纺连衣裙韩版女装珍珠娃娃领百褶荷叶袖短袖裙子"
-	t5 := "INao意大利正品代购 VALENTINO羊毛混纺迷你连衣裙名媛荣文蔚同款"
+	tree.AddBlackWord("bag")
+	tree.AddBlackWord("日本")
+	t1 := "高档品牌正品我100%重磅真丝怪料软垂 长袖收腰 春秋淑女连衣裙 原价3000"
+	t2 := "高端特供日本原装 原单双T100%真丝针织重磅双面加厚 短袖高腰淑女连衣裙"
+	t3 := "日本直送 JAM HOME MADE 男士黑玛瑙搭扣 手链/项链 2用"
+	t4 := "2013夏装 代购bags RED VALENTINO新款雪纺连衣裙韩版女装珍珠娃娃领百褶荷叶袖短袖裙子"
+	t5 := "百搭基本情侣款耳钉耳饰镶嵌超闪锆石水钻简单精神韩国饰品配饰"
 
 	t1c := tree.Cleanning(t1)
 	log.Println(t1c)
@@ -71,6 +72,7 @@ func TestExtract(t *testing.T) {
 		}
 	}
 	result := tree.Extract("电热乔邦,热水壶水壶")
+	log.Println(result)
 	if len(result) != 2 {
 		t.Fatal("返回的结果数量不对")
 	}

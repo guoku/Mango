@@ -1,6 +1,7 @@
 package segment
 
 import (
+	"log"
 	"regexp"
 	"sort"
 	"strings"
@@ -134,33 +135,53 @@ func (this *TrieTree) Cleanning(title string) string {
 	//在查找黑名单的路径上，如果有品牌名，则停止不对其进行清理
 	//如果找到一个要去掉的词，应该看其后继是否还存在品牌名
 	title = strings.ToLower(title)
+	re := regexp.MustCompile("(&[a-z0-9]*;([a-z0-9];)?)|(【)|(】)|★|!|(<>)|(。)|(___)|(\\(\\))|(◆)|(\\*)")
+	title = re.ReplaceAllString(title, " ")
 	slicewords := SplitTextToWords([]byte(title))
 	texts := TextSliceToString(slicewords)
 	current := this.Root
-	start := 0
 	var result []string
 	passed := false
-	for i, v := range texts {
+	var hit *Node
+	for i := 0; i < len(texts); i++ {
 		nodes := current.BlackChildren
-		index, exist := this.judge(nodes, v, true)
-		if !exist || current.Word != "" {
-			if passed {
-				result = append(result, texts[start:i]...)
+		index, exist := this.judge(nodes, texts[i], true)
+		if !exist {
+			if passed && current.Word == "" {
+				result = append(result, this.BlackWords[hit.BlackOrigin])
 				passed = false
+				i = i - 1
 			}
-			start = i + 1
 			current = this.Root
 			continue
 		}
 		current = nodes[index]
 		if current.BlackExist {
+			hit = current
 			passed = true
 		}
 
 	}
+	log.Println(result)
 	for _, v := range result {
-		title = strings.Replace(title, v, "", 1)
+		title = strings.Replace(title, v, " ", 1)
 	}
+	title = strings.TrimSpace(title)
+	re = regexp.MustCompile(" +")
+	title = re.ReplaceAllString(title, " ")
+	ta := strings.Split(title, " ")
+	for i := 0; i < len(ta); i++ {
+		r := []rune(ta[i])
+		if len(ta[i]) <= 3 && len(r) == 1 {
+			//单个字，需要删除
+			if i < len(ta)-1 {
+				ta = append(ta[:i], ta[i+1:]...)
+			} else {
+				ta = ta[:i]
+			}
+		}
+	}
+	title = strings.Join(ta, " ")
 	return title
 }
 func (this *TrieTree) clean(words string) string {
@@ -199,19 +220,26 @@ func (this *TrieTree) Extract(text string) []string {
 	current := this.Root
 	var result []Text
 	var keys map[int]bool = make(map[int]bool)
-	for _, v := range texts {
+	var flag bool = false
+	var hit *Node
+	for i := 0; i < len(texts); i++ {
 		nodes := current.Children
-		index, exist := this.judge(nodes, v, false)
+		index, exist := this.judge(nodes, texts[i], false)
 		if !exist {
+			if flag {
+				for _, v := range hit.Origin {
+					keys[v] = true
+				}
+				flag = false
+				i = i - 1
+			}
 			current = this.Root
 			continue
 		}
 		current = nodes[index]
 		if current.Exist {
-			for _, v := range current.Origin {
-				keys[v] = true
-			}
-			current = this.Root
+			flag = true
+			hit = current
 		}
 	}
 	for key, _ := range keys {
