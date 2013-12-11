@@ -1,9 +1,9 @@
 package segment
 
 import (
+	"github.com/qiniu/log"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	"log"
 	"strings"
 )
 
@@ -21,12 +21,33 @@ type Black struct {
 	Freq        int
 	Prob        float64
 	Blacklisted bool
+	Deleted     bool
+	Type        string
 }
 
+func (this *TrieTree) LoadNormal(mgohost, mgodb, mgocol string) {
+	conn, err := mgo.Dial(mgohost)
+	if err != nil {
+		log.Info("mongo连接错误")
+		panic(err)
+	}
+	session := conn.DB(mgodb).C(mgocol)
+
+	var norms []*Black
+	err = session.Find(bson.M{"blacklisted": false, "deleted": false, "freq": bson.M{"$gt": 100}}).All(&norms)
+	if err != nil {
+		log.Info(err.Error())
+	}
+	for _, v := range norms {
+		text := strings.ToLower(v.Word)
+		text = strings.TrimSpace(text)
+		this.AddNormal(text)
+	}
+}
 func (this *TrieTree) LoadDictionary(mgohost, mgodb, mgocol string) {
 	conn, err := mgo.Dial(mgohost)
 	if err != nil {
-		log.Println("mongo连接错误")
+		log.Info("mongo连接错误")
 		panic(err)
 	}
 	session := conn.DB(mgodb).C(mgocol)
@@ -58,7 +79,7 @@ func (this *TrieTree) LoadDictionary(mgohost, mgodb, mgocol string) {
 func (this *TrieTree) LoadBlackWords(mgohost, mgodb, mgocol string) {
 	conn, err := mgo.Dial(mgohost)
 	if err != nil {
-		log.Println("mongo连接错误")
+		log.Info("mongo连接错误")
 		panic(err)
 	}
 	session := conn.DB(mgodb).C(mgocol)

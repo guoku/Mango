@@ -41,6 +41,7 @@ func LoadData(offset, count int) ([]*Result, error) {
 	tree := new(TrieTree)
 	tree.LoadDictionary("10.0.1.23", "words", "brands")
 	tree.LoadBlackWords("10.0.1.23", "words", "dict_chi_eng")
+	tree.LoadNormal("10.0.1.23", "words", "dict_chi_eng")
 	for _, ent := range entities {
 		if len(ent.Titles) == 0 {
 			continue
@@ -113,7 +114,7 @@ func SplitTextToWords(text WordsText) []WordsText {
 			if inAlphanumeric {
 				inAlphanumeric = false
 				if current != 0 {
-					output[currentWord] = toLower(text[alphanumericStart:current])
+					output[currentWord] = text[alphanumericStart:current]
 					currentWord++
 				}
 			}
@@ -130,7 +131,7 @@ func SplitTextToWords(text WordsText) []WordsText {
 	// 处理最后一个字元是英文的情况
 	if inAlphanumeric {
 		if current != 0 {
-			output[currentWord] = toLower(text[alphanumericStart:current])
+			output[currentWord] = text[alphanumericStart:current]
 			currentWord++
 		}
 	}

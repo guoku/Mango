@@ -3,13 +3,12 @@ package segment
 import (
 	"log"
 	"testing"
-
 	"unicode"
 )
 
 func TestLoadData(t *testing.T) {
-	result, _ := LoadData(0, 3000)
-	ToHTML(result, "result.html")
+	result, _ := LoadData(0, 10)
+	ToHTML(result, "result2.html")
 	s := SplitTextToWords([]byte("我在中国China北京12389 America美国"))
 	log.Println(TextSliceToString(s))
 	a := []string{"abc"}
@@ -28,46 +27,13 @@ func TestLoadDictionary(t *testing.T) {
 	log.Println(a[0])
 	log.Println(a[2])
 }
+
 func TestCleanning(t *testing.T) {
 	tree := new(TrieTree)
 	tree.LoadDictionary("10.0.1.23", "words", "brands")
 	tree.LoadBlackWords("10.0.1.23", "words", "dict_chi_eng")
-	tree.Add("valentino", 10)
-	tree.Add("valentino/华伦天奴", 20)
-	tree.Add("red", 30)
-	tree.Add("red valentino", 20)
-	tree.AddBlackWord("roland")
-	tree.AddBlackWord("高档品")
-	tree.AddBlackWord("高档")
-	tree.AddBlackWord("意大利")
-	tree.AddBlackWord("正品")
-	tree.AddBlackWord("代购")
-	tree.AddBlackWord("同款")
-	tree.AddBlackWord("2013")
-	tree.AddBlackWord("bag")
-	tree.AddBlackWord("日本")
-	t1 := "高档品牌正品我100%重磅真丝怪料软垂 长袖收腰 春秋淑女连衣裙 原价3000"
-	t2 := "高端特供日本原装 原单双T100%真丝针织重磅双面加厚 短袖高腰淑女连衣裙"
-	t3 := "日本直送 JAM HOME MADE 男士黑玛瑙搭扣 手链/项链 2用"
-	t4 := "2013夏装 代购bags RED VALENTINO新款雪纺连衣裙韩版女装珍珠娃娃领百褶荷叶袖短袖裙子"
-	t5 := "mblife香港正品特价不包邮费 唯美原创珍珠牡丹花朵手链写真度假"
-	log.Println(t1)
-	t1c := tree.Cleanning(t1)
-	log.Println(t1c)
-	log.Println(t2)
-	t2c := tree.Cleanning(t2)
-	log.Println(t2c)
-	log.Println(t3)
-	t3c := tree.Cleanning(t3)
-	log.Println(t3c)
-	log.Println(t4)
-	t4c := tree.Cleanning(t4)
-	log.Println(t4c)
-	log.Println(tree.Extract(t4c))
-	log.Println(t5)
-	t5c := tree.Cleanning(t5)
-	log.Println(t5c)
-	log.Println(tree.Extract(t5c))
+	tc := tree.Cleanning("包邮 韩国正品 韩国顶级品牌头丽Doori dayss名品牌 纯天然防脱洗发水套装")
+	log.Println(tc)
 }
 func TestExtract(t *testing.T) {
 	tree := new(TrieTree)
