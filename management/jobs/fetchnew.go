@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const THREADSNUM int = 15
+const THREADSNUM int = 20
 const (
 	MGOHOST string = "10.0.1.23"
 	MGODB   string = "zerg"
@@ -70,12 +70,14 @@ func run(shopid string, items []string) {
 				page, err, detail := utils.Fetch(itemid, shoptype)
 				if err != nil {
 					log.Printf("%s failed", itemid)
+					if err.Error() != "404" {
 
-					failed := utils.FailedPages{ItemId: itemid, ShopId: shopid, ShopType: shoptype, UpdateTime: time.Now().Unix(), InStock: true}
-					err = mgofailed.Insert(&failed)
-					if err != nil {
-						log.Println(err.Error())
-						mgofailed.Update(bson.M{"itemid": itemid}, bson.M{"$set": failed})
+						failed := utils.FailedPages{ItemId: itemid, ShopId: shopid, ShopType: shoptype, UpdateTime: time.Now().Unix(), InStock: true}
+						err = mgofailed.Insert(&failed)
+						if err != nil {
+							log.Println(err.Error())
+							mgofailed.Update(bson.M{"itemid": itemid}, bson.M{"$set": failed})
+						}
 					}
 				} else {
 

@@ -2,8 +2,8 @@ package main
 
 import (
 	"Mango/management/utils"
+	"github.com/qiniu/log"
 	"labix.org/v2/mgo/bson"
-	"log"
 	"time"
 )
 
@@ -21,28 +21,37 @@ func main() {
 }
 
 func run() {
+	log.SetOutputLevel(log.Ldebug)
 	mgopages := utils.MongoInit(MGOHOST, MGODB, "pages")
 	mgofailed := utils.MongoInit(MGOHOST, MGODB, "failed")
-	log.Println("start to refetch")
+	log.Info("start to refetch")
 	iter := mgofailed.Find(nil).Iter()
 	failed := new(utils.FailedPages)
 	for iter.Next(&failed) {
 		info, err := mgofailed.RemoveAll(bson.M{"itemid": failed.ItemId})
 		if err != nil {
-			log.Println(info.Removed)
-			log.Println(err.Error())
+			log.Info(info.Removed)
+			log.Info(err.Error())
 		}
 		page, err, detail := utils.Fetch(failed.ItemId, failed.ShopType)
 		if err != nil {
-			log.Println("%s refetch failed, ", failed.ItemId)
-			newfail := utils.FailedPages{ItemId: failed.ItemId, ShopId: failed.ShopId, ShopType: failed.ShopType, UpdateTime: time.Now().Unix(), InStock: failed.InStock}
-			err = mgofailed.Insert(&newfail)
-			if err != nil {
-				log.Println(err.Error())
-				mgofailed.Update(bson.M{"itemid": failed.ItemId}, bson.M{"$set": newfail})
+			if err.Error() == "404" {
+				log.Info("start to remove item")
+				_, err = mgofailed.RemoveAll(bson.M{"itemid": failed.ItemId})
+				if err != nil {
+					log.Info(err.Error())
+				}
+			} else {
+				log.Infof("%s refetch failed\n", failed.ItemId)
+				newfail := utils.FailedPages{ItemId: failed.ItemId, ShopId: failed.ShopId, ShopType: failed.ShopType, UpdateTime: time.Now().Unix(), InStock: failed.InStock}
+				err = mgofailed.Insert(&newfail)
+				if err != nil {
+					log.Info(err.Error())
+					mgofailed.Update(bson.M{"itemid": failed.ItemId}, bson.M{"$set": newfail})
+				}
 			}
 		} else {
-			log.Println("%s refetch successed", failed.ItemId)
+			log.Info("%s refetch successed", failed.ItemId)
 			info, missing, err := utils.Parse(page, detail, failed.ItemId, failed.ShopId, failed.ShopType)
 			instock := true
 			parsed := false
@@ -57,24 +66,24 @@ func run() {
 					}
 
 				}
-				log.Println(err.Error())
+				log.Info(err.Error())
 			} else {
 				instock = info.InStock
 				err = utils.Post(info)
 				if err != nil {
-					log.Println(err.Error())
+					log.Info(err.Error())
 
 				}
 			}
 			successpage := utils.Pages{ItemId: failed.ItemId, ShopId: failed.ShopId, ShopType: failed.ShopType, FontPage: page, DetailPage: detail, UpdateTime: time.Now().Unix(), Parsed: parsed, InStock: instock}
 			err = mgopages.Insert(&successpage)
 			if err != nil {
-				log.Println(err.Error())
+				log.Info(err.Error())
 				mgopages.Update(bson.M{"itemid": failed.ItemId}, bson.M{"$set": successpage})
 			}
 		}
 	}
 	if err := iter.Close(); err != nil {
-		log.Println(err.Error())
+		log.Info(err.Error())
 	}
 }

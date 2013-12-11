@@ -134,7 +134,7 @@ func (this *TrieTree) Cleanning(title string) string {
 	//在查找黑名单的路径上，如果有品牌名，则停止不对其进行清理
 	//如果找到一个要去掉的词，应该看其后继是否还存在品牌名
 	title = strings.ToLower(title)
-	re := regexp.MustCompile("(&[a-z0-9]*;([a-z0-9];)?)|(【)|(】)|★|!|(<>)|(。)|(___)|(\\(\\))|(◆)|(\\*)|(\\p{S})")
+	re := regexp.MustCompile("(&[a-z0-9]*;([a-z0-9];)?)|(【)|(】)|★|!|(<>)|(。)|(___)|(\\(\\))|(◆)|(\\*)|(\\p{S})|(（)|(）)|(满\\d+包邮)")
 	title = re.ReplaceAllString(title, " ")
 	slicewords := SplitTextToWords([]byte(title))
 	texts := TextSliceToString(slicewords)
@@ -143,6 +143,14 @@ func (this *TrieTree) Cleanning(title string) string {
 	passed := false
 	var hit *Node
 	for i := 0; i < len(texts); i++ {
+		brands := current.Children
+		bi, be := this.judge(brands, texts[i], false)
+		if be {
+			if brands[bi].Exist {
+				current = this.Root
+				continue
+			}
+		}
 		nodes := current.BlackChildren
 		index, exist := this.judge(nodes, texts[i], true)
 		if !exist {
@@ -170,13 +178,14 @@ func (this *TrieTree) Cleanning(title string) string {
 	ta := strings.Split(title, " ")
 	for i := 0; i < len(ta); i++ {
 		r := []rune(strings.TrimSpace(ta[i]))
-		if len(ta[i]) <= 3 && len(r) == 1 {
+		if len(r) == 1 {
 			//单个字，需要删除
 			if i < len(ta)-1 {
 				ta = append(ta[:i], ta[i+1:]...)
 			} else {
 				ta = ta[:i]
 			}
+			i = i - 1
 		}
 	}
 	title = strings.Join(ta, " ")
