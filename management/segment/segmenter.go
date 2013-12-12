@@ -177,7 +177,7 @@ func (this *TrieTree) Cleanning(title string) string {
 	//在查找黑名单的路径上，如果有品牌名，则停止不对其进行清理
 	//如果找到一个要去掉的词，应该看其后继是否还存在品牌名
 	//title = strings.ToLower(title)
-	re := regexp.MustCompile("(&[a-z0-9]*;([a-z0-9];)?)|(【)|(】)|★|!|(<>)|(。)|(___)|(\\(\\))|(◆)|(\\*)|(\\p{S})|(（)|(）)|(满\\d+包邮)")
+	re := regexp.MustCompile("(^\\pP)|(&[a-z0-9]*;([a-z0-9];)?)|(【)|(】)|★|!|(<>)|(。)|(___)|(\\(\\))|(◆)|(\\*)|(\\p{S})|(（)|(）)|(满\\d+包邮)")
 	title = re.ReplaceAllString(title, " ")
 	slicewords := SplitTextToWords([]byte(title))
 	texts := TextSliceToString(slicewords)
@@ -194,7 +194,7 @@ func (this *TrieTree) Cleanning(title string) string {
 				continue
 			}
 		}
-		//过期，效果不好，故不添加
+		//后注，效果不好，故不添加
 		//对于普通词语，如果找到了一个垃圾词，还应该看这个垃圾词与其后的句子是否还构成有词
 		//比如天然是垃圾词，但是天然石则不是垃圾词，故含有天然石的句子，不能够删除掉天然二字
 		index, exist := this.judge(nodes, strings.ToLower(texts[i]), true)
@@ -221,6 +221,9 @@ func (this *TrieTree) Cleanning(title string) string {
 			hit = i
 			log.Info(this.BlackWords[current.BlackOrigin])
 			passed = true
+			if i == len(texts)-1 {
+				texts = texts[:start+1]
+			}
 		}
 
 	}
@@ -234,22 +237,6 @@ func (this *TrieTree) Cleanning(title string) string {
 	title = strings.TrimSpace(title)
 	re = regexp.MustCompile(" +")
 	title = re.ReplaceAllString(title, " ")
-	/*
-		ta := strings.Split(title, " ")
-		for i := 0; i < len(ta); i++ {
-			r := []rune(strings.TrimSpace(ta[i]))
-			if len(r) == 1 {
-				//单个字，需要删除
-				if i < len(ta)-1 {
-					ta = append(ta[:i], ta[i+1:]...)
-				} else {
-					ta = ta[:i]
-				}
-				i = i - 1
-			}
-		}
-		title = strings.Join(ta, " ")
-	*/
 	return title
 }
 

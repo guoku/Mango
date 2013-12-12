@@ -41,7 +41,6 @@ func LoadData(offset, count int) ([]*Result, error) {
 	tree := new(TrieTree)
 	tree.LoadDictionary("10.0.1.23", "words", "brands")
 	tree.LoadBlackWords("10.0.1.23", "words", "dict_chi_eng")
-	tree.LoadNormal("10.0.1.23", "words", "dict_chi_eng")
 	for _, ent := range entities {
 		if len(ent.Titles) == 0 {
 			continue

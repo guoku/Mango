@@ -263,6 +263,7 @@ type SendItemDataController struct {
 
 func (this *SendItemDataController) Post() {
 	fmt.Println(this.Ctx.Input.RequestBody)
+
 	item := models.TaobaoItemStd{}
 	err := json.Unmarshal(this.Ctx.Input.RequestBody, &item)
 	if err != nil {

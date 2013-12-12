@@ -7,7 +7,7 @@ import (
 )
 
 func TestLoadData(t *testing.T) {
-	result, _ := LoadData(0, 10)
+	result, _ := LoadData(0, 1000)
 	ToHTML(result, "result2.html")
 	s := SplitTextToWords([]byte("我在中国China北京12389 America美国"))
 	log.Println(TextSliceToString(s))
