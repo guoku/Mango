@@ -24,7 +24,8 @@ var MgoDbName string
 var shopLock sync.Mutex
 var itemLock sync.Mutex
 var Priorities = [10]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-var TaobaoShopTypes = [3]string{"unknown", "tmall", "global"}
+var TaobaoShopTypes = [3]string{"taobao", "tmall", "global"}
+var Gifts = []string{"果库福利", "应用市场活动", "微博微信活动"}
 
 const SchedulerCodeName = "manage_crawler"
 const NumInOnePage = 50
@@ -58,15 +59,15 @@ func (this *ShopListController) Get() {
 	if nick != "" {
 		query["shop_info.nick"] = nick
 	}
-    sortOn := this.GetString("sorton")
-    sortCon := "-created_time"
-    if sortOn != "" {
-        if sortOn == "priority" {
-            sortCon = "crawler_info.priority"
-        } else if sortOn == "status" {
-            sortCon = "status"
-        }
-    }
+	sortOn := this.GetString("sorton")
+	sortCon := "-created_time"
+	if sortOn != "" {
+		if sortOn == "priority" {
+			sortCon = "crawler_info.priority"
+		} else if sortOn == "status" {
+			sortCon = "status"
+		}
+	}
 	results := make([]models.ShopItem, 0)
 	err = c.Find(query).Sort(sortCon).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
 	if err != nil {
@@ -77,7 +78,7 @@ func (this *ShopListController) Get() {
 	paginator := models.NewSimplePaginator(int(page), total, NumInOnePage, this.Input())
 	this.Data["ShopList"] = results
 	this.Data["Paginator"] = paginator
-    this.Data["SortOn"] = sortOn
+	this.Data["SortOn"] = sortOn
 	this.Layout = DefaultLayoutFile
 	this.TplNames = "list_shop.tpl"
 }
@@ -128,6 +129,11 @@ type TaobaoShopDetailController struct {
 	SchedulerController
 }
 
+type GiftsWithStatu struct {
+	Name string
+	On   bool
+}
+
 func (this *TaobaoShopDetailController) Get() {
 	sid, err := this.GetInt("sid")
 	if err != nil {
@@ -153,11 +159,26 @@ func (this *TaobaoShopDetailController) Get() {
 		return
 	}
 	total, _ := c.Find(bson.M{"sid": sid}).Count()
+
 	this.Data["Shop"] = shop
+	gifts := shop.ExtendedInfo.Gifts
+	var giftwithstatus []*GiftsWithStatu
+	for _, gift := range Gifts {
+		on := false
+		for _, g := range gifts {
+			if gift == g {
+				on = true
+			}
+		}
+		tmp := GiftsWithStatu{Name: gift, On: on}
+		giftwithstatus = append(giftwithstatus, &tmp)
+	}
+	fmt.Println(shop.ExtendedInfo.Type)
 	this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, NumInOnePage, this.Input())
 	this.Data["ItemList"] = results
 	this.Data["Priorities"] = Priorities
 	this.Data["TaobaoShopTypes"] = TaobaoShopTypes
+	this.Data["Gifts"] = giftwithstatus
 	this.Layout = DefaultLayoutFile
 	this.TplNames = "taobao_shop_detail.tpl"
 }
@@ -355,10 +376,25 @@ func (this *UpdateTaobaoShopController) Post() {
 	shop_type := this.GetString("shoptype")
 	orientational, _ := this.GetBool("orientational")
 	commission_rate, _ := this.GetFloat("commission_rate")
-	extended_info := &models.TaobaoShopExtendedInfo{Type: shop_type, Orientational: orientational, CommissionRate: float32(commission_rate)}
+	original, _ := this.GetBool("original")
+	single_tail, _ := this.GetBool("singletail")
+	var gifts []string
+	for _, v := range Gifts {
+		on := this.GetString(v)
+		if on == "on" {
+			fmt.Println(v)
+			gifts = append(gifts, v)
+		}
+	}
+	fmt.Println(gifts)
+	commission, _ := this.GetBool("commission")
+	main_products := this.GetString("main_products")
+	fmt.Println(main_products)
+	extended_info := &models.TaobaoShopExtendedInfo{Type: shop_type, Orientational: orientational, CommissionRate: float32(commission_rate),
+		SingleTail: single_tail, Original: original, Gifts: gifts, Commission: commission}
 	crawler_info := &models.CrawlerInfo{Priority: int(priority), Cycle: int(cycle)}
 	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
-	err := c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"extended_info": extended_info, "crawler_info": crawler_info}})
+	err := c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"extended_info": extended_info, "crawler_info": crawler_info, "shop_info.main_products": main_products}})
 	if err != nil {
 		this.Abort("404")
 		return

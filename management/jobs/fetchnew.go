@@ -91,7 +91,8 @@ func run(shopid string, items []string) {
 						if missing {
 							parsed = true
 							instock = false
-						} else {
+						} else if err.Error() != "聚划算" {
+							//聚划算数据不予以保存
 							parsed = false
 							if err.Error() == "cattag" {
 								//有可能该商品找不到了

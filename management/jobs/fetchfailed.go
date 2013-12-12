@@ -59,7 +59,7 @@ func run() {
 				if missing {
 					parsed = true
 					instock = false
-				} else {
+				} else if err.Error() != "聚划算" {
 					parsed = false
 					if err.Error() == "cattag" {
 						instock = false

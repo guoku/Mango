@@ -151,6 +151,10 @@ func parsefontpage(html string) (*Info, error) {
 		err := errors.New("missing")
 		return info, err
 	}
+	if len(titletag) < 18 {
+		err := errors.New("index out of range")
+		return info, err
+	}
 	desc := titletag[0 : len(titletag)-18]
 	info.Desc = desc
 	info.Title = desc
@@ -164,6 +168,10 @@ func parsefontpage(html string) (*Info, error) {
 	cidtag := cattag.Find("a").Last()
 	cidurl, exists := cidtag.Attr("href")
 	if exists {
+		if !strings.Contains(cidurl, "cat") {
+			err := errors.New("聚划算")
+			return info, err
+		}
 		re := regexp.MustCompile("\\d+$")
 		cid := re.FindAllString(cidurl, -1)[0]
 		c, err := strconv.Atoi(cid)

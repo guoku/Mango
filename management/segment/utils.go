@@ -79,9 +79,9 @@ func ToHTML(data []*Result, name string) {
                 <td>
         `
 		if k%2 == 0 {
-			t1 = fmt.Sprintf(t1, "#3c8dc4", k, v.Title, v.CleanTitle)
+			t1 = fmt.Sprintf(t1, "#3c8dc4", v.Id, v.Title, v.CleanTitle)
 		} else {
-			t1 = fmt.Sprintf(t1, "#ccc", k, v.Title, v.CleanTitle)
+			t1 = fmt.Sprintf(t1, "#ccc", v.Id, v.Title, v.CleanTitle)
 		}
 		s := ""
 		for _, b := range v.Brands {

@@ -18,9 +18,13 @@ type ShopScoreInfo struct {
 	UpdatedTime     time.Time `bson:"updated_time"`
 }
 type TaobaoShopExtendedInfo struct {
-	Type           string  `bson:"type"`
-	Orientational  bool    `bson:"orientational"`
-	CommissionRate float32 `bson:"commission_rate"`
+	Type           string   `bson:"type"`
+	Orientational  bool     `bson:"orientational"`
+	CommissionRate float32  `bson:"commission_rate"`
+	Original       bool     `bson:"original"`
+	SingleTail     bool     `bson:"single_tail"` //原单
+	Gifts          []string `bson:"gifts"`
+	Commission     bool     `bson:"commission"`
 }
 
 type ShopItem struct {
@@ -126,5 +130,5 @@ type DictWord struct {
 	Weight      float64 `bson:"weight"`
 	Blacklisted bool    `bson:"blacklisted"`
 	Deleted     bool    `bson:"deleted"`
-    Type        string  `bson:"type"`
+	Type        string  `bson:"type"`
 }

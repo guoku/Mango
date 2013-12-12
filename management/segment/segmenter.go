@@ -177,7 +177,7 @@ func (this *TrieTree) Cleanning(title string) string {
 	//在查找黑名单的路径上，如果有品牌名，则停止不对其进行清理
 	//如果找到一个要去掉的词，应该看其后继是否还存在品牌名
 	//title = strings.ToLower(title)
-	re := regexp.MustCompile("(^\\pP)|(&[a-z0-9]*;([a-z0-9];)?)|(【)|(】)|★|!|(<>)|(。)|(___)|(\\(\\))|(◆)|(\\*)|(\\p{S})|(（)|(）)|(满\\d+包邮)")
+	re := regexp.MustCompile("(^\\pP)|(&[a-z0-9]*;([a-z0-9];)?)|(【)|(】)|★|!|(<>)|(。)|(___)|(\\(\\))|(◆)|(\\*)|(\\p{S})|(（)|(）)|(满.+包邮)")
 	title = re.ReplaceAllString(title, " ")
 	slicewords := SplitTextToWords([]byte(title))
 	texts := TextSliceToString(slicewords)
@@ -235,7 +235,7 @@ func (this *TrieTree) Cleanning(title string) string {
 	}
 	title = strings.Join(texts, "")
 	title = strings.TrimSpace(title)
-	re = regexp.MustCompile(" +")
+	re = regexp.MustCompile(" +|^\\pP|(\\pP|\\pZ)$")
 	title = re.ReplaceAllString(title, " ")
 	return title
 }

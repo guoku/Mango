@@ -52,7 +52,7 @@ func (this *TrieTree) LoadDictionary(mgohost, mgodb, mgocol string) {
 	}
 	session := conn.DB(mgodb).C(mgocol)
 	var brands []*Brand
-	session.Find(bson.M{"freq": bson.M{"$gt": 30}}).All(&brands)
+	session.Find(bson.M{"freq": bson.M{"$gt": 200}}).All(&brands)
 	var bm map[string]int = make(map[string]int)
 	for _, brand := range brands {
 		if brand.Freq > 30 {
@@ -86,7 +86,7 @@ func (this *TrieTree) LoadBlackWords(mgohost, mgodb, mgocol string) {
 	var blacks []*Black
 	session.Find(bson.M{"blacklisted": true}).All(&blacks)
 	for _, black := range blacks {
-		if black.Freq > 30 {
+		if black.Freq > 100 {
 			b := strings.ToLower(black.Word)
 			b = strings.TrimSpace(b)
 			this.AddBlackWord(b)
