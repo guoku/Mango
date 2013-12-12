@@ -1,6 +1,18 @@
 {{ template "nav.tpl" .}}
 <div class="container-fluid">
+    
     <div class="span10">
+        <form class="form-search" method="GET" action="/dict_manage/">
+            <input type="text" class="input-medium search-query" name="q" value="{{ .SearchQuery }}">
+            <button type="submit" class="btn">查找词语</button>
+        </form>   
+        <form id="addword" class="form-search" method="POST" action="/dict_manage/add/">
+            <input type="text" class="input-medium search-query" name="w">
+            <button type="submit" class="btn">添加词语</button>
+        </form>
+        <div class="alert">
+          <p id="addresult"></p>
+        </div>
         <table class="table table-bordered table-striped">
             <th>Word</th>
             <th>Frequency</th>
@@ -13,7 +25,7 @@
                     <td>{{ .Freq }}</td>
                     <td>{{ .Weight }}</td>
                     <td>
-                        <form method="POST" class="update_form form-inline" action="/scheduler/dict_manage/update/">
+                        <form method="POST" class="update_form form-inline" action="/dict_manage/update/">
                         <input type="hidden" name="w" value="{{.Word}}">
                         {{ if .Blacklisted }}
                         <input class="blacklist_value" type="hidden" name="blacklist" value="false">
@@ -25,7 +37,7 @@
                         </form>
                     </td>
                     <td>
-                        <form method="POST" class="delete_form form-inline" action="/scheduler/dict_manage/delete/">
+                        <form method="POST" class="delete_form form-inline" action="/dict_manage/delete/">
                         <input type="hidden" name="w" value="{{.Word}}">
                         {{ if .Deleted }}
                         <input class="delete_value" type="hidden" name="delete" value="false">
@@ -63,7 +75,6 @@
             }
         });
         ev.preventDefault();
-        return false
     });
     var dfrm = $(".delete_form")
     dfrm.submit(function (ev) {
@@ -85,7 +96,27 @@
             }
         });
         ev.preventDefault();
-        return false
+    });
+
+    var addForm = $("#addword")
+    addForm.submit(function(ev) {
+        var f = $(this)
+        $.ajax({
+            type : f.attr('method'),
+            url : f.attr('action'),
+            data : f.serialize(),
+            success : function(data) {
+                p = $("#addresult")
+                if (data == "Success") {
+                    p.html("<strong>添加成功</strong>")
+                } else if (data == "Existed") {
+                    p.html("<strong>该词已经存在</strong>")
+                } else {
+                    p.html("<strong>服务器错误</strong>" + data)
+                }
+            }
+        });
+        ev.preventDefault();
     });
 
 </script>

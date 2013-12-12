@@ -302,7 +302,7 @@ func DetectWord(items *[]Item) {
 				err := wc.Find(bson.M{"word": k}).One(&oldWord)
 				if err != nil {
 					if err.Error() == "not found" {
-						word := Word{Word: k, Freq: Freq[k], Prob: v}
+						word := Word{Word: k, Freq: Freq[k], Prob: v, Type:"algorithm"}
 						wc.Insert(&word)
 					} else {
 						fmt.Println("find word error", err)

@@ -126,4 +126,5 @@ type DictWord struct {
 	Weight      float64 `bson:"weight"`
 	Blacklisted bool    `bson:"blacklisted"`
 	Deleted     bool    `bson:"deleted"`
+    Type        string  `bson:"type"`
 }

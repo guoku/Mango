@@ -252,6 +252,28 @@ func calculateScore() {
     }
 }
 
+func CalPrioritiesForShop() {
+    c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+    shops := make([]models.ShopItem, 0)
+    c.Find(nil).All(&shops)
+    for i := range shops {
+        priority := 10
+        if shops[i].ScoreInfo.TotalSelections >= 100 {
+            priority = 5
+        } else if shops[i].ScoreInfo.TotalSelections >= 20 && shops[i].ScoreInfo.TotalLikes / shops[i].ScoreInfo.TotalItems >= 200 {
+            priority = 6
+        } else if shops[i].ScoreInfo.TotalSelections >= 30 {
+            priority = 7
+        } else if shops[i].ScoreInfo.TotalLikes >= 3000 {
+            priority = 8
+        } else if shops[i].ScoreInfo.TotalSelections >= 5 {
+            priority = 9
+        }
+        c.Update(bson.M{"shop_info.sid": shops[i].ShopInfo.Sid}, bson.M{"$set": bson.M{"crawler_info.priority" : priority}})
+        fmt.Println(shops[i].ShopInfo.Nick, priority)
+    }
+}
+
 func main() {
     /*
    for {
@@ -261,9 +283,11 @@ func main() {
    */
     //go getTaobaoItemLikes()
     //getTaobaoShopScoreInfo()
-    for {
+    CalPrioritiesForShop()
+    /*for {
         calculateScore()
         time.Sleep(time.Hour)
     }
+    */
 }
 

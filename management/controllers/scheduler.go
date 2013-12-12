@@ -58,8 +58,17 @@ func (this *ShopListController) Get() {
 	if nick != "" {
 		query["shop_info.nick"] = nick
 	}
+    sortOn := this.GetString("sorton")
+    sortCon := "-created_time"
+    if sortOn != "" {
+        if sortOn == "priority" {
+            sortCon = "crawler_info.priority"
+        } else if sortOn == "status" {
+            sortCon = "status"
+        }
+    }
 	results := make([]models.ShopItem, 0)
-	err = c.Find(query).Sort("-created_time").Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
+	err = c.Find(query).Sort(sortCon).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
 	if err != nil {
 		this.Abort("500")
 		return
@@ -68,6 +77,7 @@ func (this *ShopListController) Get() {
 	paginator := models.NewSimplePaginator(int(page), total, NumInOnePage, this.Input())
 	this.Data["ShopList"] = results
 	this.Data["Paginator"] = paginator
+    this.Data["SortOn"] = sortOn
 	this.Layout = DefaultLayoutFile
 	this.TplNames = "list_shop.tpl"
 }
@@ -273,61 +283,6 @@ func (this *SendItemDataController) Post() {
 		return
 	}
 	fmt.Println(item)
-	/*
-		   numIid, err := this.GetInt("num_iid")
-		   if err != nil {
-		       this.Abort("404")
-		       return
-		   }
-		   url := fmt.Sprintf("http://item.taobao.com/item.htm?id=%d", numIid)
-		   title := this.GetString("title")
-		   nick := this.GetString("nick")
-		   desc := this.GetString("desc")
-		   cid, _ := this.GetInt("cid")
-		   price, _ := this.GetFloat("price")
-		   city := this.GetString("city")
-		   state := this.GetString("state")
-		   promotionPrice, _ := this.GetFloat("promotion_price")
-		   shopType := this.GetString("shop_type")
-		   reviewsCount, _ := this.GetInt("reviews_count")
-		   salesNum, _ := this.GetInt("sales_num")
-		   propsStr := this.GetString("props")
-		   propsArray := strings.Split(propsStr, ";")
-		   props := make(map[string]string)
-		   inStockFlag := this.GetString("instock")
-		   inStock := inStockFlag == "1"
-		   for _, v := range propsArray {
-		       vs := strings.Split(v, ":")
-		       props[vs[0]] = vs[1]
-		   }
-		   itemImgs := this.GetStrings("item_img")
-
-		   ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
-		   ic.Update(bson.M{"num_iid": int(numIid)},
-		             bson.M{"$set" :
-		                     bson.M {"detail_url": url,
-		                             "title" : title,
-		                             "nick" : nick,
-		                             "desc" : desc,
-		                             "cid" : cid,
-		                             "price" : price,
-		                             "location.city" : city,
-		                             "location.state" : state,
-		                             "promotion_price": promotionPrice,
-		                             "shop_type" : shopType,
-		                             "reviews_count" : reviewsCount,
-		                             "monthly_sales_num" : salesNum,
-		                             "props" : props,
-		                             "item_imgs" : itemImgs,
-		                             "in_stock" : inStock,
-		                             "data_updated_time" : time.Now()}})
-
-		session := utils.GetNewMongoSession()
-	    if session == nil {
-	        this.Data["json"] = map[string]string{"status": "Error"}
-	        this.ServeJson()
-	        return
-	    }*/
 	session := utils.GetNewMongoSession()
 	if session == nil {
 		this.Data["json"] = map[string]string{"status": "DB Error"}
