@@ -2,12 +2,13 @@ package utils
 
 import (
 	"errors"
+	"github.com/qiniu/log"
 	"io/ioutil"
 	"labix.org/v2/mgo"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -101,15 +102,15 @@ func Fetch(itemid string, shoptype string) (html string, err error, detail strin
 		log.Print(err.Error())
 		return "", err, ""
 	}
-	log.Printf("start to do request")
+	log.Info("start to do request")
 	resp, err := client.Do(req)
-	log.Printf("request has been done")
+	log.Info("request has been done")
 	if err != nil {
 		if resp == nil {
-			log.Println("当proxy不可达时，resp为空")
+			log.Info("当proxy不可达时，resp为空")
 		}
 		time.Sleep(1 * time.Second)
-		log.Println(err.Error())
+		log.Info(err.Error())
 		return "", err, ""
 	}
 	defer resp.Body.Close()
@@ -120,19 +121,19 @@ func Fetch(itemid string, shoptype string) (html string, err error, detail strin
 			html = ""
 			detail = ""
 			err = errors.New("taobao forbidden")
-			log.Println("taobao forbidden")
+			log.Info("taobao forbidden")
 			return
 		}
 		robots, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Println(err.Error())
+			log.Info(err.Error())
 			return "", err, ""
 		}
 		html = string(robots)
 	} else {
-		log.Println(resp.StatusCode)
+		log.Info(resp.Status)
 		html = ""
-		err = errors.New(resp.Status)
+		err = errors.New("404")
 		return html, err, ""
 	}
 	resp.Body.Close()
@@ -144,7 +145,7 @@ func Fetch(itemid string, shoptype string) (html string, err error, detail strin
 	}
 	resp, err = client.Do(req)
 	if err != nil {
-		log.Println(err.Error())
+		log.Info(err.Error())
 		return "", err, ""
 	}
 	if resp.StatusCode == 200 {
@@ -154,22 +155,26 @@ func Fetch(itemid string, shoptype string) (html string, err error, detail strin
 			html = ""
 			detail = ""
 			err = errors.New("taobao forbidden")
-			log.Println("taobao forbidden")
+			log.Info("taobao forbidden")
 			return
 		}
 		robots, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Println(err.Error())
+			log.Info(err.Error())
 			return "", err, ""
 		}
 		detail = string(robots)
 	} else {
-		log.Println(resp.StatusCode)
+		log.Info(resp.StatusCode)
 		html = ""
 		err = errors.New(resp.Status)
 		return html, err, ""
 	}
 	resp.Body.Close()
+	re := regexp.MustCompile("\\<style[\\S\\s]+?\\</style\\>")
+	html = re.ReplaceAllString(html, "")
+	re = regexp.MustCompile("\\<script[\\S\\s]+?\\</script\\>")
+	detail = re.ReplaceAllString(detail, "")
 	return
 }
 
@@ -195,7 +200,7 @@ func IsTmall(itemid string) (bool, error) {
 func MongoInit(host, db, collection string) *mgo.Collection {
 	session, err := mgo.Dial(host)
 	if err != nil {
-		log.Println("严重错误")
+		log.Info("严重错误")
 		panic(err)
 	}
 	return session.DB(db).C(collection)

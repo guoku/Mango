@@ -2,10 +2,10 @@ package segment
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-
 	"unicode"
 	"unicode/utf8"
 )
@@ -15,9 +15,18 @@ type Entity struct {
 	Titles []string `json:"item_titles"`
 }
 type WordsText []byte
+type Result struct {
+	Id         int
+	Title      string
+	Brands     []string
+	CleanTitle string
+}
 
-func LoadData() {
-	resp, err := http.Get("http://10.0.1.109:8000/management/entity/without/title/sync/")
+func LoadData(offset, count int) ([]*Result, error) {
+	link := "http://114.113.154.47:8000/management/entity/without/title/sync/?offset=%d&count=%d"
+	link = fmt.Sprintf(link, offset, count)
+	resp, err := http.Get(link)
+	var rs []*Result
 	if err != nil {
 		panic(err)
 	}
@@ -27,7 +36,7 @@ func LoadData() {
 	err = json.Unmarshal(body, &entities)
 	if err != nil {
 		log.Println(err.Error())
-		return
+		return rs, err
 	}
 	tree := new(TrieTree)
 	tree.LoadDictionary("10.0.1.23", "words", "brands")
@@ -37,12 +46,54 @@ func LoadData() {
 			continue
 		}
 		title := ent.Titles[0]
+		log.Println("\n")
 		log.Println("原始的标题：", title)
-		title = tree.Cleanning(title)
-		log.Println("清理后的标题：", title)
 		brands := tree.Extract(title)
 		log.Println("抽取出来的品牌名：", brands)
+		title = tree.Cleanning(title)
+		log.Println("清理的标题：", title)
+		result := Result{Id: ent.ID, Title: ent.Titles[0], Brands: brands, CleanTitle: title}
+		rs = append(rs, &result)
 	}
+	return rs, nil
+}
+func ToHTML(data []*Result, name string) {
+	html := `
+<!DOCTYPE html PUBLIC "->
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+</head>
+<body>
+    <div style="text-align:center;">
+    <table border="3" style="margin:auto;width:80%;" >
+        <tr>
+            <td>ID</td><td>title</td><td>brands</td>
+        </tr>`
+	for k, v := range data {
+		t1 := `
+            <tr border="3" bgColor=%s>
+                <td>%d</td>
+                <td>%s<br><br>%s</td>
+                
+                <td>
+        `
+		if k%2 == 0 {
+			t1 = fmt.Sprintf(t1, "#3c8dc4", k, v.Title, v.CleanTitle)
+		} else {
+			t1 = fmt.Sprintf(t1, "#ccc", k, v.Title, v.CleanTitle)
+		}
+		s := ""
+		for _, b := range v.Brands {
+			s = b + `<br>`
+			t1 = t1 + s
+
+		}
+		t1 = t1 + `</td></tr>`
+		html = html + t1
+	}
+	html = html + "</table></div></body></html>"
+	ioutil.WriteFile(name, []byte(html), 0777)
 }
 func SplitTextToWords(text WordsText) []WordsText {
 	output := make([]WordsText, len(text))
@@ -62,7 +113,7 @@ func SplitTextToWords(text WordsText) []WordsText {
 			if inAlphanumeric {
 				inAlphanumeric = false
 				if current != 0 {
-					output[currentWord] = toLower(text[alphanumericStart:current])
+					output[currentWord] = text[alphanumericStart:current]
 					currentWord++
 				}
 			}
@@ -79,7 +130,7 @@ func SplitTextToWords(text WordsText) []WordsText {
 	// 处理最后一个字元是英文的情况
 	if inAlphanumeric {
 		if current != 0 {
-			output[currentWord] = toLower(text[alphanumericStart:current])
+			output[currentWord] = text[alphanumericStart:current]
 			currentWord++
 		}
 	}

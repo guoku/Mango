@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/qiniu/log"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -82,7 +82,7 @@ func Post(info *Info) error {
 	}
 	posturl := "http://10.0.1.23:8080/scheduler/api/send_item_detail?token=d61995660774083ccb8b533024f9b8bb"
 	reader := strings.NewReader(string(data))
-	log.Println(string(data))
+	log.Info(string(data))
 	transport := &http.Transport{ResponseHeaderTimeout: time.Duration(30) * time.Second, DisableKeepAlives: true}
 	var DefaultClinet = &http.Client{Transport: transport}
 	resp, err := DefaultClinet.Post(posturl, "application/json", reader)
@@ -95,7 +95,7 @@ func Post(info *Info) error {
 	}
 	defer resp.Body.Close()
 
-	log.Println(string(st))
+	log.Info(string(st))
 	return nil
 }
 func ParseWithoutID(fontpage, detailpage string) (info *Info, missing bool, err error) {
@@ -106,7 +106,7 @@ func Parse(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info, m
 	info = new(Info)
 	missing = false
 	if err != nil {
-		log.Println(err.Error())
+		log.Info(err.Error())
 		if err.Error() == "missing" {
 			//抓取的页面属于屏蔽的页面
 			missing = true
@@ -137,13 +137,13 @@ func parsefontpage(html string) (*Info, error) {
 	reader := strings.NewReader(html)
 	doc, e := goquery.NewDocumentFromReader(reader)
 	if e != nil {
-		log.Println(e.Error())
+		log.Info(e.Error())
 		return info, e
 	}
 
 	titletag := doc.Find("title").Text()
 	if strings.Contains(titletag, "商品屏蔽") {
-		log.Println("商品屏蔽")
+		log.Info("商品屏蔽")
 		err := errors.New("missing")
 		return info, err
 	}
@@ -154,7 +154,7 @@ func parsefontpage(html string) (*Info, error) {
 	desc := titletag[0 : len(titletag)-18]
 	info.Desc = desc
 	info.Title = desc
-	log.Println(desc)
+	log.Info(desc)
 	cattag := doc.Find("p.box")
 	if len(cattag.Nodes) == 0 {
 		//错误爬取了一些天猫触屏版的页面导致的
@@ -171,7 +171,7 @@ func parsefontpage(html string) (*Info, error) {
 			return info, err
 		}
 		info.Cid = c
-		log.Println(cid)
+		log.Info(cid)
 
 	}
 	atags := cattag.Find("a")
@@ -181,7 +181,7 @@ func parsefontpage(html string) (*Info, error) {
 		catg := atags.Eq(i).Text()
 		catory = append(catory, catg)
 	}
-	log.Println(catory)
+	log.Info(catory)
 
 	//details := doc.Find("div.detail")
 	imgurltag := doc.Find("div.bd div.box div.detail p img")
@@ -194,7 +194,7 @@ func parsefontpage(html string) (*Info, error) {
 			re := regexp.MustCompile("_\\d+x\\d+\\.jpg")
 			imgurl := re.ReplaceAllString(imgurl, "")
 			imgs = append(imgs, imgurl)
-			log.Println(imgurl)
+			log.Info(imgurl)
 		}
 		doc.Find("div.bd div.box div.detail table.mt tbody tr td a img").Each(func(i int, s *goquery.Selection) {
 			re := regexp.MustCompile("_\\d+x\\d+\\.jpg")
@@ -202,7 +202,7 @@ func parsefontpage(html string) (*Info, error) {
 			if exists {
 				src = re.ReplaceAllString(src, "")
 				imgs = append(imgs, src)
-				log.Println(src)
+				log.Info(src)
 			}
 		})
 	}
@@ -212,12 +212,12 @@ func parsefontpage(html string) (*Info, error) {
 	if detail.Size() == 1 {
 		instock = false
 
-		log.Println("已下架")
+		log.Info("已下架")
 	}
-	log.Println(instock)
+	log.Info(instock)
 	info.InStock = instock
 	judgeindex := 1
-	log.Println(imgs)
+	log.Info(imgs)
 	if len(imgs) == 0 {
 		judgeindex = 0
 	}
@@ -231,22 +231,22 @@ func parsefontpage(html string) (*Info, error) {
 			secondhand = true
 		}
 	}
-	log.Println("是不是二手", secondhand)
+	log.Info("是不是二手", secondhand)
 	if hasprom {
-		log.Println("可能有促销价")
+		log.Info("可能有促销价")
 		prom := doc.Find("div.bd div.box div.detail p").Eq(1).Text()
 		if prom != "" {
 			re := regexp.MustCompile("\\d+\\.\\d+")
 			proms := re.FindAllString(prom, -1)
 			if len(proms) != 0 {
-				log.Println("促销")
+				log.Info("促销")
 				prom := proms[0]
 				p, err := strconv.ParseFloat(prom, 64)
 				if err != nil {
 					return info, err
 				}
 				info.Promprice = p
-				log.Println("促销价", prom)
+				log.Info("促销价", prom)
 
 			}
 		}
@@ -260,19 +260,19 @@ func parsefontpage(html string) (*Info, error) {
 		//没有图片的情况
 		startindex = 0
 	}
-	log.Println(startindex)
+	log.Info(startindex)
 	pricetag := doc.Find("body div.bd div.box div.detail p").Eq(startindex).Text()
 	if pricetag != "" {
 		rep := regexp.MustCompile("\\d+\\.\\d+")
 		price := rep.FindAllString(pricetag, -1)
 		if len(price) > 0 {
-			log.Println("价格")
+			log.Info("价格")
 			p, err := strconv.ParseFloat(price[0], 64)
 			if err != nil {
 				return info, err
 			}
 			info.Price = p
-			log.Println(price[0])
+			log.Info(price[0])
 		}
 	}
 
@@ -285,8 +285,8 @@ func parsefontpage(html string) (*Info, error) {
 			return info, err
 		}
 		info.Count = c
-		log.Println("销量")
-		log.Println(count[0])
+		log.Info("销量")
+		log.Info(count[0])
 	} else {
 		if strings.Contains(counttag, "量") {
 			err := errors.New("count is missing")
@@ -298,27 +298,27 @@ func parsefontpage(html string) (*Info, error) {
 	if strings.Contains(loctag, "地") {
 		location := strings.Split(loctag, "：")[1]
 		location = strings.TrimSpace(location)
-		log.Println(location)
+		log.Info(location)
 		loc := new(Loc)
 		if len(location) == 6 || len(location) == 9 {
 			loc.State = location
 			loc.City = location
 			info.Location = loc
-			log.Println(location) //直辖市
+			log.Info(location) //直辖市
 		} else {
 			if len(location) > 9 {
 				if _, ok := states[location[0:6]]; ok {
-					log.Println(location[0:6])
+					log.Info(location[0:6])
 					loc.State = location[0:6]
 					loc.City = location[6:]
 					info.Location = loc
-					log.Println(location[6:])
+					log.Info(location[6:])
 
 				} else if _, ok := states[location[0:9]]; ok {
 					loc.State = location[0:9]
 					loc.City = location[9:]
-					log.Println(location[0:9])
-					log.Println(location[9:])
+					log.Info(location[0:9])
+					log.Info(location[9:])
 					info.Location = loc
 				}
 			}
@@ -328,7 +328,7 @@ func parsefontpage(html string) (*Info, error) {
 	}
 	if secondhand {
 		reviewtag := doc.Find("div.bd div.box div.detail table.rate_desc tbody tr td.link_btn a").Text()
-		log.Println(reviewtag)
+		log.Info(reviewtag)
 		rege := regexp.MustCompile("\\d+")
 		reviewarray := rege.FindAllString(reviewtag, -1)
 		if len(reviewarray) == 0 {
@@ -339,8 +339,8 @@ func parsefontpage(html string) (*Info, error) {
 				return info, err
 			}
 			info.Reviews = r
-			log.Println("评论")
-			log.Println(r)
+			log.Info("评论")
+			log.Info(r)
 
 		}
 	} else {
@@ -352,15 +352,15 @@ func parsefontpage(html string) (*Info, error) {
 			return info, err
 		}
 		info.Reviews = r
-		log.Println("评论")
-		log.Println(reviews)
+		log.Info("评论")
+		log.Info(reviews)
 	}
 
 	nicktag, exists := doc.Find("body div.bd div.box div.detail p a img").Attr("src")
-	log.Println(nicktag)
+	log.Info(nicktag)
 	p, _ := url.Parse(nicktag)
 	q := p.Query()
-	log.Println(q.Get("nick"))
+	log.Info(q.Get("nick"))
 	info.Nick = q.Get("nick")
 	return info, nil
 }
@@ -370,7 +370,7 @@ func parsedetail(html string) (*Info, error) {
 	doc, e := goquery.NewDocumentFromReader(reader)
 	detail := new(Info)
 	if e != nil {
-		log.Println(e.Error())
+		log.Info(e.Error())
 		return detail, e
 	}
 	reviewtag := doc.Find("body div.bd div.box p a.red strong").Text()
@@ -380,11 +380,11 @@ func parsedetail(html string) (*Info, error) {
 	}
 	re := regexp.MustCompile("\\d+")
 	reve := re.FindAllString(reviewtag, -1)
-	log.Println(reve)
+	log.Info(reve)
 	if len(reve) != 0 {
 		revie := reve[0]
 		reviews, _ := strconv.Atoi(revie)
-		log.Println(reviews)
+		log.Info(reviews)
 		detail.Reviews = reviews
 	}
 	attr := doc.Find("body div.bd div#itemProp.box div.detail table.goods-property tbody tr")

@@ -1,20 +1,22 @@
 package segment
 
 import (
+	"github.com/qiniu/log"
 	"regexp"
 	"sort"
 	"strings"
 )
 
 type Node struct {
-	Word          string
-	Black         string
-	BlackChildren []*Node
-	Children      []*Node
-	Exist         bool //判断到这个节点是否构成一个词
-	BlackExist    bool
-	BlackOrigin   int
-	Origin        []int //指向这个词的根源的index,比如欧莱雅指向 olay/欧莱雅
+	Word        string
+	Black       string
+	Normal      string
+	Children    []*Node
+	Exist       bool //判断到这个节点是否构成一个词
+	BlackExist  bool
+	NormalExist bool
+	BlackOrigin int
+	Origin      []int //指向这个词的根源的index,比如欧莱雅指向 olay/欧莱雅
 }
 
 type Text struct {
@@ -29,7 +31,56 @@ type TrieTree struct {
 	//Node里的origin就表示该node所表示的品牌对应的原始名字在Words里的index
 }
 
+func (this *TrieTree) AddNormal(words string) {
+	//添加普通词库
+	words = strings.ToLower(words)
+	slicewords := SplitTextToWords([]byte(words))
+	texts := TextSliceToString(slicewords)
+	current := this.Root
+	if current == nil {
+		children := make([]*Node, 0)
+		current = &Node{Children: children}
+		this.Root = current
+	}
+	for _, word := range texts {
+		nodes := current.Children
+		if nodes == nil {
+			nodes = make([]*Node, 0)
+		}
+		index, exist := this.judgeAll(nodes, word)
+		if !exist {
+			n := Node{Normal: word, Exist: false}
+			index = len(nodes)
+			nodes = append(nodes, &n)
+		} else {
+			nodes[index].Normal = word
+
+		}
+		current.Children = nodes
+		current = nodes[index]
+	}
+	current.NormalExist = true
+
+}
+
+func (this *TrieTree) judgeAll(nodes []*Node, word string) (int, bool) {
+	for k, v := range nodes {
+		if word == v.Normal || word == v.Black || word == v.Word {
+			return k, true
+		}
+	}
+	return -1, false
+}
+func (this *TrieTree) judgeNormal(nodes []*Node, word string) (int, bool) {
+	for k, v := range nodes {
+		if word == v.Normal {
+			return k, true
+		}
+	}
+	return -1, false
+}
 func (this *TrieTree) Add(words string, freq int) {
+	//添加品牌词
 	index := len(this.Words)
 	text := Text{Words: words, Freq: freq}
 	this.Words = append(this.Words, text)
@@ -61,31 +112,26 @@ func (this *TrieTree) add(words string, loc int) {
 	if this.MaxLength < len(texts) {
 		this.MaxLength = len(texts)
 	}
+	if current == nil {
+		//树还没有初始化
+		children := make([]*Node, 0, 50)
+		current = &Node{Children: children}
+		this.Root = current
+	}
 	for _, word := range texts {
-		if current == nil {
-			//树还没有初始化
-			children := make([]*Node, 0, 50)
-			current = &Node{Children: children}
-			this.Root = current
-		}
 		nodes := current.Children
 		var index int
 		var exist bool
 		if nodes == nil {
 			nodes = make([]*Node, 0, 50)
 		}
-		index, exist = this.judge(nodes, word, false)
+		index, exist = this.judgeAll(nodes, word)
 		if !exist {
-			blackIndex, blackExist := this.judge(nodes, word, true)
-			if blackExist {
-				n := nodes[blackIndex]
-				n.Word = word
-			} else {
-				n := Node{Word: word, Exist: false}
-				index = len(nodes)
-				nodes = append(nodes, &n)
-
-			}
+			n := Node{Word: word, Exist: false}
+			index = len(nodes)
+			nodes = append(nodes, &n)
+		} else {
+			nodes[index].Word = word
 		}
 		current.Children = nodes
 		current = nodes[index]
@@ -95,34 +141,31 @@ func (this *TrieTree) add(words string, loc int) {
 	current.Origin = append(current.Origin, loc)
 }
 func (this *TrieTree) AddBlackWord(words string) {
+	//添加垃圾词
 	words = strings.ToLower(words)
 	slicewords := SplitTextToWords([]byte(words))
 	texts := TextSliceToString(slicewords)
 	current := this.Root
+	if current == nil {
+		children := make([]*Node, 0)
+		current = &Node{Children: children}
+		this.Root = current
+	}
 	this.BlackWords = append(this.BlackWords, words)
 	for _, word := range texts {
-		if current == nil {
-			children := make([]*Node, 0)
-			current = &Node{Children: children}
-			this.Root = current
-		}
-		nodes := current.BlackChildren
+		nodes := current.Children
 		if nodes == nil {
 			nodes = make([]*Node, 0)
 		}
-		index, exist := this.judge(nodes, word, true)
+		index, exist := this.judgeAll(nodes, word)
 		if !exist {
-			indexbrand, existbrand := this.judge(nodes, word, false)
-			if existbrand {
-				n := nodes[indexbrand]
-				n.Black = word
-			} else {
-				n := Node{Black: word, Exist: false}
-				index = len(nodes)
-				nodes = append(nodes, &n)
-			}
+			n := Node{Black: word, Exist: false}
+			index = len(nodes)
+			nodes = append(nodes, &n)
+		} else {
+			nodes[index].Black = word
 		}
-		current.BlackChildren = nodes
+		current.Children = nodes
 		current = nodes[index]
 	}
 	current.BlackExist = true
@@ -133,35 +176,91 @@ func (this *TrieTree) Cleanning(title string) string {
 	//根据黑名单，对标题进行清理
 	//在查找黑名单的路径上，如果有品牌名，则停止不对其进行清理
 	//如果找到一个要去掉的词，应该看其后继是否还存在品牌名
-	title = strings.ToLower(title)
+	//title = strings.ToLower(title)
+	re := regexp.MustCompile("(^\\pP)|(&[a-z0-9]*;([a-z0-9];)?)|(【)|(】)|★|!|(<>)|(。)|(___)|(\\(\\))|(◆)|(\\*)|(\\p{S})|(（)|(）)|(满\\d+包邮)")
+	title = re.ReplaceAllString(title, " ")
 	slicewords := SplitTextToWords([]byte(title))
 	texts := TextSliceToString(slicewords)
 	current := this.Root
-	start := 0
-	var result []string
 	passed := false
-	for i, v := range texts {
-		nodes := current.BlackChildren
-		index, exist := this.judge(nodes, v, true)
-		if !exist || current.Word != "" {
-			if passed {
-				result = append(result, texts[start:i]...)
-				passed = false
+	var hit int
+	var start int = 0
+	for i := 0; i < len(texts); i++ {
+		nodes := current.Children
+		bi, be := this.judge(nodes, strings.ToLower(texts[i]), false)
+		if be {
+			if nodes[bi].Exist {
+				current = this.Root
+				continue
 			}
-			start = i + 1
+		}
+		//后注，效果不好，故不添加
+		//对于普通词语，如果找到了一个垃圾词，还应该看这个垃圾词与其后的句子是否还构成有词
+		//比如天然是垃圾词，但是天然石则不是垃圾词，故含有天然石的句子，不能够删除掉天然二字
+		index, exist := this.judge(nodes, strings.ToLower(texts[i]), true)
+		if !exist {
+			if passed && current.Word == "" {
+				if i == 0 {
+					texts = texts[1:]
+				} else {
+					if start > 0 {
+						start = start + 1
+					}
+					texts = append(texts[:start], texts[hit+1:]...)
+				}
+				i = 0
+
+			}
+			start = i
 			current = this.Root
+			passed = false
 			continue
 		}
 		current = nodes[index]
 		if current.BlackExist {
+			hit = i
+			log.Info(this.BlackWords[current.BlackOrigin])
 			passed = true
+			if i == len(texts)-1 {
+				texts = texts[:start+1]
+			}
 		}
 
 	}
-	for _, v := range result {
-		title = strings.Replace(title, v, "", 1)
+	re = regexp.MustCompile("^[a-zA-Z].*[a-zA-Z0-9]$")
+	for i := 0; i < len(texts); i++ {
+		if re.MatchString(texts[i]) {
+			texts[i] = texts[i] + " "
+		}
 	}
+	title = strings.Join(texts, "")
+	title = strings.TrimSpace(title)
+	re = regexp.MustCompile(" +")
+	title = re.ReplaceAllString(title, " ")
 	return title
+}
+
+func (this *TrieTree) findNorm(words string) bool {
+	//找到的垃圾词，与其后面紧接着的一个字，做匹配判断
+
+	slicewords := SplitTextToWords([]byte(words))
+	texts := TextSliceToString(slicewords)
+	for i := len(texts) - 2; i >= 0; i-- {
+		current := this.Root
+		for _, v := range texts[i:] {
+			if current == nil {
+				return false
+			}
+			nodes := current.Children
+			_, exist := this.judgeNormal(nodes, v)
+			if exist {
+				return true
+			} else {
+				break
+			}
+		}
+	}
+	return false
 }
 func (this *TrieTree) clean(words string) string {
 	re := regexp.MustCompile("\\pP|`")
@@ -199,19 +298,26 @@ func (this *TrieTree) Extract(text string) []string {
 	current := this.Root
 	var result []Text
 	var keys map[int]bool = make(map[int]bool)
-	for _, v := range texts {
+	var flag bool = false
+	var hit *Node
+	for i := 0; i < len(texts); i++ {
 		nodes := current.Children
-		index, exist := this.judge(nodes, v, false)
+		index, exist := this.judge(nodes, texts[i], false)
 		if !exist {
+			if flag {
+				for _, v := range hit.Origin {
+					keys[v] = true
+				}
+				flag = false
+				i = i - 1
+			}
 			current = this.Root
 			continue
 		}
 		current = nodes[index]
 		if current.Exist {
-			for _, v := range current.Origin {
-				keys[v] = true
-			}
-			current = this.Root
+			flag = true
+			hit = current
 		}
 	}
 	for key, _ := range keys {
