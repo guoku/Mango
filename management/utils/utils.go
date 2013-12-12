@@ -1,19 +1,20 @@
 package utils
 
 import (
+	"Mango/management/models"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/base64"
-    "encoding/hex"
-    "net/url"
+	"encoding/hex"
 	"fmt"
-    "strconv"
-	"time"
-	"Mango/management/models"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
+	"labix.org/v2/mgo"
+	"net/url"
+	"strconv"
+	"time"
 )
 
 func GetMd5Digest(seed string) string {
@@ -37,9 +38,9 @@ func EncryptPassword(origin, salt string) string {
 }
 
 func GenerateRegisterUrl(token string) string {
-    if beego.HttpTLS { 
-	    return fmt.Sprintf("https://%s/register?token=%s", beego.AppConfig.String("apphost"), token)
-    }
+	if beego.HttpTLS {
+		return fmt.Sprintf("https://%s/register?token=%s", beego.AppConfig.String("apphost"), token)
+	}
 	return fmt.Sprintf("http://%s/register?token=%s", beego.AppConfig.String("apphost"), token)
 }
 
@@ -64,7 +65,7 @@ func DecryptStringInAES(cipherText, key string) string {
 	if err != nil {
 		panic(err)
 	}
-    cipherBytes, _  := hex.DecodeString(cipherText)
+	cipherBytes, _ := hex.DecodeString(cipherText)
 	var iv = []byte(base64.StdEncoding.EncodeToString([]byte(key)))[:aes.BlockSize]
 	cfbdec := cipher.NewCFBDecrypter(c, iv)
 	decrypted := make([]byte, len(cipherBytes))
@@ -93,17 +94,26 @@ func NewRegisterMail(emailAddr, token string) *models.MangoMail {
 }
 
 func GetUploadItemParams(item *models.TaobaoItemStd, params *url.Values, matchedGuokuCid int) {
-        params.Add("taobao_id", strconv.Itoa(item.NumIid))
-        params.Add("cid", strconv.Itoa(item.Cid))
-        params.Add("taobao_title", item.Title)
-        params.Add("taobao_shop_nick", item.Nick)
-        params.Add("taobao_price", fmt.Sprintf("%f", item.Price))
-        itemImgs := item.ItemImgs
-        if itemImgs != nil && len(itemImgs) > 0 {
-            params.Add("chief_image_url", itemImgs[0])
-            for i, _ := range itemImgs {
-                params.Add("image_url", itemImgs[i])
-            }
-        }
-        params.Add("category_id", strconv.Itoa(matchedGuokuCid))
+	params.Add("taobao_id", strconv.Itoa(item.NumIid))
+	params.Add("cid", strconv.Itoa(item.Cid))
+	params.Add("taobao_title", item.Title)
+	params.Add("taobao_shop_nick", item.Nick)
+	params.Add("taobao_price", fmt.Sprintf("%f", item.Price))
+	itemImgs := item.ItemImgs
+	if itemImgs != nil && len(itemImgs) > 0 {
+		params.Add("chief_image_url", itemImgs[0])
+		for i, _ := range itemImgs {
+			params.Add("image_url", itemImgs[i])
+		}
+	}
+	params.Add("category_id", strconv.Itoa(matchedGuokuCid))
+}
+
+func GetNewMongoSession() *mgo.Session {
+	mongoHost := beego.AppConfig.String("mongohost")
+	session, err := mgo.Dial(mongoHost)
+	if err != nil {
+		return nil
+	}
+	return session
 }

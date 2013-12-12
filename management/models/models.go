@@ -125,3 +125,7 @@ func (this *Tab) IsCommodity() bool {
 func (this *Tab) IsProfile() bool {
 	return this.TabName == "Profile"
 }
+
+func (this *Tab) IsWordManager() bool {
+	return this.TabName == "Words"
+}

@@ -31,7 +31,8 @@ func (this *UserSessionController) Prepare() {
 		log.Printf("The user_id is null")
 		return
 	}
-	userId, _ := strconv.Atoi(string(v.([]byte)))
+	//userId, _ := strconv.Atoi(string(v))
+	userId := v.(int)
 	user := models.User{Id: userId}
 	o := orm.NewOrm()
 	err := o.Read(&user)
@@ -436,7 +437,7 @@ func (this *LoginController) Post() {
 		log.Printf("login name %s", user.Name)
 		o.QueryTable(&additional).Filter("user_id", user.Id).One(&additional)
 		if user.Password == utils.EncryptPassword(password, additional.Salt) {
-			this.SetSession("user_id", user.Id)
+			this.SetSession("user_id", int(user.Id))
 			this.SetSession("is_admin", user.IsAdmin)
 			this.Redirect("/list_users", 302)
 			return
