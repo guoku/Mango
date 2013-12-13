@@ -66,19 +66,33 @@ func (this *ShopListController) Get() {
 			sortCon = "crawler_info.priority"
 		} else if sortOn == "status" {
 			sortCon = "status"
+		} else if sortOn != "created_time" {
+			//根据礼品进行筛选
+			sortCon = ""
 		}
 	}
 	results := make([]models.ShopItem, 0)
-	err = c.Find(query).Sort(sortCon).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
-	if err != nil {
-		this.Abort("500")
-		return
+	if sortCon != "" {
+		err = c.Find(query).Sort(sortCon).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
+		if err != nil {
+			this.Abort("500")
+			return
+		}
+	} else {
+		//根据礼品活动类型去查询店铺数据
+		query = bson.M{"extended_info.gifts": sortOn}
+		err = c.Find(query).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
+		if err != nil {
+			this.Abort("500")
+			return
+		}
 	}
 	total, _ := c.Find(query).Count()
 	paginator := models.NewSimplePaginator(int(page), total, NumInOnePage, this.Input())
 	this.Data["ShopList"] = results
 	this.Data["Paginator"] = paginator
 	this.Data["SortOn"] = sortOn
+	this.Data["Gifts"] = Gifts
 	this.Layout = DefaultLayoutFile
 	this.TplNames = "list_shop.tpl"
 }

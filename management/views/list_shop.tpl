@@ -16,6 +16,10 @@
             <option value="created_time" {{ if eq .SortOn "created_time" }} selected="selected" {{end}}>创建时间</option>
             <option value="priority" {{ if eq .SortOn "priority" }} selected="selected" {{end}}>优先级</option>
             <option value="status" {{ if eq .SortOn "status" }} selected="selected" {{end}}>状态</option>
+            {{$sorton := .SortOn}}
+            {{range .Gifts}}
+                <option value="{{.}}" {{if eq $sorton .}} selected="selected"{{end}}>{{.}}</option>
+            {{ end }}
         </select>
         <button type="submit" class="btn">确定</button>
         </form>
