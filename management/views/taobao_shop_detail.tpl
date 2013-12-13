@@ -54,7 +54,7 @@
                         <label class="control-label" for="shop_singletail">是否原单：</label>
                         <select id="shop_singletail" name="singletail">
                             <option value="true" {{if .Shop.ExtendedInfo.SingleTail }}selected {{end}}>yes</option>
-                            <option value="true" {{if not .Shop.ExtendedInfo.SingleTail }}selected {{end}}>no</option>
+                            <option value="false" {{if not .Shop.ExtendedInfo.SingleTail }}selected {{end}}>no</option>
                         </select>
                     </div>
                     <div class="control-group">
