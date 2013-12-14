@@ -23,12 +23,8 @@ func main() {
 	log.Println("hello")
 	shopitem := new(utils.ShopItem)
 	minerals := utils.MongoInit(MGOHOST, MGODB, "minerals")
-	for {
-		err := minerals.Find(bson.M{"state": "posted"}).One(&shopitem)
-		if err != nil {
-			log.Println(err.Error())
-			panic(err)
-		}
+	iter := minerals.Find(bson.M{"state": "posted"}).Iter()
+	for iter.Next(&shopitem) {
 		shopid := strconv.Itoa(shopitem.Shop_id)
 		items := shopitem.Items_list
 		run(shopid, items)

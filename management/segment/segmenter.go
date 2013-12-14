@@ -1,7 +1,6 @@
 package segment
 
 import (
-	"github.com/qiniu/log"
 	"regexp"
 	"sort"
 	"strings"
@@ -183,43 +182,35 @@ func (this *TrieTree) Cleanning(title string) string {
 	texts := TextSliceToString(slicewords)
 	current := this.Root
 	passed := false
+	has := false //遇到一个黑名单词的一部分，但是下一个字不是，此时应该回退一步
 	var hit int
-	var start int = 0
+	var start int = -1
 	for i := 0; i < len(texts); i++ {
 		nodes := current.Children
-		bi, be := this.judge(nodes, strings.ToLower(texts[i]), false)
-		if be {
-			if nodes[bi].Exist {
-				current = this.Root
-				continue
-			}
-		}
 		//后注，效果不好，故不添加
 		//对于普通词语，如果找到了一个垃圾词，还应该看这个垃圾词与其后的句子是否还构成有词
 		//比如天然是垃圾词，但是天然石则不是垃圾词，故含有天然石的句子，不能够删除掉天然二字
 		index, exist := this.judge(nodes, strings.ToLower(texts[i]), true)
 		if !exist {
-			if passed && current.Word == "" {
-				if i == 0 {
-					texts = texts[1:]
-				} else {
-					if start > 0 {
-						start = start + 1
-					}
-					texts = append(texts[:start], texts[hit+1:]...)
+			if passed {
+				//说明前面的路径上曾hit过垃圾词
+				texts = append(texts[:start+1], texts[hit+1:]...)
+				i = -1
+			} else {
+				if has {
+					i = i - 1
 				}
-				i = 0
-
 			}
 			start = i
 			current = this.Root
 			passed = false
+			has = false
 			continue
 		}
+		has = true
 		current = nodes[index]
 		if current.BlackExist {
 			hit = i
-			log.Info(this.BlackWords[current.BlackOrigin])
 			passed = true
 			if i == len(texts)-1 {
 				texts = texts[:start+1]
@@ -235,7 +226,7 @@ func (this *TrieTree) Cleanning(title string) string {
 	}
 	title = strings.Join(texts, "")
 	title = strings.TrimSpace(title)
-	re = regexp.MustCompile(" +|^\\pP|(\\pP|\\pZ)$")
+	re = regexp.MustCompile(" +|^\\pP+|(\\pP|\\pZ)+$")
 	title = re.ReplaceAllString(title, " ")
 	return title
 }
@@ -263,7 +254,7 @@ func (this *TrieTree) findNorm(words string) bool {
 	return false
 }
 func (this *TrieTree) clean(words string) string {
-	re := regexp.MustCompile("\\pP|`")
+	re := regexp.MustCompile("\\pP|`|皇冠|diy")
 	s := re.ReplaceAllLiteralString(words, "")
 	return strings.ToLower(s)
 }
@@ -299,7 +290,9 @@ func (this *TrieTree) Extract(text string) []string {
 	var result []Text
 	var keys map[int]bool = make(map[int]bool)
 	var flag bool = false
+	var has bool = false
 	var hit *Node
+	start := 0
 	for i := 0; i < len(texts); i++ {
 		nodes := current.Children
 		index, exist := this.judge(nodes, texts[i], false)
@@ -310,14 +303,25 @@ func (this *TrieTree) Extract(text string) []string {
 				}
 				flag = false
 				i = i - 1
+			} else if has {
+				start = start + 1
+				i = start
 			}
+
 			current = this.Root
 			continue
 		}
+		has = true
 		current = nodes[index]
 		if current.Exist {
 			flag = true
 			hit = current
+			if i == len(texts)-1 {
+				//最后一个
+				for _, v := range hit.Origin {
+					keys[v] = true
+				}
+			}
 		}
 	}
 	for key, _ := range keys {
