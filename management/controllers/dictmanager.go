@@ -58,13 +58,22 @@ func (this *DictUpdateController) Post() {
 	c := MgoSession.DB("words").C("dict_chi_eng")
 	if err := c.Update(bson.M{"word": w}, bson.M{"$set": bson.M{"blacklisted": blacklist}}); err != nil {
 		fmt.Println(err)
-		this.Ctx.WriteString("error")
+        this.Data["json"] = map[string]bool{"error" : true}
+        this.ServeJson()
+        return
 	}
-	if blacklist {
+    word := models.DictWord{}
+    c.Find(bson.M{"word" : w}).One(&word)
+    this.Data["json"] = map[string]bool{"blacklisted" : word.Blacklisted,
+                "deleted" :  word.Deleted, "error" : false}
+    this.ServeJson()
+    /*
+    if blacklist {
 		this.Ctx.WriteString("0")
 	} else {
 		this.Ctx.WriteString("1")
 	}
+    */
 }
 
 type DictDeleteController struct {
@@ -78,13 +87,15 @@ func (this *DictDeleteController) Post() {
 	c := MgoSession.DB("words").C("dict_chi_eng")
 	if err := c.Update(bson.M{"word": w}, bson.M{"$set": bson.M{"deleted": toDelete}}); err != nil {
 		fmt.Println(err)
-		this.Ctx.WriteString("error")
+        this.Data["json"] = map[string]bool{"error" : true}
+        this.ServeJson()
+        return
 	}
-	if toDelete {
-		this.Ctx.WriteString("0")
-	} else {
-		this.Ctx.WriteString("1")
-	}
+    word := models.DictWord{}
+    c.Find(bson.M{"word" : w}).One(&word)
+    this.Data["json"] = map[string]bool{"blacklisted" : word.Blacklisted,
+                "deleted" :  word.Deleted, "error" : false}
+    this.ServeJson()
 }
 
 type DictAddController struct {
@@ -109,5 +120,14 @@ func (this *DictAddController) Post() {
         this.Ctx.WriteString("Existed")
     }
 }
+
+type BrandsManageController struct {
+    WordsController
+}
+
+func (this *BrandsManageController) Get() {
+    
+}
+
 
 

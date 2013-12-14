@@ -8,6 +8,7 @@ go build -o jobs/get_taobao_guoku_cats_match -x jobs/get_taobao_guoku_cats_match
 go build -o jobs/word_detector -x jobs/word_detector.go
 go build -o jobs/word_detector_imp -x jobs/word_detector_imp.go
 go build -o jobs/addtional_extractor -x jobs/addtional_extractor.go
+go build -o jobs/oneoff/import_old_shop_data -x jobs/oneoff/import_old_shop_data.go
 
 mkdir upload
 cp management upload

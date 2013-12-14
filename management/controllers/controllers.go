@@ -31,7 +31,6 @@ func (this *UserSessionController) Prepare() {
 		log.Printf("The user_id is null")
 		return
 	}
-	//userId, _ := strconv.Atoi(string(v))
 	userId := v.(int)
 	user := models.User{Id: userId}
 	o := orm.NewOrm()
