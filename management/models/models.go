@@ -118,6 +118,12 @@ func (this *Tab) IsScheduler() bool {
 	return this.TabName == "Scheduler"
 }
 
+func (this *Tab) IsBrand() bool {
+	return this.TabName == "brand"
+}
+func (this *Tab) IsBlack() bool {
+	return this.TabName == "blacklist"
+}
 func (this *Tab) IsCommodity() bool {
 	return this.TabName == "Commodity"
 }

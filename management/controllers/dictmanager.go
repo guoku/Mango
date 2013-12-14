@@ -4,6 +4,7 @@ import (
 	"Mango/management/models"
 	"fmt"
 	//"labix.org/v2/mgo"
+	"github.com/qiniu/log"
 	"labix.org/v2/mgo/bson"
 )
 
@@ -12,6 +13,7 @@ type WordsController struct {
 }
 
 func (this *WordsController) Prepare() {
+	log.Info("prepare")
 	this.UserSessionController.Prepare()
 	user := this.Data["User"].(*models.User)
 	this.Data["Tab"] = &models.Tab{TabName: "Words"}
@@ -26,15 +28,16 @@ type DictManagerController struct {
 }
 
 func (this *DictManagerController) Get() {
+	log.Info("dict_manage")
 	page, err := this.GetInt("p")
 	if err != nil {
 		page = 1
 	}
-    cond := bson.M{}
-    q := this.GetString("q")
-    if q != "" {
-        cond["word"] = bson.M{"$regex" : bson.RegEx{q, "i"}}
-    }
+	cond := bson.M{}
+	q := this.GetString("q")
+	if q != "" {
+		cond["word"] = bson.M{"$regex": bson.RegEx{q, "i"}}
+	}
 	numOnePage := 200
 	c := MgoSession.DB("words").C("dict_chi_eng")
 	words := make([]models.DictWord, 0)
@@ -42,7 +45,7 @@ func (this *DictManagerController) Get() {
 	total, _ := c.Find(nil).Count()
 	this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, numOnePage, this.Input())
 	this.Data["Words"] = words
-    this.Data["SearchQuery"] = q
+	this.Data["SearchQuery"] = q
 	this.Layout = DefaultLayoutFile
 	this.TplNames = "dict_manage.tpl"
 }
@@ -88,26 +91,24 @@ func (this *DictDeleteController) Post() {
 }
 
 type DictAddController struct {
-    WordsController
+	WordsController
 }
 
 func (this *DictAddController) Post() {
-    w := this.GetString("w")
-    fmt.Println(w)
+	w := this.GetString("w")
+	fmt.Println(w)
 	c := MgoSession.DB("words").C("dict_chi_eng")
-    word := models.DictWord{}
-    if err := c.Find(bson.M{"word" : w}).One(&word); err != nil && err.Error() == "not found" {
-        word.Word = w
-        word.Type = "manual"
-        e := c.Insert(&word)
-        if e != nil {
-            this.Ctx.WriteString("Error" + e.Error())
-        } else {
-            this.Ctx.WriteString("Success")
-        }
-    } else {
-        this.Ctx.WriteString("Existed")
-    }
+	word := models.DictWord{}
+	if err := c.Find(bson.M{"word": w}).One(&word); err != nil && err.Error() == "not found" {
+		word.Word = w
+		word.Type = "manual"
+		e := c.Insert(&word)
+		if e != nil {
+			this.Ctx.WriteString("Error" + e.Error())
+		} else {
+			this.Ctx.WriteString("Success")
+		}
+	} else {
+		this.Ctx.WriteString("Existed")
+	}
 }
-
-
