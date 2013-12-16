@@ -80,7 +80,11 @@ func (this *ShopListController) Get() {
 		}
 	} else {
 		//根据礼品活动类型去查询店铺数据
-		query = bson.M{"extended_info.gifts": sortOn}
+		if sortOn == "commission" {
+			query = bson.M{"extended_info.commission": true}
+		} else {
+			query = bson.M{"extended_info.gifts": sortOn}
+		}
 		err = c.Find(query).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
 		if err != nil {
 			this.Abort("500")
