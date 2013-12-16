@@ -132,3 +132,11 @@ type DictWord struct {
 	Deleted     bool    `bson:"deleted"`
 	Type        string  `bson:"type"`
 }
+
+type BrandsWord struct {
+	Name    string `bson:"name"`
+	Freq    int    `bson:"freq"`
+	Type    string `bson:"type"`
+	Deleted bool   `bson:"deleted"`
+	Valid   bool   `bson:"valid"`
+}

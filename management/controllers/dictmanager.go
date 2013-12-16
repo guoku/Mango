@@ -137,5 +137,88 @@ type BrandsManageController struct {
 }
 
 func (this *BrandsManageController) Get() {
+	page, err := this.GetInt("p")
+	if err != nil {
+		page = 1
+	}
+	cond := bson.M{}
+	q := this.GetString("q")
+	if q != "" {
+		cond["name"] = bson.M{"$regex": bson.RegEx{q, "i"}}
+	}
+	numOnePage := 200
+	c := MgoSession.DB("words").C("brands")
+	words := make([]models.BrandsWord, 0)
+	c.Find(cond).Sort("-freq").Skip(int(page-1) * numOnePage).Limit(numOnePage).All(&words)
+	total, _ := c.Find(nil).Count()
+	this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, numOnePage, this.Input())
+	this.Data["Words"] = words
+	this.Data["SearchQuery"] = q
+	this.Data["DictTab"] = &models.Tab{TabName: "Brands"}
+	this.Layout = DefaultLayoutFile
+	this.TplNames = "dict_brands.tpl"
 
+}
+
+type BrandsUpdateController struct {
+	WordsController
+}
+
+func (this *BrandsUpdateController) Post() {
+	w := this.GetString("w")
+	valid, _ := this.GetBool("valid")
+	c := MgoSession.DB("words").C("brands")
+	err := c.Update(bson.M{"name": w}, bson.M{"$set": bson.M{"valid": valid}})
+	if err != nil {
+		this.Data["json"] = map[string]bool{"error": true}
+		this.ServeJson()
+		return
+	}
+	word := models.BrandsWord{}
+	c.Find(bson.M{"name": w}).One(&word)
+	this.Data["json"] = map[string]bool{"valid": word.Valid, "deleted": word.Deleted, "error": false}
+	this.ServeJson()
+}
+
+type BrandsAddController struct {
+	WordsController
+}
+
+func (this *BrandsAddController) Post() {
+	w := this.GetString("w")
+	c := MgoSession.DB("words").C("brands")
+	word := models.BrandsWord{}
+	err := c.Find(bson.M{"name": w}).One(&word)
+	if err != nil && err.Error() == "not found" {
+		word.Name = w
+		word.Type = "manual"
+		e := c.Insert(&word)
+		if e != nil {
+			this.Ctx.WriteString("Error" + e.Error())
+		} else {
+			this.Ctx.WriteString("Success")
+		}
+	} else {
+		this.Ctx.WriteString("Existed")
+	}
+}
+
+type BrandsDeleteController struct {
+	WordsController
+}
+
+func (this *BrandsDeleteController) Post() {
+	w := this.GetString("w")
+	toDelete, _ := this.GetBool("delete")
+	c := MgoSession.DB("words").C("brands")
+	err := c.Update(bson.M{"name": w}, bson.M{"$set": bson.M{"deleted": toDelete, "valid": false}})
+	if err != nil {
+		this.Data["json"] = map[string]bool{"error": true}
+		this.ServeJson()
+		return
+	}
+	word := models.BrandsWord{}
+	c.Find(bson.M{"name": w}).One(&word)
+	this.Data["json"] = map[string]bool{"valid": word.Valid, "deleted": word.Deleted, "error": false}
+	this.ServeJson()
 }
