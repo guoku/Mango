@@ -57,7 +57,7 @@ func init() {
 	}
 	controllers.MgoSession = session
 	controllers.MgoDbName = beego.AppConfig.String("mongodbname")
-    fmt.Println(beego.SessionGCMaxLifetime)
+	fmt.Println(beego.SessionGCMaxLifetime)
 }
 
 func main() {
@@ -79,9 +79,10 @@ func main() {
 	beego.Router("/scheduler/update_taobaoshop_info", &controllers.UpdateTaobaoShopController{})
 	beego.Router("/scheduler/item_detail/taobao/", &controllers.TaobaoItemDetailController{})
 	beego.Router("/dict_manage/", &controllers.DictManagerController{})
-	beego.Router("/dict_manage/update/", &controllers.DictUpdateController{})
-	beego.Router("/dict_manage/delete/", &controllers.DictDeleteController{})
-	beego.Router("/dict_manage/add/", &controllers.DictAddController{})
+	beego.Router("/dict_manage/blacklist/", &controllers.BlacklistManager{})
+	beego.Router("/dict_manage/blacklist/update/", &controllers.BlacklistUpdateController{})
+	beego.Router("/dict_manage/blacklist/delete/", &controllers.BlacklistDeleteController{})
+	beego.Router("/dict_manage/blacklist/add/", &controllers.BlacklistAddController{})
 	beego.Router("/commodity/category/", &controllers.CategoryController{})
 	beego.Router("/commodity/add_online_items/", &controllers.CreateOnlineItemsController{})
 	beego.Router("/commodity/category_manage/", &controllers.CategoryManageController{})

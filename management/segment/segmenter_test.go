@@ -3,19 +3,16 @@ package segment
 import (
 	"log"
 	"testing"
-	"unicode"
 )
 
 func TestLoadData(t *testing.T) {
-	result, _ := LoadData(1000, 2000)
+	result, _ := LoadData(1999, 2999)
 	ToHTML(result, "result2.html")
 	s := SplitTextToWords([]byte("我在中国China北京12389 America美国"))
 	log.Println(TextSliceToString(s))
 	a := []string{"abc"}
 	r := []rune(a[0])
 	log.Println(len(r))
-	b := []rune("[]")
-	log.Println(unicode.IsSymbol(b[0]))
 }
 func TestLoadDictionary(t *testing.T) {
 	tree := new(TrieTree)
@@ -32,7 +29,7 @@ func TestCleanning(t *testing.T) {
 	tree := new(TrieTree)
 	tree.LoadDictionary("10.0.1.23", "words", "brands")
 	tree.LoadBlackWords("10.0.1.23", "words", "dict_chi_eng")
-	tc := tree.Cleanning("包邮 韩国正品 韩国顶级品牌头丽Doori dayss名品牌 纯天然防脱洗发水套装")
+	tc := tree.Extract("韩国进口正品  吕洗发水/防脱深层修复 护发素400ml爱茉莉")
 	log.Println(tc)
 }
 func TestExtract(t *testing.T) {

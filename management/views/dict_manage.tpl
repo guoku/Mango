@@ -1,11 +1,12 @@
 {{ template "nav.tpl" .}}
 <div class="container-fluid">
+        {{template "dict_nav.tpl" .DictTab}}
     <div class="span10">
-        <form class="form-search" method="GET" action="/dict_manage/">
+        <form class="form-search" method="GET" action="/dict_manage/blacklist/">
             <input type="text" class="input-medium search-query" name="q" value="{{ .SearchQuery }}">
             <button type="submit" class="btn">查找词语</button>
         </form>   
-        <form id="addword" class="form-search" method="POST" action="/dict_manage/add/">
+        <form id="addword" class="form-search" method="POST" action="/dict_manage/blacklist/add/">
             <input type="text" class="input-medium search-query" name="w">
             <button type="submit" class="btn">添加词语</button>
         </form>
@@ -34,7 +35,7 @@
                     <td>{{ .Freq }}</td>
                     <td>{{ .Weight }}</td>
                     <td>
-                        <form method="POST" class="narrow-form update_form" margin-bottom="0px" action="/dict_manage/update/">
+                        <form method="POST" class="narrow-form update_form" margin-bottom="0px" action="/dict_manage/blacklist/update/">
                         <input type="hidden" name="w" value="{{.Word}}">
                         {{ if .Blacklisted }}
                         <input class="blacklist_value" type="hidden" name="blacklist" value="false">
@@ -46,7 +47,7 @@
                         </form>
                     </td>
                     <td>
-                        <form method="POST" class="narrow-form delete_form" margin-bottom="0px" action="/dict_manage/delete/">
+                        <form method="POST" class="narrow-form delete_form" margin-bottom="0px" action="/dict_manage/blacklist/delete/">
                         <input type="hidden" name="w" value="{{.Word}}">
                         {{ if .Deleted }}
                         <input class="delete_value" type="hidden" name="delete" value="false">

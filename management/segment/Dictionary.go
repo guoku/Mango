@@ -2,6 +2,7 @@ package segment
 
 import (
 	"github.com/qiniu/log"
+	"io/ioutil"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"strings"
@@ -25,6 +26,35 @@ type Black struct {
 	Type        string
 }
 
+func FromText(mgohost, mgodb, mgocol, filename string) {
+	conn, err := mgo.Dial(mgohost)
+	if err != nil {
+		log.Info("mongo连接错误")
+		panic(err)
+	}
+	session := conn.DB(mgodb).C(mgocol)
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Info("mongo连接错误")
+		panic(err)
+	}
+	content := string(data)
+	lines := strings.Split(content, "\n")
+	var valids []*ValidBrand
+	for _, line := range lines {
+		log.Info(line)
+		line = strings.TrimSpace(line)
+		v := ValidBrand{Name: line, Valid: true}
+		valids = append(valids, &v)
+	}
+	err = session.Insert(&valids)
+	if err != nil {
+		log.Info("mongo插入错误")
+		panic(err)
+	}
+	conn.Close()
+
+}
 func (this *TrieTree) LoadNormal(mgohost, mgodb, mgocol string) {
 	conn, err := mgo.Dial(mgohost)
 	if err != nil {
@@ -52,7 +82,7 @@ func (this *TrieTree) LoadDictionary(mgohost, mgodb, mgocol string) {
 	}
 	session := conn.DB(mgodb).C(mgocol)
 	var brands []*Brand
-	session.Find(bson.M{"freq": bson.M{"$gt": 200}}).All(&brands)
+	session.Find(bson.M{"freq": bson.M{"$gt": 1}}).All(&brands)
 	var bm map[string]int = make(map[string]int)
 	for _, brand := range brands {
 		if brand.Freq > 30 {

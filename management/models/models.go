@@ -2,6 +2,7 @@ package models
 
 import (
 	//"fmt"
+	"github.com/qiniu/log"
 	"time"
 )
 
@@ -118,6 +119,13 @@ func (this *Tab) IsScheduler() bool {
 	return this.TabName == "Scheduler"
 }
 
+func (this *Tab) IsBrand() bool {
+	return this.TabName == "brand"
+}
+func (this *Tab) IsBlack() bool {
+	log.Info("here to judge")
+	return this.TabName == "Blacklist"
+}
 func (this *Tab) IsCommodity() bool {
 	return this.TabName == "Commodity"
 }
