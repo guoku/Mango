@@ -2,11 +2,11 @@
 <div class="container-fluid">
         {{template "dict_nav.tpl" .DictTab}}
     <div class="span10">
-        <form class="form-search" method="GET" action="/dict_manage/blacklist/">
+        <form class="form-search" method="GET" action="/dict_manage/brands/">
             <input type="text" class="input-medium search-query" name="q" value="{{ .SearchQuery }}">
             <button type="submit" class="btn">查找词语</button>
         </form>   
-        <form id="addword" class="form-search" method="POST" action="/dict_manage/blacklist/add/">
+        <form id="addword" class="form-search" method="POST" action="/dict_manage/brands/add/">
             <input type="text" class="input-medium search-query" name="w">
             <button type="submit" class="btn">添加词语</button>
         </form>
@@ -16,39 +16,35 @@
         <table class="table table-bordered table-striped">
             <th>Word</th>
             <th>Frequency</th>
-            <th>Weight</th>
-            <th>blacklist</th>
+            <th>Valided</th>
             <th>delete</th>
             {{ range .Words }}
                 <tr 
-                        {{if .Deleted }}
-                                class="error"
-                              {{else if .Blacklisted }}}
+                        {{if .Valid }}
+                                class="success"
+                              {{else }}}
                                 class="warning" 
-                              {{else}} 
-                                class="success" 
                               {{end}}
                 >
                     <td>
-                              {{ .Word }}
+                              {{ .Name }}
                     </td>
                     <td>{{ .Freq }}</td>
-                    <td>{{ .Weight }}</td>
                     <td>
-                        <form method="POST" class="narrow-form update_form" margin-bottom="0px" action="/dict_manage/blacklist/update/">
-                        <input type="hidden" name="w" value="{{.Word}}">
-                        {{ if .Blacklisted }}
-                        <input class="blacklist_value" type="hidden" name="blacklist" value="false">
-                        <button type="submit" class="btn">取消黑名单</button>
+                        <form method="POST" class="narrow-form update_form" margin-bottom="0px" action="/dict_manage/brands/update/">
+                        <input type="hidden" name="w" value="{{.Name}}">
+                        {{ if .Valid }}
+                        <input class="valided_value" type="hidden" name="valid" value="false">
+                        <button type="submit" class="btn">取消确定为品牌</button>
                         {{ else }}
-                        <input class="blacklist_value" type="hidden" name="blacklist" value="true">
-                        <button type="submit" class="btn">加入黑名单吗?</button>
+                        <input class="valided_value" type="hidden" name="valid" value="true">
+                        <button type="submit" class="btn">确定为品牌吗?</button>
                         {{ end }}
                         </form>
                     </td>
                     <td>
-                        <form method="POST" class="narrow-form delete_form" margin-bottom="0px" action="/dict_manage/blacklist/delete/">
-                        <input type="hidden" name="w" value="{{.Word}}">
+                        <form method="POST" class="narrow-form delete_form" margin-bottom="0px" action="/dict_manage/brands/delete/">
+                        <input type="hidden" name="w" value="{{.Name}}">
                         {{ if .Deleted }}
                         <input class="delete_value" type="hidden" name="delete" value="false">
                         <button type="submit" class="btn">恢复</button>
@@ -78,18 +74,18 @@
                     alert("Error")
                     return
                 }
-                if (data.blacklisted) {
-                    f.children("button").text("取消黑名单")
-                    f.children(".blacklist_value").attr("value", "false")
+                if (data.valid) {
+                    f.children("button").text("取消确定为品牌")
+                    f.children(".valided_value").attr("value", "false")
                 } else {
-                    f.children("button").text("加入黑名单吗?")
-                    f.children(".blacklist_value").attr("value", "true")
+                    f.children("button").text("确定为品牌吗?")
+                    f.children(".valided_value").attr("value", "true")
                 }
                 var word = f.parent().parent()
                 word.removeClass()
                 if (data.deleted) {
                     word.addClass("error")
-                } else if (data.blacklisted) {
+                } else if (data.valid) {
                     word.addClass("warning")
                 } else {
                     word.addClass("success")
@@ -111,9 +107,13 @@
                     alert("Error")
                     return
                 }
+                var pf = $(".update_form")
                 if (data.deleted) {
                     f.children("button").text("恢复")
                     f.children(".delete_value").attr("value", "false")
+                    pf.children("button").text("确定为品牌吗?")
+                    pf.children("button").disabled = true
+                    pf.children(".delete_value").attr("value","true")
                 } else {
                     f.children("button").text("删除")
                     f.children(".delete_value").attr("value", "true")
