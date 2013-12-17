@@ -20,6 +20,7 @@
             {{range .Gifts}}
                 <option value="{{.}}" {{if eq $sorton .}} selected="selected"{{end}}>{{.}}</option>
             {{ end }}
+            <option value="commission"{{if eq .SortOn "commission"}} selected="selected"{{end}}>佣金</option>
         </select>
         <button type="submit" class="btn">确定</button>
         </form>
@@ -29,12 +30,14 @@
         <th>Title</th>
         <th>Priority</th>
         <th>Status</th>
+        <th>佣金比率</th>
         {{ range .ShopList }}
         <tr>
             <td><a href="/scheduler/shop_detail/taobao/?sid={{ .ShopInfo.Sid }}">{{ .ShopInfo.Nick }}</a></td>
             <td>{{ .ShopInfo.Title }} </td>
             <td>{{ .CrawlerInfo.Priority }}</td>
             <td>{{ .Status }}</td>
+            <td>{{ .ExtendedInfo.CommissionRate }}</td>
         </tr>
         {{ end }}
     </table>
