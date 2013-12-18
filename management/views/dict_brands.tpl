@@ -107,13 +107,9 @@
                     alert("Error")
                     return
                 }
-                var pf = $(".update_form")
                 if (data.deleted) {
                     f.children("button").text("恢复")
                     f.children(".delete_value").attr("value", "false")
-                    pf.children("button").text("确定为品牌吗?")
-                    pf.children("button").disabled = true
-                    pf.children(".delete_value").attr("value","true")
                 } else {
                     f.children("button").text("删除")
                     f.children(".delete_value").attr("value", "true")

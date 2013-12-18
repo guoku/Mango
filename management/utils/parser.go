@@ -1,11 +1,14 @@
 package utils
 
 import (
+	"Mango/management/models"
 	"encoding/json"
 	"errors"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/qiniu/log"
 	"io/ioutil"
+	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -69,12 +72,50 @@ type Info struct {
 	Sid        int               `json:"sid"`
 	Title      string            `json:"title"`
 	ShopType   string            `json:"shop_type"`
+	DetailUrl  string            `json:"detail_url"`
 }
 type Loc struct {
 	State string
 	City  string
 }
 
+func Save(item *Info, mgocol *mgo.Collection) error {
+	tItem := models.TaobaoItemStd{}
+	change := bson.M{
+		"detail_url":        item.DetailUrl,
+		"title":             item.Title,
+		"nick":              item.Nick,
+		"desc":              item.Desc,
+		"sid":               item.Sid,
+		"cid":               item.Cid,
+		"price":             item.Price,
+		"location":          item.Location,
+		"promotion_price":   item.Promprice,
+		"shop_type":         item.ShopType,
+		"reviews_count":     item.Reviews,
+		"monthly_sales_num": item.Count,
+		"props":             item.Attr,
+		"item_imgs":         item.Imgs,
+		"in_stock":          item.InStock,
+	}
+	err := mgocol.Find(bson.M{"num_iid": int(item.ItemId)}).One(&tItem)
+	if err != nil {
+		return err
+	}
+	if tItem.Title == "" {
+		t := time.Now()
+		change["data_updated_time"] = t
+		change["data_last_revised_time"] = time.Now()
+
+	} else {
+		change["data_last_revised_time"] = time.Now()
+	}
+	err = mgocol.Update(bson.M{"num_iid": int(item.ItemId)}, bson.M{"$set": change})
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func Post(info *Info) error {
 	data, err := json.Marshal(info)
 	if err != nil {
