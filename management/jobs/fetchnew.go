@@ -16,6 +16,7 @@ const (
 	MGODB   string = "zerg"
 	TAOBAO  string = "taobao.com"
 	TMALL   string = "tmall.com"
+	MANGO   string = "mango"
 )
 
 func main() {
@@ -34,6 +35,7 @@ func main() {
 var mgopages *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "pages")
 var mgofailed *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "failed")
 var mgominer *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "minerals")
+var mgoMango *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_items_depot")
 
 func run(shopid string, items []string) {
 	var allowchan chan bool = make(chan bool, THREADSNUM)
@@ -106,7 +108,8 @@ func run(shopid string, items []string) {
 					} else {
 						instock = info.InStock
 						log.Println("开始发送")
-						err = utils.Post(info)
+						//err = utils.Post(info)
+						err = utils.Save(info, mgoMango)
 						if err != nil {
 							log.Println("发送出现错误")
 							log.Println(err.Error())
@@ -136,30 +139,3 @@ func run(shopid string, items []string) {
 		log.Println(err.Error())
 	}
 }
-
-/*
-func hello(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	log.Println(r.Form)
-	log.Println("path", r.URL.Path)
-	log.Println("scheme", r.URL.Scheme)
-	log.Println(r.Form["url_long"])
-	for k, v := range r.Form {
-		log.Println("key:", k)
-		log.Println("val:", strings.Join(v, " "))
-	}
-	fmt.Fprintf(w, "hello world")
-}
-
-func main() {
-	go func() {
-		http.HandleFunc("/", hello)
-		err := http.ListenAndServe(":9090", nil)
-		if err != nil {
-			log.Fatal("listen and server :", err)
-		}
-	}()
-	fmt.Println("hello")
-	select {}
-}
-*/

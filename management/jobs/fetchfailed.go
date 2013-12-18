@@ -12,6 +12,7 @@ const (
 	MGODB   string = "zerg"
 	TAOBAO  string = "taobao.com"
 	TMALL   string = "tmall.com"
+	MANGO   string = "mango"
 )
 
 func main() {
@@ -24,6 +25,7 @@ func run() {
 	log.SetOutputLevel(log.Ldebug)
 	mgopages := utils.MongoInit(MGOHOST, MGODB, "pages")
 	mgofailed := utils.MongoInit(MGOHOST, MGODB, "failed")
+	mgoMango := utils.MongoInit(MGOHOST, MANGO, "taobao_items_depot")
 	log.Info("start to refetch")
 	iter := mgofailed.Find(nil).Iter()
 	failed := new(utils.FailedPages)
@@ -69,7 +71,7 @@ func run() {
 				log.Info(err.Error())
 			} else {
 				instock = info.InStock
-				err = utils.Post(info)
+				err = utils.Save(info, mgoMango)
 				if err != nil {
 					log.Info(err.Error())
 

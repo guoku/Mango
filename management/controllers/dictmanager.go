@@ -44,6 +44,8 @@ func (this *BlacklistManager) Get() {
 	q := this.GetString("q")
 	if q != "" {
 		cond["word"] = bson.M{"$regex": bson.RegEx{q, "i"}}
+	} else {
+		cond["deleted"] = bson.M{"$ne": true}
 	}
 	numOnePage := 200
 	c := MgoSession.DB("words").C("dict_chi_eng")
@@ -145,12 +147,18 @@ func (this *BrandsManageController) Get() {
 	q := this.GetString("q")
 	if q != "" {
 		cond["name"] = bson.M{"$regex": bson.RegEx{q, "i"}}
+	} else {
+		cond["deleted"] = bson.M{"$ne": true}
 	}
 	numOnePage := 200
 	c := MgoSession.DB("words").C("brands")
 	words := make([]models.BrandsWord, 0)
-	c.Find(cond).Sort("-freq").Skip(int(page-1) * numOnePage).Limit(numOnePage).All(&words)
-	total, _ := c.Find(nil).Count()
+	err = c.Find(cond).Sort("-freq").Skip(int(page-1) * numOnePage).Limit(numOnePage).All(&words)
+	if err != nil {
+		log.Info(err)
+	}
+	total, _ := c.Find(cond).Count()
+	log.Info("total is ", total)
 	this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, numOnePage, this.Input())
 	this.Data["Words"] = words
 	this.Data["SearchQuery"] = q
@@ -191,6 +199,7 @@ func (this *BrandsAddController) Post() {
 	err := c.Find(bson.M{"name": w}).One(&word)
 	if err != nil && err.Error() == "not found" {
 		word.Name = w
+		word.Valid = true
 		word.Type = "manual"
 		e := c.Insert(&word)
 		if e != nil {
