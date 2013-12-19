@@ -1,0 +1,1 @@
+use guoku_12_09;update base_entity set brand="prada",title="正品 代购 Prada Tote BN2316 mini牛皮双拉链包 桃粉色" where id=1047028;update base_entity set brand="prada",title="新品预订 正品 Prada Tote 1801 牛皮双拉链包 奶油白色" where id=1047029;update base_entity set brand="prada",title="现货 代购正品 碟中谍4 女杀手 Prada Tote 2274 肩带手提包 黑色" where id=1047030;
