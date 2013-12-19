@@ -2,8 +2,12 @@ package segment
 
 
 import (
+    "fmt"
+    "os"
+    //"io/ioutil"
     "strings"
     "Mango/management/models"
+    "Mango/management/utils"
     //"github.com/qiniu/log"
     "github.com/jason-zou/sego"
     "labix.org/v2/mgo"
@@ -16,19 +20,24 @@ type GuokuSegmenter struct {
 
 
 func (seg *GuokuSegmenter) LoadDictionary() bool {
-    seg.seg.LoadDictionary("../dictionary/dictionary.txt")
+    //fmt.Println(os.Chdir("/home/jasonz/gocode/src/Mango/management"))
+    seg.seg.LoadDictionary("dictionary/dictionary.txt")
     sess, err := mgo.Dial("10.0.1.23")
     if err != nil {
         return false
     }
     dc := sess.DB("words").C("dict_chi_eng")
     words := make([]models.DictWord, 0)
-    dc.Find(bson.M{"freq" : bson.M{"$gt" : 10}}).All(&words)
+    dc.Find(bson.M{"$or" : []bson.M{bson.M{"freq" : bson.M{"$gt" : 50}, "deleted" : false}, bson.M{"type" : "manual", "deleted" : false}}}).All(&words)
     length := len(words)
     wordUnits := make([]sego.WordUnit, length)
     for i := 0; i < length; i++ {
         wordUnits[i].Word = words[i].Word
-        wordUnits[i].Freq = words[i].Freq
+        freq := words[i].Freq
+        if freq < 200 && words[i].Type == "manual" {
+            freq = 200000
+        }
+        wordUnits[i].Freq = freq
         wordUnits[i].Pos = "n"
     }
 
@@ -57,9 +66,10 @@ func (seg *GuokuSegmenter) LoadDictionary() bool {
 }
 
 
-func (seg *GuokuSegmenter) Segment(str string) []string {
-    sgs := seg.seg.Segment([]byte(str))
-    return sego.SegmentsToSlice(sgs, false)
+func (seg *GuokuSegmenter) Segment(str string) [][]string {
+    nstr := utils.StripPuncsAndSymbols(str)
+    sgs := seg.seg.Segment([]byte(nstr))
+    return sego.SegmentsToTextSlice(sgs)
 }
 
 

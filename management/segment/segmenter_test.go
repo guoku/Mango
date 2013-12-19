@@ -2,18 +2,17 @@ package segment
 
 import (
     "fmt"
-    //"time"
+    "time"
     "testing"
-    "strings"
-    //"Mango/management/models"
-    //"labix.org/v2/mgo"
-    //"labix.org/v2/mgo/bson"
+//    "strings"
+    "Mango/management/models"
+    "labix.org/v2/mgo"
+    "labix.org/v2/mgo/bson"
 )
 
 func TestSegment(t *testing.T) {
     var seg GuokuSegmenter
     seg.LoadDictionary()
-    /*
     sess, err := mgo.Dial("10.0.1.23")
     if err != nil {
         t.Fatal("mongo error")
@@ -25,10 +24,9 @@ func TestSegment(t *testing.T) {
     fmt.Println("len", len(items))
     for i:=0; i < len(items); i++ {
         fmt.Println("origin:", items[i].Title)
-        fmt.Println("segment:", strings.Join(seg.Segment(items[i].Title), " | "))
+        fmt.Println("segment:", seg.Segment(items[i].Title))
     }
-    */
     fmt.Println("hello kitty I love you 宠物硅胶防滑高跟Bomll＆Unite宝路联合MIUI小米The body shop美体小铺")
-    fmt.Println("segment:", strings.Join(seg.Segment("hello kitty I love you 宠物硅胶防滑高跟Bomll＆Unite宝路联合MIUI小米The body shop美体小铺"), " | "))
+    fmt.Println("segment:", seg.Segment("hello kitty I love you 宠物硅胶防滑高跟Bomll＆Unite宝路联合MIUI小米The body shop美体小铺"))
 
 }

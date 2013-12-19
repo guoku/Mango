@@ -47,9 +47,10 @@ func init() {
 	beego.HttpCertFile = "server.crt"
 	beego.HttpKeyFile = "server.key"
 	beego.SessionOn = true
-	beego.SessionProvider = "redis"
-	beego.SessionSavePath = beego.AppConfig.String("redispath")
-	//beego.UseFcgi = true
+	if beego.SessionProvider != "redis" {
+	    beego.SessionSavePath = beego.AppConfig.String("redispath")
+	}
+    //beego.UseFcgi = true
 	session, err := mgo.Dial(mongoHost)
 	if err != nil {
 		fmt.Println(err.Error())
