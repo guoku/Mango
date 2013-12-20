@@ -123,6 +123,7 @@ type GuokuCatGroup struct {
 	Title         string      `json:"title" bson:"title"`
 }
 
+//垃圾词
 type DictWord struct {
 	Word        string  `bson:"word"`
 	Freq        int     `bson:"freq"`
@@ -133,6 +134,7 @@ type DictWord struct {
 	Type        string  `bson:"type"`
 }
 
+//品牌词
 type BrandsWord struct {
 	Name    string `bson:"name"`
 	Freq    int    `bson:"freq"`

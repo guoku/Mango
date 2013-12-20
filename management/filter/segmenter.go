@@ -1,6 +1,7 @@
 package filter
 
 import (
+	//"github.com/qiniu/log"
 	"regexp"
 	"sort"
 	"strings"
@@ -219,16 +220,24 @@ func (this *TrieTree) Cleanning(title string) string {
 		}
 
 	}
-	re = regexp.MustCompile("^[a-zA-Z0-9\\pP\\pZ:].*[a-zA-Z0-9\\pP\\pZ:]$|[0-9]")
+	re = regexp.MustCompile("[a-zA-Z0-9]+")
+	match := false
 	for i := 0; i < len(texts); i++ {
-		if re.MatchString(texts[i]) {
+		m := re.MatchString(texts[i])
+		if m && match {
+			texts[i] = texts[i] + " "
+		} else if m && !match {
 			texts[i] = " " + texts[i] + " "
+			match = true
+		} else {
+			match = false
 		}
 	}
 	title = strings.Join(texts, "")
 	title = strings.TrimSpace(title)
-	re = regexp.MustCompile("[\\pP\\pS\\pZ\\pM\\pC]")
-	re2 := regexp.MustCompile("[@\\-`'!]")
+
+	re = regexp.MustCompile("[\\pP\\pS]")
+	re2 := regexp.MustCompile("[@\\-`'!&_ ]+")
 	var rp = func(repl string) string {
 		if !re2.MatchString(repl) {
 			return ""
@@ -236,6 +245,11 @@ func (this *TrieTree) Cleanning(title string) string {
 		return repl
 	}
 	title = re.ReplaceAllStringFunc(title, rp)
+	re = regexp.MustCompile(" (\\pP|\\pS) ")
+	var rpf = func(repl string) string {
+		return strings.TrimSpace(repl)
+	}
+	title = re.ReplaceAllStringFunc(title, rpf)
 	return title
 }
 
