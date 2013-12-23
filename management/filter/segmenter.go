@@ -235,7 +235,6 @@ func (this *TrieTree) Cleanning(title string) string {
 	}
 	title = strings.Join(texts, "")
 	title = strings.TrimSpace(title)
-
 	re = regexp.MustCompile("[\\pP\\pS]")
 	re2 := regexp.MustCompile("[@\\-`'!&_ ]+")
 	var rp = func(repl string) string {
