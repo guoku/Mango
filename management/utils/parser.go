@@ -1,6 +1,8 @@
 package utils
 
 import (
+	//"Mango/management/crawler"
+	//"Mango/management/filter"
 	"Mango/management/models"
 	"encoding/json"
 	"errors"
@@ -71,6 +73,7 @@ type Info struct {
 	ItemId     int               `json:"num_iid"`
 	Sid        int               `json:"sid"`
 	Title      string            `json:"title"`
+	Brand      string            `json:"brand"`
 	ShopType   string            `json:"shop_type"`
 	DetailUrl  string            `json:"detail_url"`
 }
@@ -159,7 +162,16 @@ func Parse(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info, m
 		return
 	}
 	info = font
-	sid, _ := strconv.Atoi(itemid)
+	if shopid == itemid || shopid == "" {
+		//由于之前代码错误导致部分商品的shopid为itemid
+		link := GetShopLink(fontpage)
+		id, e := GetShopid(link)
+		if e != nil {
+			log.Info(e)
+		}
+		shopid = id
+	}
+	sid, _ := strconv.Atoi(shopid)
 	info.Sid = sid
 	iid, _ := strconv.Atoi(itemid)
 	info.ShopType = shoptype
@@ -169,6 +181,27 @@ func Parse(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info, m
 	return
 
 }
+
+//通过wap版某件商品的页面，获取其所属店铺的wap超链接
+func GetShopLink(html string) string {
+	//	re := regexp.MustCompile("\\<a href=\\\"(.+com).+进入店铺")
+	if html == "" {
+		return ""
+	}
+	reader := strings.NewReader(html)
+	doc, e := goquery.NewDocumentFromReader(reader)
+	if e != nil {
+		log.Info(e.Error())
+		return ""
+	}
+	shoptag := doc.Find("html body div.bd div.left-margin-5 p strong a")
+	shoplink, exists := shoptag.Attr("href")
+	if exists {
+		return shoplink
+	}
+	return ""
+}
+
 func parsefontpage(html string) (*Info, error) {
 	info := new(Info)
 	if html == "" {
@@ -411,6 +444,9 @@ func parsefontpage(html string) (*Info, error) {
 	q := p.Query()
 	log.Info(q.Get("nick"))
 	info.Nick = q.Get("nick")
+
+	//由于代码错误导致有部分商品的店铺id与商品id是一样的
+
 	return info, nil
 }
 

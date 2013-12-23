@@ -17,6 +17,38 @@ import (
 	"time"
 )
 
+//通过店铺链接，提取店铺详细数据
+func Fetch(shoplink string) (*rest.Shop, error) {
+	shop := new(rest.Shop)
+	detail, err := GetInfo(shoplink)
+	if err != nil {
+		return shop, err
+	}
+	shop.Nick = detail.Nick
+	shop.Title = detail.Title
+	shop.PicPath = detail.PicPath
+	shop.Sid = detail.Sid
+	shop.ShopScore = detail.ShopScore
+
+	userid, err := GetUserid(shoplink)
+	if err != nil {
+		log.Error(err)
+		return shop, err
+	}
+	detail, err = Parse(userid)
+	if err != nil {
+		log.Error(err)
+		return shop, err
+	}
+	shop.ShopType = detail.ShopType
+	shop.UpdatedTime = time.Now()
+	shop.Company = detail.Company
+	shop.Location = detail.Location
+	shop.MainProducts = detail.MainProducts
+	shop.ShopScore = detail.ShopScore
+	return shop, nil
+}
+
 //通过这个函数，可以获取淘宝店的昵称，名称，图片，sid
 func GetInfo(shoplink string) (*rest.Shop, error) {
 	re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
@@ -74,7 +106,12 @@ func GetInfo(shoplink string) (*rest.Shop, error) {
 //获取店主的旺旺id，通过这个id，可以看到其评分页面
 func GetUserid(shoplink string) (string, error) {
 	transport := &http.Transport{ResponseHeaderTimeout: time.Duration(30) * time.Second}
-	client := &http.Client{Transport: transport}
+	var redirectFunc = func(req *http.Request, via []*http.Request) error {
+		redirectUrl := req.URL.String()
+		log.Info("redirectUrl ", redirectUrl)
+		return nil
+	}
+	client := &http.Client{Transport: transport, CheckRedirect: redirectFunc}
 	req, err := http.NewRequest("GET", shoplink, nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:24.0) Gecko/20100101 Firefox.24.0")
 	if err != nil {
@@ -84,7 +121,7 @@ func GetUserid(shoplink string) (string, error) {
 	resp, err := client.Do(req)
 	defer resp.Body.Close()
 	if err != nil {
-		log.Error(err)
+		log.Info(err.Error())
 		return "", err
 	}
 	if resp.StatusCode != 200 {

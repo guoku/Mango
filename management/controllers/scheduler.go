@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"Mango/management/crawler"
 	"Mango/management/models"
 	"Mango/management/models/apiresponse"
 	"Mango/management/taobaoclient"
@@ -111,7 +112,7 @@ func (this *AddShopController) Post() {
 	shopurl := re.FindString(shopName)
 	link := strings.Replace(shopurl, ".", ".m.", 1)
 	fmt.Println(link)
-	shopInfo, topErr := fetch(link)
+	shopInfo, topErr := crawler.Fetch(link)
 	if topErr != nil {
 		fmt.Println(topErr.Error())
 		this.Redirect("/scheduler/list_shops", 302)
@@ -135,7 +136,7 @@ func addShopItem(shopInfo *rest.Shop) bool {
 	result.LastUpdatedTime = time.Now()
 	result.Status = "queued"
 	result.CrawlerInfo = &models.CrawlerInfo{Priority: 10, Cycle: 720}
-	result.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type: "unknown", Orientational: false, CommissionRate: -1}
+	result.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type: shopInfo.ShopType, Orientational: false, CommissionRate: -1}
 	err := c.Insert(&result)
 	if err != nil {
 		return false
