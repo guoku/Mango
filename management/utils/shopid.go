@@ -37,7 +37,7 @@ func GetShopid(shoplink string) (string, error) {
 	}
 	resp, err := client.Do(req)
 	defer func() {
-		if resp.Body == nil {
+		if resp == nil {
 			return
 		} else {
 			resp.Body.Close()
