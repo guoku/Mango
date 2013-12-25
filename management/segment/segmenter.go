@@ -72,6 +72,12 @@ func (seg *GuokuSegmenter) Segment(str string) [][]string {
     return sego.SegmentsToTextSlice(sgs)
 }
 
+func (seg *GuokuSegmenter) SegmentAndConcat (str string) {
+    sgs := seg.Segment(str)
+    res := make([]string, len(sgs))
+
+}
+
 
 
 
