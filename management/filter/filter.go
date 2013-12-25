@@ -8,6 +8,14 @@ import (
 
 //从分词的数组中清理垃圾词
 func (this *TrieTree) Filtrate(texts [][]string) string {
+	result := this.FiltrateForArray(texts)
+	returnresult := sliceToString(result)
+	re := regexp.MustCompile("[a-zA-z]+")
+	returnresult = re.ReplaceAllStringFunc(returnresult, ToUpper)
+	return returnresult
+}
+
+func (this *TrieTree) FiltrateForArray(texts [][]string) []string {
 	for i := 0; i < len(texts); i++ {
 		current := this.Root
 		term := texts[i]
@@ -37,10 +45,7 @@ func (this *TrieTree) Filtrate(texts [][]string) string {
 	for _, word := range texts {
 		result = append(result, sliceToString(word))
 	}
-	returnresult := sliceToString(result)
-	re := regexp.MustCompile("[a-zA-z]+")
-	returnresult = re.ReplaceAllStringFunc(returnresult, ToUpper)
-	return returnresult
+	return result
 }
 
 //从分词后的数组中提取品牌
