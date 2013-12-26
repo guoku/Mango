@@ -35,17 +35,17 @@ func Fetch(shoplink string) (*rest.Shop, error) {
 		log.Error(err)
 		return shop, err
 	}
-	detail, err = Parse(userid)
+	detail2, err := Parse(userid)
 	if err != nil {
 		log.Error(err)
 		return shop, err
 	}
-	shop.ShopType = detail.ShopType
+	shop.ShopType = detail2.ShopType
 	shop.UpdatedTime = time.Now()
-	shop.Company = detail.Company
-	shop.Location = detail.Location
-	shop.MainProducts = detail.MainProducts
-	shop.ShopScore = detail.ShopScore
+	shop.Company = detail2.Company
+	shop.Location = detail2.Location
+	shop.MainProducts = detail2.MainProducts
+	shop.ShopScore = detail2.ShopScore
 	return shop, nil
 }
 
@@ -293,5 +293,6 @@ func Parse(userid string) (*rest.Shop, error) {
 
 	shopscore := rest.ShopScore{SemiScore: &shopkps, ServiceScore: serviceScore}
 	shop.ShopScore = &shopscore
+	log.Infof("%+v", shop)
 	return shop, nil
 }

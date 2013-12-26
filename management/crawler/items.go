@@ -70,12 +70,14 @@ func SaveFailed(itemid, shopid, shoptype string, mgofailed *mgo.Collection) {
 
 func SaveSuccessed(itemid, shopid, shoptype, font, detail string, parsed, instock bool, mgopages *mgo.Collection) {
 	font = Compress(font)
+	log.Info("压缩后的字符", font)
 	detail = Compress(detail)
 	successpage := utils.Pages{ItemId: itemid, ShopId: shopid, ShopType: shoptype, FontPage: font, UpdateTime: time.Now().Unix(), DetailPage: detail, Parsed: parsed, InStock: instock}
 	_, err := mgopages.Upsert(bson.M{"itemid": itemid}, bson.M{"$set": successpage})
 	if err != nil {
 		log.Error(err)
 	}
+	log.Info("保存页面数据成功")
 }
 
 func Compress(data string) string {
@@ -84,4 +86,17 @@ func Compress(data string) string {
 	w.Write([]byte(data))
 	w.Close()
 	return string(b.Bytes())
+}
+
+func Decompress(data string) (string, error) {
+	buff := []byte(data)
+	b := bytes.NewBuffer(buff)
+	r, err := zlib.NewReader(b)
+	if err != nil {
+		log.Error(err)
+		return "", err
+	}
+	rbuf := new(bytes.Buffer)
+	rbuf.ReadFrom(r)
+	return string(rbuf.Bytes()), nil
 }

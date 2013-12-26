@@ -27,6 +27,7 @@ var mgominer *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "minerals")
 var mgoMango *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_items_depot")
 
 func TestFetchIItem(t *testing.T) {
+	t.SkipNow()
 	var allowchan chan bool = make(chan bool, THREADSNUM)
 	log.Printf("\n\nStart to run fetch")
 	shoptype := TAOBAO

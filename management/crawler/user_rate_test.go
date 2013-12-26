@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"Mango/management/models"
+	"Mango/management/utils"
 	"fmt"
 	"github.com/qiniu/log"
 	"labix.org/v2/mgo"
@@ -28,8 +29,8 @@ func TestParse(t *testing.T) {
 	Parse(userid)
 }
 func TestParseTaobao(t *testing.T) {
-	t.SkipNow()
-	userid, err := GetUserid("http://shop71839143.taobao.com/")
+	//t.SkipNow()
+	userid, err := GetUserid("http://shop104286230.taobao.com/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,4 +80,14 @@ func TestFetch(t *testing.T) {
 		log.Error(err)
 		log.Fatal(err)
 	}
+}
+
+func TestDecompress(t *testing.T) {
+	t.SkipNow()
+	mgopage := utils.MongoInit("10.0.1.23", "zerg", "pages")
+	var pages *utils.Pages
+	mgopage.Find(bson.M{"itemid": "18634001513"}).One(&pages)
+	font, _ := Decompress(pages.FontPage)
+	log.Info(font)
+
 }

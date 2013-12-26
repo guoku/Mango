@@ -117,6 +117,7 @@ func Save(item *Info, mgocol *mgo.Collection) error {
 	if err != nil {
 		return err
 	}
+	log.Info("解析数据保存成功")
 	return nil
 }
 func Post(info *Info) error {
