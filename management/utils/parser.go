@@ -273,13 +273,13 @@ func parsefontpage(html string) (*Info, error) {
 	if tmp != "联系卖家" {
 		imgurl, exists := imgurltag.Attr("src")
 		if exists {
-			re := regexp.MustCompile("_\\d+x\\d+\\.jpg")
+			re := regexp.MustCompile("_\\d+x\\d+\\.jpg|_b\\.jpg")
 			imgurl := re.ReplaceAllString(imgurl, "")
 			imgs = append(imgs, imgurl)
 			log.Info(imgurl)
 		}
 		doc.Find("div.bd div.box div.detail table.mt tbody tr td a img").Each(func(i int, s *goquery.Selection) {
-			re := regexp.MustCompile("_\\d+x\\d+\\.jpg")
+			re := regexp.MustCompile("_\\d+x\\d+\\.jpg|_b\\.jpg")
 			src, exists := s.Attr("src")
 			if exists {
 				src = re.ReplaceAllString(src, "")

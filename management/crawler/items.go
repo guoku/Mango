@@ -2,6 +2,8 @@ package crawler
 
 import (
 	"Mango/management/utils"
+	"bytes"
+	"compress/zlib"
 	"github.com/qiniu/log"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -67,9 +69,19 @@ func SaveFailed(itemid, shopid, shoptype string, mgofailed *mgo.Collection) {
 }
 
 func SaveSuccessed(itemid, shopid, shoptype, font, detail string, parsed, instock bool, mgopages *mgo.Collection) {
+	font = Compress(font)
+	detail = Compress(detail)
 	successpage := utils.Pages{ItemId: itemid, ShopId: shopid, ShopType: shoptype, FontPage: font, UpdateTime: time.Now().Unix(), DetailPage: detail, Parsed: parsed, InStock: instock}
 	_, err := mgopages.Upsert(bson.M{"itemid": itemid}, bson.M{"$set": successpage})
 	if err != nil {
 		log.Error(err)
 	}
+}
+
+func Compress(data string) string {
+	var b bytes.Buffer
+	w := zlib.NewWriter(&b)
+	w.Write([]byte(data))
+	w.Close()
+	return string(b.Bytes())
 }

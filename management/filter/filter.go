@@ -74,6 +74,7 @@ func (this *TrieTree) FilterBrand(texts [][]string) string {
 			result := sliceToString(term)
 			re := regexp.MustCompile("[a-zA-z]+")
 			result = re.ReplaceAllStringFunc(result, ToUpper)
+			result = strings.Replace(result, "——", "-", -1)
 			return result
 		}
 	}
