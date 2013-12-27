@@ -139,9 +139,29 @@ func addShopItem(shopInfo *rest.Shop) bool {
 	result.LastUpdatedTime = time.Now()
 	result.Status = "queued"
 	result.CrawlerInfo = &models.CrawlerInfo{Priority: 10, Cycle: 720}
-	result.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type: shopInfo.ShopType, Orientational: false, CommissionRate: -1}
+	result.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type: strings.TrimSpace(shopInfo.ShopType), Orientational: false, CommissionRate: -1}
 	err := c.Insert(&result)
 	if err != nil {
+		return false
+	}
+	return true
+}
+
+func updateShopItem(shopInfo *rest.Shop) bool {
+	shopLock.Lock()
+	defer shopLock.Unlock()
+	result := models.ShopItem{}
+	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+	c.Find(bson.M{"shop_info.sid": shopInfo.Sid}).One(&result)
+	result.ShopInfo = shopInfo
+	result.LastUpdatedTime = time.Now()
+	if result.ExtendedInfo.Type == "taobao.com" || result.ExtendedInfo.Type == "unknown" {
+		//防止把全球购的信息给覆盖了
+		result.ExtendedInfo.Type = strings.TrimSpace(shopInfo.ShopType)
+	}
+	err := c.Update(bson.M{"shop_info.sid": shopInfo.Sid}, bson.M{"$set": result})
+	if err != nil {
+		log.Error(err)
 		return false
 	}
 	return true
@@ -168,6 +188,18 @@ func (this *TaobaoShopDetailController) Get() {
 	if err != nil || shop.ShopInfo == nil {
 		this.Abort("404")
 		return
+	}
+	now := time.Now()
+	if now.Sub(shop.LastUpdatedTime) > 30*time.Hour*24 {
+		//一个月没有更新店铺信息，进行更新
+		log.Info("start to update shop info")
+		shoplink := fmt.Sprintf("http://shop%d.taobao.com", sid)
+		shopinfo, err := crawler.Fetch(shoplink)
+		if err != nil {
+			log.Error(err)
+		}
+		log.Infof("%+v", shopinfo)
+		updateShopItem(shopinfo)
 	}
 	page, perr := this.GetInt("p")
 	if perr != nil {
