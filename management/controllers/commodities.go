@@ -4,6 +4,7 @@ import (
 	"Mango/management/models"
 	"encoding/json"
 	"fmt"
+	"github.com/qiniu/log"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -23,7 +24,7 @@ func (this *CommodityController) Prepare() {
 	this.UserSessionController.Prepare()
 	user := this.Data["User"].(*models.User)
 	this.Data["Tab"] = &models.Tab{TabName: "Commodity"}
-	fmt.Println("pre", this.Input())
+	log.Info("pre", this.Input())
 	if !CheckPermission(user.Id, CommodityCodeName) {
 		this.Abort("401")
 		return
@@ -51,7 +52,7 @@ func getCatsPath(cid int) []*models.TaobaoItemCat {
 	tcid := cid
 	path := make([]*models.TaobaoItemCat, 0)
 	for {
-		fmt.Println("path:", tcid)
+		log.Info("path:", tcid)
 		if tcid == 0 {
 			break
 		}
@@ -129,7 +130,7 @@ func (this *CategoryController) Get() {
 		this.Data["Paginator"] = paginator
 		this.Data["Cid"] = cid
 	}
-	fmt.Println(this.Data["Tab"])
+	log.Info(this.Data["Tab"])
 	this.Layout = DefaultLayoutFile
 	this.TplNames = "categories.tpl"
 }
@@ -186,7 +187,7 @@ func (this *CreateOnlineItemsController) Post() {
 		body, _ := ioutil.ReadAll(resp.Body)
 		r := CreateItemsResp{}
 		json.Unmarshal(body, &r)
-		fmt.Println(r)
+		log.Info(r)
 		if r.Status == "success" {
 			ic.Update(bson.M{"num_iid": taobaoId}, bson.M{"$set": bson.M{"item_id": r.ItemId}})
 		}
@@ -201,11 +202,11 @@ type CategoryManageController struct {
 
 func (this *CategoryManageController) Get() {
 	update := this.GetString("update")
-	fmt.Println(this.Input())
+	log.Info(this.Input())
 	gc := MgoSession.DB(MgoDbName).C("guoku_cats")
 	cc := MgoSession.DB(MgoDbName).C("taobao_cats")
 	gcg := MgoSession.DB(MgoDbName).C("guoku_cat_groups")
-	fmt.Println("update", update)
+	log.Info("update", update)
 	if update == "" {
 		guokuCats := make([]models.GuokuCat, 0)
 		gc.Find(nil).All(&guokuCats)
@@ -218,20 +219,20 @@ func (this *CategoryManageController) Get() {
 	} else {
 		resp, err := http.Get("http://114.113.154.47:8000/management/category/sync/")
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Info(err.Error())
 			this.Redirect("/commodity/category_manage", 302)
 			return
 		}
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Info(err.Error())
 			this.Redirect("/commodity/category_manage", 302)
 			return
 		}
 		guokuCatsGroups := make([]models.GuokuCatGroup, 0)
 		err = json.Unmarshal(body, &guokuCatsGroups)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Info(err.Error())
 			this.Redirect("/commodity/category_manage", 302)
 			return
 		}
@@ -240,13 +241,13 @@ func (this *CategoryManageController) Get() {
 		for _, v := range guokuCatsGroups {
 			err = gcg.Insert(&v)
 			if err != nil {
-				fmt.Println(err)
+				log.Info(err)
 			}
 			for _, c := range v.Content {
 				c.GroupId = v.GroupId
 				err = gc.Insert(&c)
 				if err != nil {
-					fmt.Println(err)
+					log.Info(err)
 				}
 			}
 		}

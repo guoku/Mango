@@ -3,7 +3,7 @@ package controllers
 import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/jason-zou/taobaosdk/rest"
-	"log"
+	"github.com/qiniu/log"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -13,14 +13,14 @@ import (
 func fetch(link string) (*rest.Shop, error) {
 	doc, e := goquery.NewDocument(link)
 	if e != nil {
-		log.Println(e.Error())
+		log.Info(e.Error())
 		return nil, e
 	}
 
 	titletag := doc.Find("p.box").Text()
 	title := titletag[7:]
 	title = strings.TrimSpace(title)
-	log.Println(title)
+	log.Info(title)
 	pictag := doc.Find("td.pic img")
 	piclink, _ := pictag.Attr("src")
 	wwimg := doc.Find("img[alt=ww]")
@@ -28,7 +28,7 @@ func fetch(link string) (*rest.Shop, error) {
 	srcparse, _ := url.Parse(src)
 	srcquery := srcparse.Query()
 	nick := srcquery.Get("nick")
-	log.Println(nick)
+	log.Info(nick)
 	sidtag, exists := wwimg.Parent().Attr("href")
 	var sid int
 	if exists {

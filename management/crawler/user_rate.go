@@ -46,13 +46,16 @@ func Fetch(shoplink string) (*rest.Shop, error) {
 	shop.Location = detail2.Location
 	shop.MainProducts = detail2.MainProducts
 	shop.ShopScore = detail2.ShopScore
+	log.Infof("%+v", shop)
 	return shop, nil
 }
 
 //通过这个函数，可以获取淘宝店的昵称，名称，图片，sid
 func GetInfo(shoplink string) (*rest.Shop, error) {
 	re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
+	log.Info("raw", shoplink)
 	shopurl := re.FindString(shoplink)
+	log.Info("shopurl", shopurl)
 	link := strings.Replace(shopurl, ".", ".m.", 1)
 	log.Info("shop link", link)
 	doc, e := goquery.NewDocument(link)

@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"Mango/management/models"
-	"fmt"
+	//	"fmt"
 	//"labix.org/v2/mgo"
 	"github.com/qiniu/log"
 	"labix.org/v2/mgo/bson"
@@ -66,11 +66,11 @@ type BlacklistUpdateController struct {
 
 func (this *BlacklistUpdateController) Post() {
 	w := this.GetString("w")
-	fmt.Println(w)
+	log.Info(w)
 	blacklist, _ := this.GetBool("blacklist")
 	c := MgoSession.DB("words").C("dict_chi_eng")
 	if err := c.Update(bson.M{"word": w}, bson.M{"$set": bson.M{"blacklisted": blacklist}}); err != nil {
-		fmt.Println(err)
+		log.Info(err)
 		this.Data["json"] = map[string]bool{"error": true}
 		this.ServeJson()
 		return
@@ -95,11 +95,11 @@ type BlacklistDeleteController struct {
 
 func (this *BlacklistDeleteController) Post() {
 	w := this.GetString("w")
-	fmt.Println(w)
+	log.Info(w)
 	toDelete, _ := this.GetBool("delete")
 	c := MgoSession.DB("words").C("dict_chi_eng")
 	if err := c.Update(bson.M{"word": w}, bson.M{"$set": bson.M{"deleted": toDelete}}); err != nil {
-		fmt.Println(err)
+		log.Info(err)
 		this.Data["json"] = map[string]bool{"error": true}
 		this.ServeJson()
 		return
@@ -117,7 +117,7 @@ type BlacklistAddController struct {
 
 func (this *BlacklistAddController) Post() {
 	w := this.GetString("w")
-	fmt.Println(w)
+	log.Info(w)
 	c := MgoSession.DB("words").C("dict_chi_eng")
 	word := models.DictWord{}
 	if err := c.Find(bson.M{"word": w}).One(&word); err != nil && err.Error() == "not found" {

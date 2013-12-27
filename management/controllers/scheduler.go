@@ -11,9 +11,10 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"github.com/jason-zou/taobaosdk/rest"
+	"github.com/qiniu/log"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	"regexp"
+	//"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,7 +26,7 @@ var MgoDbName string
 var shopLock sync.Mutex
 var itemLock sync.Mutex
 var Priorities = [10]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-var TaobaoShopTypes = [3]string{"taobao", "tmall", "global"}
+var TaobaoShopTypes = [3]string{"taobao.com", "tmall.com", "global"}
 var Gifts = []string{"果库福利", "应用市场活动", "微博微信活动"}
 
 const SchedulerCodeName = "manage_crawler"
@@ -58,7 +59,9 @@ func (this *ShopListController) Get() {
 	nick := this.GetString("nick")
 	query := bson.M{}
 	if nick != "" {
-		query["shop_info.nick"] = nick
+		re := bson.RegEx{nick, "i"}
+		brs := bson.M{"$regex": re}
+		query["shop_info.nick"] = brs
 	}
 	sortOn := this.GetString("sorton")
 	sortCon := "-created_time"
@@ -107,14 +110,14 @@ type AddShopController struct {
 }
 
 func (this *AddShopController) Post() {
-	shopName := this.GetString("shop_name")
-	re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
-	shopurl := re.FindString(shopName)
-	link := strings.Replace(shopurl, ".", ".m.", 1)
-	fmt.Println(link)
-	shopInfo, topErr := crawler.Fetch(link)
+	shoplink := this.GetString("shop_name")
+	//	re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
+	//	shopurl := re.FindString(shopName)
+	//	link := strings.Replace(shopurl, ".", ".m.", 1)
+	log.Info(shoplink)
+	shopInfo, topErr := crawler.Fetch(shoplink)
 	if topErr != nil {
-		fmt.Println(topErr.Error())
+		log.Info(topErr.Error())
 		this.Redirect("/scheduler/list_shops", 302)
 		return
 	}
@@ -192,7 +195,7 @@ func (this *TaobaoShopDetailController) Get() {
 		tmp := GiftsWithStatu{Name: gift, On: on}
 		giftwithstatus = append(giftwithstatus, &tmp)
 	}
-	fmt.Println(shop.ExtendedInfo.Type)
+	log.Info(shop.ExtendedInfo.Type)
 	this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, NumInOnePage, this.Input())
 	this.Data["ItemList"] = results
 	this.Data["Priorities"] = Priorities
@@ -313,16 +316,16 @@ type SendItemDataController struct {
 }
 
 func (this *SendItemDataController) Post() {
-	fmt.Println(this.Ctx.Input.RequestBody)
+	log.Info(this.Ctx.Input.RequestBody)
 	item := models.TaobaoItemStd{}
 	err := json.Unmarshal(this.Ctx.Input.RequestBody, &item)
 	if err != nil {
-		fmt.Println(err)
+		log.Info(err)
 		this.Data["json"] = map[string]string{"status": "Data Error"}
 		this.ServeJson()
 		return
 	}
-	fmt.Println(item)
+	log.Info(item)
 	session := utils.GetNewMongoSession()
 	if session == nil {
 		this.Data["json"] = map[string]string{"status": "DB Error"}
@@ -401,14 +404,14 @@ func (this *UpdateTaobaoShopController) Post() {
 	for _, v := range Gifts {
 		on := this.GetString(v)
 		if on == "on" {
-			fmt.Println(v)
+			log.Info(v)
 			gifts = append(gifts, v)
 		}
 	}
-	fmt.Println(gifts)
+	log.Info(gifts)
 	commission, _ := this.GetBool("commission")
 	main_products := this.GetString("main_products")
-	fmt.Println(main_products)
+	log.Info(main_products)
 	extended_info := &models.TaobaoShopExtendedInfo{Type: shop_type, Orientational: orientational, CommissionRate: float32(commission_rate),
 		SingleTail: single_tail, Original: original, Gifts: gifts, Commission: commission}
 	crawler_info := &models.CrawlerInfo{Priority: int(priority), Cycle: int(cycle)}
