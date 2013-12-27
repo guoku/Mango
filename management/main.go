@@ -47,7 +47,7 @@ func init() {
 	beego.HttpCertFile = "server.crt"
 	beego.HttpKeyFile = "server.key"
 	beego.SessionOn = true
-	if beego.SessionProvider != "redis" {
+	if beego.SessionProvider == "redis" {
 	    beego.SessionSavePath = beego.AppConfig.String("redispath")
 	}
     //beego.UseFcgi = true

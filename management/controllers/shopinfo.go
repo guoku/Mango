@@ -46,9 +46,12 @@ func fetch(link string) (*rest.Shop, error) {
 	service_score = float32(service_score2)
 	item_score = float32(item_score2)
 	delivery_score = float32(delivery_score2)
-	var shopinfo *rest.Shop
 	var shopscore *rest.ShopScore
-	shopscore = &rest.ShopScore{DeliveryScore: delivery_score, ItemScore: item_score, ServiceScore: service_score}
-	shopinfo = &rest.Shop{Nick: nick, Title: title, PicPath: piclink, ShopScore: shopscore, Sid: sid}
+	deliver := &rest.RateScore{Score: delivery_score}
+	desc := &rest.RateScore{Score: item_score}
+	service := &rest.RateScore{Score: service_score}
+	kps := &rest.ShopKPS{DeliveryScore: deliver, DescScore: desc, ServiceScore: service}
+	shopscore.SemiScore = kps
+	shopinfo := &rest.Shop{Nick: nick, Title: title, PicPath: piclink, ShopScore: shopscore, Sid: sid}
 	return shopinfo, nil
 }

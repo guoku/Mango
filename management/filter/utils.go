@@ -95,7 +95,7 @@ func ToHTML(data []*Result, name string) {
 		}
 		selectbrand := Brandsprocess(v.Brands)
 		re := regexp.MustCompile("[a-zA-Z]+")
-		selectbrand = re.ReplaceAllStringFunc(selectbrand, toUpper)
+		selectbrand = re.ReplaceAllStringFunc(selectbrand, ToUpper)
 		t1 = t1 + `</td><td>` + v.Category + `</td><td>` + selectbrand + `</td></tr>`
 
 		html = html + t1
@@ -166,7 +166,7 @@ func toLower(text []byte) []byte {
 	return output
 }
 
-func toUpper(text string) string {
+func ToUpper(text string) string {
 	t := []byte(text)
 	if len(t) > 0 {
 		if t[0] >= 'a' && t[0] <= 'z' {
@@ -209,7 +209,9 @@ func Brandsprocess(brands []string) string {
 		}
 	}
 	if maxlen == 0 {
-		return brands[0]
+		result = brands[0]
 	}
+	re = regexp.MustCompile("[a-zA-Z]+")
+	result = re.ReplaceAllStringFunc(result, ToUpper)
 	return result
 }

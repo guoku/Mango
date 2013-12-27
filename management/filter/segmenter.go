@@ -1,6 +1,7 @@
 package filter
 
 import (
+	//"github.com/qiniu/log"
 	"regexp"
 	"sort"
 	"strings"
@@ -30,8 +31,9 @@ type TrieTree struct {
 	//Node里的origin就表示该node所表示的品牌对应的原始名字在Words里的index
 }
 
+/*
 func (this *TrieTree) AddNormal(words string) {
-	//添加普通词库
+	//添加普通词库 //暂时废弃
 
 	words = strings.ToLower(words)
 	slicewords := SplitTextToWords([]byte(words))
@@ -62,7 +64,7 @@ func (this *TrieTree) AddNormal(words string) {
 	current.NormalExist = true
 
 }
-
+*/
 func (this *TrieTree) judgeAll(nodes []*Node, word string) (int, bool) {
 	for k, v := range nodes {
 		if word == v.Normal || word == v.Black || word == v.Word {
@@ -79,31 +81,67 @@ func (this *TrieTree) judgeNormal(nodes []*Node, word string) (int, bool) {
 	}
 	return -1, false
 }
-func (this *TrieTree) Add(words string, freq int) {
+
+//第一个参数是原始的品牌名，第二个参数是对品牌词分词后的结果
+func (this *TrieTree) Add(name string, words []string, freq int) {
 	//添加品牌词
-	index := len(this.Words)
-	text := Text{Words: words, Freq: freq}
+	loc := len(this.Words)
+	text := Text{Words: name, Freq: freq}
 	this.Words = append(this.Words, text)
-	if strings.Contains(words, "/") {
-		arr := strings.Split(words, "/")
-		first := this.clean(arr[0])
-		second := this.clean(arr[1])
-		third := this.clean(words)
-		if len(first) > 2 {
-			this.add(first, index)
-		}
-		if len(second) > 2 {
-			this.add(second, index)
-		}
-		if len(third) > 2 {
-			this.add(third, index)
-		}
-	} else {
-		if len(words) > 2 {
-			this.add(words, index)
-		}
+	current := this.Root
+	if current == nil {
+		//树还没有初始化
+		children := make([]*Node, 0, 50)
+		current = &Node{Children: children}
+		this.Root = current
 	}
+	for _, word := range words {
+		nodes := current.Children
+		var index int
+		var exist bool
+		if nodes == nil {
+			nodes = make([]*Node, 0, 50)
+		}
+		index, exist = this.judgeAll(nodes, word)
+		if !exist {
+			n := Node{Word: word, Exist: false}
+			index = len(nodes)
+			nodes = append(nodes, &n)
+		} else {
+			nodes[index].Word = word
+		}
+		current.Children = nodes
+		current = nodes[index]
+	}
+	current.Exist = true
+	current.Origin = append(current.Origin, loc)
+	/*
+		index := len(this.Words)
+		text := Text{Words: words, Freq: freq}
+		this.Words = append(this.Words, text)
+		if strings.Contains(words, "/") {
+			arr := strings.Split(words, "/")
+			first := this.clean(arr[0])
+			second := this.clean(arr[1])
+			third := this.clean(words)
+			if len(first) > 2 {
+				this.add(first, index)
+			}
+			if len(second) > 2 {
+				this.add(second, index)
+			}
+			if len(third) > 2 {
+				this.add(third, index)
+			}
+		} else {
+			if len(words) > 2 {
+				this.add(words, index)
+			}
+		}
+	*/
 }
+
+/*
 func (this *TrieTree) add(words string, loc int) {
 	words = strings.ToLower(words)
 	current := this.Root
@@ -140,6 +178,7 @@ func (this *TrieTree) add(words string, loc int) {
 	current.Exist = true
 	current.Origin = append(current.Origin, loc)
 }
+*/
 func (this *TrieTree) AddBlackWord(words string) {
 	//添加垃圾词
 	words = strings.ToLower(words)
@@ -172,6 +211,7 @@ func (this *TrieTree) AddBlackWord(words string) {
 	current.BlackOrigin = len(this.BlackWords) - 1
 }
 
+//在没有分词的情形下，对标题进行垃圾词进行清理
 func (this *TrieTree) Cleanning(title string) string {
 	//根据黑名单，对标题进行清理
 	//在查找黑名单的路径上，如果有品牌名，则停止不对其进行清理
@@ -219,16 +259,23 @@ func (this *TrieTree) Cleanning(title string) string {
 		}
 
 	}
-	re = regexp.MustCompile("^[a-zA-Z0-9\\pP\\pZ:].*[a-zA-Z0-9\\pP\\pZ:]$|[0-9]")
+	re = regexp.MustCompile("[a-zA-Z0-9]+")
+	match := false
 	for i := 0; i < len(texts); i++ {
-		if re.MatchString(texts[i]) {
+		m := re.MatchString(texts[i])
+		if m && match {
+			texts[i] = texts[i] + " "
+		} else if m && !match {
 			texts[i] = " " + texts[i] + " "
+			match = true
+		} else {
+			match = false
 		}
 	}
 	title = strings.Join(texts, "")
 	title = strings.TrimSpace(title)
-	re = regexp.MustCompile("[\\pP\\pS\\pZ\\pM\\pC]")
-	re2 := regexp.MustCompile("[@\\-`'!_+&]")
+	re = regexp.MustCompile("[\\pP\\pS]")
+	re2 := regexp.MustCompile("[@\\-`'!&_ ]+")
 	var rp = func(repl string) string {
 		if !re2.MatchString(repl) {
 			return ""
@@ -236,9 +283,15 @@ func (this *TrieTree) Cleanning(title string) string {
 		return repl
 	}
 	title = re.ReplaceAllStringFunc(title, rp)
+	re = regexp.MustCompile(" (\\pP|\\pS) ")
+	var rpf = func(repl string) string {
+		return strings.TrimSpace(repl)
+	}
+	title = re.ReplaceAllStringFunc(title, rpf)
 	return title
 }
 
+/*
 func (this *TrieTree) findNorm(words string) bool {
 	//找到的垃圾词，与其后面紧接着的一个字，做匹配判断
 
@@ -261,11 +314,14 @@ func (this *TrieTree) findNorm(words string) bool {
 	}
 	return false
 }
+*/
 func (this *TrieTree) clean(words string) string {
 	re := regexp.MustCompile("\\pP|`|皇冠|diy")
 	s := re.ReplaceAllLiteralString(words, "")
 	return strings.ToLower(s)
 }
+
+/*
 func (this *TrieTree) Search(words string) ([]Text, bool) {
 	words = this.clean(words)
 	slicewords := SplitTextToWords([]byte(words))
@@ -289,7 +345,9 @@ func (this *TrieTree) Search(words string) ([]Text, bool) {
 	}
 	return ts, current.Exist
 }
+*/
 
+//在没分词的情形下，进行品牌的提取
 func (this *TrieTree) Extract(text string) []string {
 	text = this.clean(text)
 	slicewords := SplitTextToWords([]byte(text))
@@ -360,6 +418,7 @@ func (this *TrieTree) judge(nodes []*Node, word string, black bool) (int, bool) 
 	return -1, false
 }
 
+/*
 //排序接口
 type ById []*Result
 
@@ -372,7 +431,7 @@ func (this ById) Swap(i, j int) {
 func (this ById) Less(i, j int) bool {
 	return this[i].Id < this[j].Id
 }
-
+*/
 type ByFreq []Text
 
 func (this ByFreq) Len() int {

@@ -1,15 +1,32 @@
 package filter
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
+	//"encoding/json"
+	//"fmt"
+	"github.com/qiniu/log"
+	//"io/ioutil"
+	//"net/http"
 	//"sort"
+	"Mango/management/segment"
 	"testing"
 )
 
+func TestFilterBrand(t *testing.T) {
+	tree := new(TrieTree)
+	tree.LoadDictionary("10.0.1.23", "words", "brands")
+	tree.LoadBlackWords("10.0.1.23", "words", "dict_chi_eng")
+	var sego *segment.GuokuSegmenter = new(segment.GuokuSegmenter)
+	sego.LoadDictionary()
+	texts := sego.Segment("L‘occitane J.L.YTOURNEL Maybelline/美宝莲tuleste market三星hello kitty China&HongKong 苹果外贸原单进口，幸福小天使个性定制日本德国进口I我 am Here'89 89韩国进口正品[【】]hello@kitty打折 吕洗发水/防脱深层修复 护发素400ml爱茉莉")
+	log.Info(texts)
+	brand := tree.FilterBrand(texts)
+	log.Info(brand)
+	clean := tree.Filtrate(texts)
+	log.Info(clean)
+	log.Info(tree.Cleanning("L‘occitane J.L.YTOURNEL Maybelline/美宝莲tuleste market三星hello kitty China&HongKong 苹果外贸原单进口，幸福小天使个性定制日本德国进口I我 am Here'89 89韩国进口正品[【】]hello@kitty打折 吕洗发水/防脱深层修复 护发素400ml爱茉莉"))
+}
+
+/*
 func TestLoadData(t *testing.T) {
 	t.SkipNow()
 	result, _ := LoadData(940000, 2999)
@@ -34,12 +51,13 @@ func TestLoadDictionary(t *testing.T) {
 func TestProcess(t *testing.T) {
 	//sql := `use guoku_12_09;`
 	//var R []*Result
+	t.SkipNow()
 	tree := new(TrieTree)
 	tree.LoadDictionary("10.0.1.23", "words", "brands")
 	tree.LoadBlackWords("10.0.1.23", "words", "dict_chi_eng")
-	for i := 0; i < 10000000; i = i + 10000 {
-		link := "http://10.0.1.109:8000/management/entity/without/title/sync/?offset=%d&count=%d"
-		link = fmt.Sprintf(link, i, 10000)
+	for i := 0; i < 10000000; i = i + 1000 {
+		link := "http://114.113.154.47:8000/management/entity/without/title/sync/?offset=%d&count=%d"
+		link = fmt.Sprintf(link, i, 1000)
 		resp, err := http.Get(link)
 		var rs []*Result
 		if err != nil {
@@ -70,8 +88,8 @@ func TestProcess(t *testing.T) {
 		log.Println("执行一次")
 		for _, r := range result {
 			sqlstr := `update base_entity set brand="%s",title="%s" where id=%d;` + "\n"
-			b := brandsprocess(r.Brands)
-			s := fmt.Sprintf(sqlstr, b, r.Title, r.Id)
+			b := Brandsprocess(r.Brands)
+			s := fmt.Sprintf(sqlstr, b, r.CleanTitle, r.Id)
 			//sql = sql + s
 			ioutil.WriteFile("result.sql", []byte(s), 0666)
 			log.Println(s)
@@ -86,7 +104,7 @@ func TestCleanning(t *testing.T) {
 	tree := new(TrieTree)
 	tree.LoadDictionary("10.0.1.23", "words", "brands")
 	tree.LoadBlackWords("10.0.1.23", "words", "dict_chi_eng")
-	tc := tree.Cleanning("韩国进口正品 Après-fille[](（）【】)@ ' `- 打折 吕洗发水/防脱深层修复 护发素400ml爱茉莉")
+	tc := tree.Cleanning("I我 am Here'89 89韩国进口正品[【】]hello@kitty打折 吕洗发水/防脱深层修复 护发素400ml爱茉莉")
 	log.Println(tc)
 	log.Println(fmt.Sprintf("<td><br>%s</td>", tc))
 	ioutil.WriteFile("test", []byte(tc), 0777)
@@ -172,3 +190,4 @@ func TestAdd(t *testing.T) {
 		t.Fatal("查找不存在的词成功，词典查询有错误")
 	}
 }
+*/

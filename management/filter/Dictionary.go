@@ -5,7 +5,9 @@ import (
 	"io/ioutil"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	"regexp"
+	//"regexp"
+	"Mango/management/models"
+	"Mango/management/segment"
 	"strings"
 )
 
@@ -59,6 +61,8 @@ func FromText(mgohost, mgodb, mgocol, filename string) {
 	conn.Close()
 
 }
+
+/*
 func (this *TrieTree) LoadNormal(mgohost, mgodb, mgocol string) {
 	conn, err := mgo.Dial(mgohost)
 	if err != nil {
@@ -78,56 +82,70 @@ func (this *TrieTree) LoadNormal(mgohost, mgodb, mgocol string) {
 		this.AddNormal(text)
 	}
 }
+*/
+//加载品牌词
 func (this *TrieTree) LoadDictionary(mgohost, mgodb, mgocol string) {
 	conn, err := mgo.Dial(mgohost)
+	defer conn.Clone()
 	if err != nil {
 		log.Info("mongo连接错误")
 		panic(err)
 	}
 	session := conn.DB(mgodb).C(mgocol)
-	var brands []*Brand
-	session.Find(bson.M{"freq": bson.M{"$gt": 1}, "deleted": bson.M{"$ne": true}}).All(&brands)
-	var bm map[string]int = make(map[string]int)
-	re := regexp.MustCompile("^\\pP+|\\pP+$")
+	brands := make([]models.BrandsWord, 0)
+	session.Find(bson.M{"$or": []bson.M{bson.M{"valid": true}, bson.M{"deleted": false, "freq": bson.M{"$gt": 50}}}}).All(&brands)
+	//	var brands []*Brand
+	//	session.Find(bson.M{"freq": bson.M{"$gt": 1}, "deleted": bson.M{"$ne": true}}).All(&brands)
+	//	re := regexp.MustCompile("^\\pP+|\\pP+$")
+	var sego *segment.GuokuSegmenter = new(segment.GuokuSegmenter)
+	sego.LoadDictionary()
 	for _, brand := range brands {
 		if brand.Freq > 30 {
-			name := strings.ToLower(brand.Name)
-			name = strings.TrimSpace(name)
-			name = re.ReplaceAllString(name, "")
-			name = strings.Replace(name, " / ", "/", 1)
-			bm[name] = brand.Freq
+			/*
+				name := strings.ToLower(brand.Name)
+				name = strings.TrimSpace(name)
+				//	name = re.ReplaceAllString(name, "")
+				name = strings.Replace(name, " / ", "/", 1)
+				bm[name] = brand.Freq
+			*/
+			sname := sego.Segment(brand.Name)
+			for _, s := range sname {
+				this.Add(brand.Name, s, brand.Freq)
+			}
 		}
 	}
 	var valids []*ValidBrand
 	session.Find(bson.M{"valid": true}).All(&valids)
 	for _, valid := range valids {
-		name := strings.ToLower(valid.Name)
-		name = strings.TrimSpace(name)
-		name = re.ReplaceAllString(name, "")
-		name = strings.Replace(name, " / ", "/", 1)
-		bm[name] = 9999
+		/*
+			name := strings.ToLower(valid.Name)
+			name = strings.TrimSpace(name)
+			//name = re.ReplaceAllString(name, "")
+			name = strings.Replace(name, " / ", "/", 1)
+			bm[name] = 9999
+		*/
+		sname := sego.Segment(valid.Name)
+		for _, s := range sname {
+			this.Add(valid.Name, s, 9999)
+		}
 	}
-	for k, v := range bm {
-		this.Add(k, v)
-	}
-	defer conn.Clone()
 }
 
 func (this *TrieTree) LoadBlackWords(mgohost, mgodb, mgocol string) {
 	conn, err := mgo.Dial(mgohost)
+	defer conn.Clone()
 	if err != nil {
 		log.Info("mongo连接错误")
 		panic(err)
 	}
 	session := conn.DB(mgodb).C(mgocol)
-	var blacks []*Black
-	session.Find(bson.M{"blacklisted": true}).All(&blacks)
-	for _, black := range blacks {
-		if black.Freq > 100 {
-			b := strings.ToLower(black.Word)
-			b = strings.TrimSpace(b)
-			this.AddBlackWord(b)
+	blackwords := make([]models.DictWord, 0)
+	session.Find(bson.M{"blacklisted": true, "deleted":false}).All(&blackwords)
+	for _, black := range blackwords {
+		if black.Freq > 50 {
+			//log.Info(sk)
+			this.AddBlackWord(black.Word)
+
 		}
 	}
-	defer conn.Clone()
 }
