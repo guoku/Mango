@@ -1,7 +1,7 @@
 package filter
 
 import (
-	//"github.com/qiniu/log"
+	"github.com/qiniu/log"
 	"regexp"
 	"strings"
 )
@@ -29,6 +29,7 @@ func (this *TrieTree) FiltrateForArray(texts [][]string) []string {
 			}
 			current = nodes[index]
 			if current.BlackExist {
+				log.Info(current.Black)
 				hit = true
 			} else {
 				hit = false
@@ -37,6 +38,7 @@ func (this *TrieTree) FiltrateForArray(texts [][]string) []string {
 		if hit {
 			texts = append(texts[:i], texts[i+1:]...)
 			//log.Info(texts)
+			hit = false
 			i = i - 1
 		}
 	}

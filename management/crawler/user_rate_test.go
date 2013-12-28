@@ -26,7 +26,8 @@ func TestParse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	Parse(userid)
+	ParseShop(userid)
+
 }
 func TestParseTaobao(t *testing.T) {
 	//t.SkipNow()
@@ -34,13 +35,13 @@ func TestParseTaobao(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	Parse(userid)
+	ParseShop(userid)
 }
 
 func TestGetInfo(t *testing.T) {
 	t.SkipNow()
 	//GetInfo("http://shop71839143.taobao.com/")
-	GetInfo("http://dumex.tmall.com/")
+	GetShopInfo("http://dumex.tmall.com/")
 }
 
 func TestFetch(t *testing.T) {
@@ -61,7 +62,7 @@ func TestFetch(t *testing.T) {
 	log.Info(sid)
 
 	link := fmt.Sprintf("http://shop%d.taobao.com", sid)
-	shop, err := Fetch(link)
+	shop, err := FetchShopDetail(link)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -85,7 +86,7 @@ func TestFetch(t *testing.T) {
 func TestDecompress(t *testing.T) {
 	t.SkipNow()
 	mgopage := utils.MongoInit("10.0.1.23", "zerg", "pages")
-	var pages *utils.Pages
+	var pages *Pages
 	mgopage.Find(bson.M{"itemid": "18634001513"}).One(&pages)
 	font, _ := Decompress(pages.FontPage)
 	log.Info(font)

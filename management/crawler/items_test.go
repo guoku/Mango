@@ -26,12 +26,13 @@ var mgofailed *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "failed")
 var mgominer *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "minerals")
 var mgoMango *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_items_depot")
 
+//这个test主要是用来说明如何对一个店铺的商品进行批量抓取的
 func TestFetchIItem(t *testing.T) {
 	t.SkipNow()
 	var allowchan chan bool = make(chan bool, THREADSNUM)
 	log.Printf("\n\nStart to run fetch")
 	shoptype := TAOBAO
-	shopitem := new(utils.ShopItem)
+	shopitem := new(ShopItem)
 	minerals := utils.MongoInit(MGOHOST, MGODB, "minerals")
 	minerals.Find(bson.M{"state": "posted"}).Sort("-date").One(shopitem)
 	shopid := strconv.Itoa(shopitem.Shop_id)
@@ -39,7 +40,7 @@ func TestFetchIItem(t *testing.T) {
 	if len(items) == 0 {
 		return
 	}
-	istmall, err := utils.IsTmall(items[0])
+	istmall, err := IsTmall(items[0])
 	if err != nil {
 		log.Error(err)
 		t.Fatal(err)
@@ -69,7 +70,7 @@ func TestFetchIItem(t *testing.T) {
 					}
 				} else {
 					//保存解析结果到mongo
-					err := utils.Save(info, mgoMango)
+					err := Save(info, mgoMango)
 					fmt.Printf("%+v", info)
 					parsed := false
 					if err != nil {

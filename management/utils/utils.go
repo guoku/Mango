@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
+	"github.com/qiniu/log"
 	"labix.org/v2/mgo"
 	"net/url"
 	"strconv"
@@ -116,4 +117,12 @@ func GetNewMongoSession() *mgo.Session {
 		return nil
 	}
 	return session
+}
+func MongoInit(host, db, collection string) *mgo.Collection {
+	session, err := mgo.Dial(host)
+	if err != nil {
+		log.Info("严重错误")
+		panic(err)
+	}
+	return session.DB(db).C(collection)
 }

@@ -35,7 +35,7 @@ func main() {
 	}
 }
 func FetchTaobaoItem(threadnum int) {
-	var shops []*utils.ShopItem
+	var shops []*crawler.ShopItem
 	mgominer.Find(bson.M{"state": "posted"}).Sort("-date").Limit(10).All(&shops)
 	log.Infof("t is %d", threadnum)
 	for _, shopitem := range shops {
@@ -49,7 +49,7 @@ func FetchTaobaoItem(threadnum int) {
 		if len(items) == 0 {
 			return
 		}
-		istmall, err := utils.IsTmall(items[0])
+		istmall, err := crawler.IsTmall(items[0])
 		if err != nil {
 			log.Error(err)
 			return
@@ -78,7 +78,7 @@ func FetchTaobaoItem(threadnum int) {
 						}
 					} else {
 						//保存解析结果到mongo
-						err := utils.Save(info, mgoMango)
+						err := crawler.Save(info, mgoMango)
 						fmt.Printf("%+v", info)
 						parsed := false
 						if err != nil {

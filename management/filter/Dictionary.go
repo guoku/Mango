@@ -140,7 +140,7 @@ func (this *TrieTree) LoadBlackWords(mgohost, mgodb, mgocol string) {
 	}
 	session := conn.DB(mgodb).C(mgocol)
 	blackwords := make([]models.DictWord, 0)
-	session.Find(bson.M{"$or": []bson.M{bson.M{"freq": bson.M{"$gt": 50}, "deleted": false}, bson.M{"type": "manual", "deleted": false}}}).All(&blackwords)
+	session.Find(bson.M{"blacklisted": true, "deleted": bson.M{"$ne": true}}).All(&blackwords)
 	for _, black := range blackwords {
 		if black.Freq > 50 {
 			//log.Info(sk)

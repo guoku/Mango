@@ -115,7 +115,7 @@ func (this *AddShopController) Post() {
 	//	shopurl := re.FindString(shopName)
 	//	link := strings.Replace(shopurl, ".", ".m.", 1)
 	log.Info(shoplink)
-	shopInfo, topErr := crawler.Fetch(shoplink)
+	shopInfo, topErr := crawler.FetchShopDetail(shoplink)
 	if topErr != nil {
 		log.Info(topErr.Error())
 		this.Redirect("/scheduler/list_shops", 302)
@@ -194,7 +194,7 @@ func (this *TaobaoShopDetailController) Get() {
 		//一个月没有更新店铺信息，进行更新
 		log.Info("start to update shop info")
 		shoplink := fmt.Sprintf("http://shop%d.taobao.com", sid)
-		shopinfo, err := crawler.Fetch(shoplink)
+		shopinfo, err := crawler.FetchShopDetail(shoplink)
 		if err != nil {
 			log.Error(err)
 		}

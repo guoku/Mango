@@ -18,9 +18,9 @@ import (
 )
 
 //通过店铺链接，提取店铺详细数据
-func Fetch(shoplink string) (*rest.Shop, error) {
+func FetchShopDetail(shoplink string) (*rest.Shop, error) {
 	shop := new(rest.Shop)
-	detail, err := GetInfo(shoplink)
+	detail, err := GetShopInfo(shoplink)
 	if err != nil {
 		return shop, err
 	}
@@ -35,7 +35,7 @@ func Fetch(shoplink string) (*rest.Shop, error) {
 		log.Error(err)
 		return shop, err
 	}
-	detail2, err := Parse(userid)
+	detail2, err := ParseShop(userid)
 	if err != nil {
 		log.Error(err)
 		return shop, err
@@ -51,7 +51,7 @@ func Fetch(shoplink string) (*rest.Shop, error) {
 }
 
 //通过这个函数，可以获取淘宝店的昵称，名称，图片，sid
-func GetInfo(shoplink string) (*rest.Shop, error) {
+func GetShopInfo(shoplink string) (*rest.Shop, error) {
 	re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
 	log.Info("raw", shoplink)
 	shopurl := re.FindString(shoplink)
@@ -143,7 +143,8 @@ func GetUserid(shoplink string) (string, error) {
 }
 
 //解析评价数据页面的信息
-func Parse(userid string) (*rest.Shop, error) {
+//userid是店主的旺旺ID
+func ParseShop(userid string) (*rest.Shop, error) {
 	shop := new(rest.Shop)
 	shop.ShopType = "taobao.com"
 	link := fmt.Sprintf("http://rate.taobao.com/user-rate-%s.htm", userid)

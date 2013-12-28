@@ -2,6 +2,7 @@ package main
 
 import (
 	//"Mango/management/crawler"
+	"Mango/management/crawler"
 	"Mango/management/filter"
 	"Mango/management/utils"
 	"bufio"
@@ -80,16 +81,16 @@ func main() {
 			o := new(out)
 			shoptype := "taobao.com"
 			itemid := t[i]
-			istmall, _ := utils.IsTmall(itemid)
+			istmall, _ := crawler.IsTmall(itemid)
 			if istmall {
 				shoptype = "tmall.com"
 			}
-			page, err, detail := utils.Fetch(itemid, shoptype)
+			page, err, detail := crawler.Fetch(itemid, shoptype)
 
 			instock := true
 			if err != nil {
 				if err.Error() != "404" {
-					failed := utils.FailedPages{ItemId: itemid, ShopType: shoptype, UpdateTime: time.Now().Unix(), InStock: true}
+					failed := crawler.FailedPages{ItemId: itemid, ShopType: shoptype, UpdateTime: time.Now().Unix(), InStock: true}
 
 					err = mgofailed.Insert(&failed)
 					if err != nil {
@@ -104,10 +105,10 @@ func main() {
 					o.ItemId = t[i]
 				}
 			} else {
-				shoplink := utils.GetShopLink(page)
+				shoplink := crawler.GetShopLink(page)
 				log.Info("shoplink", shoplink)
-				shopid, _ := utils.GetShopid(shoplink)
-				info, missing, err := utils.Parse(page, detail, itemid, shopid, shoptype)
+				shopid, _ := crawler.GetShopid(shoplink)
+				info, missing, err := crawler.Parse(page, detail, itemid, shopid, shoptype)
 				if missing {
 					instock = false
 					info.InStock = false
@@ -115,7 +116,7 @@ func main() {
 				brands := tree.Extract(info.Title)
 				info.Brand = filter.Brandsprocess(brands)
 				info.Title = tree.Cleanning(info.Title)
-				utils.Save(info, mgoMango)
+				crawler.Save(info, mgoMango)
 				o.InStock = info.InStock
 				instock = info.InStock
 				o.EntityId = t[0]
@@ -124,7 +125,7 @@ func main() {
 				o.ShopId = shopid
 				o.Title = info.Title
 				o.Brand = info.Brand
-				successpage := utils.Pages{ItemId: itemid, ShopId: shopid, ShopType: shoptype, FontPage: page, UpdateTime: time.Now().Unix(), DetailPage: detail, Parsed: true, InStock: instock}
+				successpage := crawler.Pages{ItemId: itemid, ShopId: shopid, ShopType: shoptype, FontPage: page, UpdateTime: time.Now().Unix(), DetailPage: detail, Parsed: true, InStock: instock}
 				err = mgopages.Insert(&successpage)
 				if err != nil {
 					log.Println(err.Error())
