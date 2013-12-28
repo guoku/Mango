@@ -17,7 +17,7 @@ func TestFilterBrand(t *testing.T) {
 	tree.LoadBlackWords("10.0.1.23", "words", "dict_chi_eng")
 	var sego *segment.GuokuSegmenter = new(segment.GuokuSegmenter)
 	sego.LoadDictionary()
-	texts := sego.Segment("L‘occitane J.L.YTOURNEL Maybelline/美宝莲tuleste market三星hello kitty China&HongKong 苹果外贸原单进口，幸福小天使个性定制日本德国进口I我 am Here'89 89韩国进口正品[【】]hello@kitty打折 吕洗发水/防脱深层修复 护发素400ml爱茉莉")
+	texts := sego.Segment("春季潮男衬衫")
 	log.Info(texts)
 	brand := tree.FilterBrand(texts)
 	log.Info(brand)

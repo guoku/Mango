@@ -1,11 +1,12 @@
 package main
 
 import (
+	"Mango/management/crawler"
 	"Mango/management/models"
-	"Mango/management/taobaoclient"
 	"Mango/management/utils"
 	"encoding/json"
 	"fmt"
+	"github.com/qiniu/log"
 	"io/ioutil"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -15,22 +16,26 @@ import (
 	"time"
 )
 
-var MgoSession *mgo.Session
-var MgoDbName string = "mango"
+const (
+	MGOHOST string = "10.0.1.23"
+	MGODB   string = "zerg"
+	TAOBAO  string = "taobao.com"
+	TMALL   string = "tmall.com"
+	MANGO   string = "mango"
+)
+
+var mgopages *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "pages")
+var mgofailed *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "failed")
+var mgominer *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "minerals")
+var mgoMango *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_items_depot")
+var mgoShop *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_shops_depot")
 
 type Response struct {
 	ItemId   string `json:"item_id"`
 	TaobaoId string `json:"taobao_id"`
 }
 
-func init() {
-	session, err := mgo.Dial("10.0.1.23")
-	if err != nil {
-		panic(err)
-	}
-	MgoSession = session
-}
-
+/*
 func syncOnlineItems() {
 	count := 1000
 	offset := 0
@@ -56,7 +61,7 @@ func syncOnlineItems() {
 		}
 		allNew := true
 		for _, v := range r {
-			fmt.Println("taobao_id", v.TaobaoId)
+			log.Info("taobao_id", v.TaobaoId)
 			iid, _ := strconv.Atoi(v.TaobaoId)
 			item := models.TaobaoItem{}
 			err := ic.Find(bson.M{"num_iid": int(iid)}).One(&item)
@@ -112,6 +117,89 @@ func syncOnlineItems() {
 		offset += count
 	}
 }
+*/
+
+func syncOnlineItems() {
+	count := 1000
+	offset := 0
+	for {
+		resp, err := http.Get(fmt.Sprintf("http://114.113.154.47:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
+
+		if err != nil {
+			log.Error(err)
+			time.Sleep(time.Minute)
+			return
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			time.Sleep(time.Minute)
+			continue
+		}
+		r := make([]Response, 0)
+		json.Unmarshal(body, &r)
+		if len(r) == 0 {
+			break
+		}
+		allNew := true
+		for _, v := range r {
+			log.Info("taobao_id", v.TaobaoId)
+			num_iid, _ := strconv.Atoi(v.TaobaoId)
+			item := models.TaobaoItem{}
+			err := mgoMango.Find(bson.M{"num_iid": int(num_iid)}).One(&item)
+			if err != nil && err.Error() == "not found" {
+				log.Error(err)
+				font, detail, shoptype, _, err := crawler.FetchWithOutType(v.TaobaoId)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				nick, err := crawler.GetShopNick(font)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				shop := models.ShopItem{}
+				err = mgoShop.Find(bson.M{"shop_info.nick": nick}).One(&shop)
+				if err != nil && err.Error() == "not found" {
+					log.Error(err)
+					link, _ := crawler.GetShopLink(font)
+					sh, _ := crawler.FetchShopDetail(link)
+					shop.ShopInfo = sh
+					shop.CreatedTime = time.Now()
+					shop.LastUpdatedTime = time.Now()
+					shop.Status = "queued"
+					shop.CrawlerInfo = &models.CrawlerInfo{Priority: 10, Cycle: 720}
+					shop.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type: shoptype, Orientational: false, CommissionRate: -1}
+					mgoShop.Insert(&shop)
+				}
+				log.Infof("%+v", shop)
+				sid := strconv.Itoa(shop.ShopInfo.Sid)
+				info, _, err := crawler.ParsePage(font, detail, v.TaobaoId, sid, shoptype)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				log.Infof("%+v", info)
+				info.GuokuItemid = v.ItemId
+				crawler.Save(info, mgoMango)
+			}
+			if item.ItemId != "" {
+				allNew = false
+				log.Info("already exists", item.NumIid)
+				break
+			} else {
+				mgoMango.Update(bson.M{"num_iid": int(num_iid)}, bson.M{"$set": bson.M{"item_id": v.ItemId}})
+
+			}
+		}
+		if !allNew {
+			break
+		}
+		offset += count
+
+	}
+
+}
 
 type CreateItemsResp struct {
 	ItemId   string `json:"item_id"`
@@ -120,8 +208,8 @@ type CreateItemsResp struct {
 }
 
 func uploadOfflineItems() {
-	cc := MgoSession.DB(MgoDbName).C("taobao_cats")
-	ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
+	cc := utils.MongoInit(MGOHOST, MANGO, "taobao_cats")
+	ic := mgoMango
 	readyCats := make([]models.TaobaoItemCat, 0)
 	cc.Find(bson.M{"matched_guoku_cid": bson.M{"$gt": 0}}).All(&readyCats)
 	for _, v := range readyCats {
@@ -162,19 +250,20 @@ func uploadOfflineItems() {
 }
 
 func main() {
-	/*
-	   go func() {
-	       for {
-	           syncOnlineItems()
-	           time.Sleep(2 * time.Hour)
-	       }
-	   }()
-	*/
+
+	go func() {
+		for {
+			syncOnlineItems()
+			time.Sleep(2 * time.Minute)
+		}
+	}()
+
 	go func() {
 		for {
 			uploadOfflineItems()
 			time.Sleep(time.Hour)
 		}
 	}()
+
 	select {}
 }
