@@ -258,7 +258,7 @@ func main() {
 		ic := session.DB(MgoDbName).C("taobao_items_depot")
 		items := make([]Item, 0)
 		fmt.Println(startTime)
-		err = ic.Find(bson.M{"data_updated_time": bson.M{"$gt": startTime}, "extracted": nil}).Sort("data_updated_time").Limit(NUM_EVERY_TIME).Select(bson.M{"title": 1, "num_iid": 1, "data_updated_time": 1}).All(&items)
+		err = ic.Find(bson.M{"data_updated_time": bson.M{"$gt": startTime}).Sort("data_updated_time").Limit(NUM_EVERY_TIME).Select(bson.M{"title": 1, "num_iid": 1, "data_updated_time": 1}).All(&items)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -270,11 +270,6 @@ func main() {
 		total++
 		titles = append(titles, items...)
 		startTime = items[l-1].DataUpdatedTime
-		/*err := ic.Update(bson.M{"num_iid" : v.NumIid}, bson.M{"$set" : bson.M{"extracted" : true}})
-		  if err != nil {
-		      fmt.Println(err)
-		  }
-		*/
 	}
 	fmt.Println("total", len(titles))
 	if len(titles) > 900000 {

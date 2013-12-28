@@ -89,6 +89,7 @@ type TaobaoItemStd struct {
 	ScoreUpdatedTime   time.Time         `bson:"score_updated_time"`
 	ItemId             string            `bson:"item_id"`
 	Uploaded           bool              `bson:"uploaded"`
+    GroupId            int               `bson:"group_id"`
 }
 
 type TaobaoProp struct {

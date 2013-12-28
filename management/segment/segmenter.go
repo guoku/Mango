@@ -74,3 +74,11 @@ func (seg *GuokuSegmenter) Segment(str string) [][]string {
 	sgs := seg.seg.Segment([]byte(nstr))
 	return sego.SegmentsToTextSlice(sgs)
 }
+
+func (seg *GuokuSegmenter) GetSegmentAndFrequency (str string) ([][]string, []int) {
+	nstr := utils.StripPuncsAndSymbols(str)
+    sgs := seg.seg.Segment([]byte(nstr))
+	return sego.SegmentsToTextSlice(sgs), sego.GetSegmentsFrequencies(sgs)
+}
+
+

@@ -9,13 +9,13 @@ import (
 //从分词的数组中清理垃圾词
 func (this *TrieTree) Filtrate(texts [][]string) string {
 	result := this.FiltrateForArray(texts)
-	returnresult := sliceToString(result)
+	returnresult := sliceToString(SegSliceToSegString(result))
 	re := regexp.MustCompile("[a-zA-z]+")
 	returnresult = re.ReplaceAllStringFunc(returnresult, ToUpper)
 	return returnresult
 }
 
-func (this *TrieTree) FiltrateForArray(texts [][]string) []string {
+func (this *TrieTree) FiltrateForArray(texts [][]string) [][]string {
 	for i := 0; i < len(texts); i++ {
 		current := this.Root
 		term := texts[i]
@@ -42,12 +42,23 @@ func (this *TrieTree) FiltrateForArray(texts [][]string) []string {
 			i = i - 1
 		}
 	}
+    return texts
 	//log.Info(texts)
-	var result []string
+	/*
+    var result []string
 	for _, word := range texts {
 		result = append(result, sliceToString(word))
 	}
 	return result
+    */
+}
+
+func SegSliceToSegString(texts [][]string) []string {
+    var result []string
+    for _, text := range texts {
+        result = append(result, sliceToString(text))
+    }
+    return result
 }
 
 //从分词后的数组中提取品牌

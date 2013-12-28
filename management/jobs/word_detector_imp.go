@@ -297,7 +297,7 @@ func DetectWord(items *[]Item) {
 			    }
             }
 			//fmt.Println(Freq[k], v, p,  float64(v) / p,  Entropy[k])
-			if ((stringPos.Len > 1 && float64(v)/p >= 120 && Freq[k] >= 10) || (stringPos.Len == 1 && len(rk) > 1 && Freq[k] >= 100)) && Entropy[k] >= ENTROPY_THRESHOLD {
+			if ((stringPos.Len > 1 && float64(v)/p >= 150 && Freq[k] >= 10) || (stringPos.Len == 1 && len(rk) > 1 && Freq[k] >= 100)) && Entropy[k] >= ENTROPY_THRESHOLD {
 				oldWord := Word{}
 				err := wc.Find(bson.M{"word": k}).One(&oldWord)
 				if err != nil {

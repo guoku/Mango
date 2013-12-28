@@ -11,7 +11,7 @@ import (
 var MgoSession *mgo.Session
 var MgoDbName string = "mango"
 func init() {
-    session, err := mgo.Dial("localhost")
+    session, err := mgo.Dial("10.0.2.200")
     if err != nil {
         panic(err)
     }
