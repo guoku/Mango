@@ -12,6 +12,7 @@ import (
 	"labix.org/v2/mgo/bson"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strconv"
 	"time"
 )
@@ -55,7 +56,7 @@ func syncOnlineItems() {
 		}
 		r := make([]Response, 0)
 		json.Unmarshal(body, &r)
-		fmt.Println(r)
+		log.Info(r)
 		if len(r) == 0 {
 			break
 		}
@@ -66,10 +67,10 @@ func syncOnlineItems() {
 			item := models.TaobaoItem{}
 			err := ic.Find(bson.M{"num_iid": int(iid)}).One(&item)
 			if err != nil && err.Error() == "not found" {
-				//fmt.Println("not found", iid)
+				//log.Info("not found", iid)
 				ti, te := taobaoclient.GetTaobaoItemInfo(int(iid))
 				if te != nil {
-					fmt.Println("error", te.Error())
+					log.Info("error", te.Error())
 					continue
 				}
 				item.ApiData = ti
@@ -81,7 +82,7 @@ func syncOnlineItems() {
 					if se.Error() == "not found" {
 						ts, te := taobaoclient.GetTaobaoShopInfo(ti.Nick)
 						if te != nil {
-							fmt.Println("shop error", te.Error())
+							log.Info("shop error", te.Error())
 							continue
 						}
 						shop.ShopInfo = ts
@@ -99,16 +100,16 @@ func syncOnlineItems() {
 				item.CreatedTime = time.Now()
 				item.ItemId = v.ItemId
 				ic.Insert(&item)
-				fmt.Println("insert", item.NumIid)
+				log.Info("insert", item.NumIid)
 				continue
 			}
 			if item.ItemId != "" {
 				allNew = false
-				fmt.Println("already exists", item.NumIid)
+				log.Info("already exists", item.NumIid)
 				break
 			} else {
 				ic.Update(bson.M{"num_iid": int(iid)}, bson.M{"$set": bson.M{"item_id": v.ItemId}})
-				fmt.Println("update", item.NumIid)
+				log.Info("update", item.NumIid)
 			}
 		}
 		if !allNew {
@@ -213,12 +214,12 @@ func uploadOfflineItems() {
 	readyCats := make([]models.TaobaoItemCat, 0)
 	cc.Find(bson.M{"matched_guoku_cid": bson.M{"$gt": 0}}).All(&readyCats)
 	for _, v := range readyCats {
-		fmt.Println("start", v.ItemCat.Cid)
+		log.Info("start", v.ItemCat.Cid)
 		items := make([]models.TaobaoItemStd, 0)
-		ic.Find(bson.M{"cid": v.ItemCat.Cid, "uploaded": false, "score": bson.M{"$gt": 2}}).All(&items)
-		fmt.Println("items length:", len(items))
+		ic.Find(bson.M{"cid": v.ItemCat.Cid, "uploaded": false, "item_imgs.0": bson.M{"$exists": true}, "score": bson.M{"$gt": 2}}).All(&items)
+		log.Info("items length:", len(items))
 		for j := range items {
-			fmt.Println("deal with ", items[j].NumIid)
+			log.Info("deal with ", items[j].NumIid)
 			if items[j].Title == "" {
 				continue
 			}
@@ -226,23 +227,33 @@ func uploadOfflineItems() {
 			utils.GetUploadItemParams(&items[j], &params, v.MatchedGuokuCid)
 			resp, err := http.PostForm("http://114.113.154.47:8000/management/entity/create/offline/", params)
 			//resp, err := http.PostForm("http://10.0.1.109:8000/management/entity/create/offline/", params)
+			log.Infof("%+v", params)
 			if err != nil {
 				continue
 			}
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Error(err)
+			}
+			log.Info(resp.Status)
+			//log.Info(string(body))
+			ioutil.WriteFile("err.html", body, 0666)
+
 			r := CreateItemsResp{}
 			json.Unmarshal(body, &r)
 			//fmt.Printf("%x", body)
-			fmt.Println(r)
+			log.Info(r)
 			if r.Status == "success" {
+				log.Info("status success")
 				err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId, "uploaded": true}})
 				if err != nil {
-					fmt.Println(err.Error())
+					log.Info(err.Error())
 				}
 			} else if r.ItemId != "" {
+				log.Info("itemid is none")
 				err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId, "uploaded": true}})
 				if err != nil {
-					fmt.Println(err.Error())
+					log.Info(err.Error())
 				}
 			}
 		}
@@ -250,7 +261,7 @@ func uploadOfflineItems() {
 }
 
 func main() {
-
+	runtime.GOMAXPROCS(4)
 	go func() {
 		for {
 			syncOnlineItems()

@@ -24,6 +24,7 @@ type Response struct {
 var mgoShop *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_shops_depot")
 
 func TestFetchWithouttype(t *testing.T) {
+	t.SkipNow()
 	count := 1
 	offset := 0
 	resp, err := http.Get(fmt.Sprintf("http://114.113.154.47:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))

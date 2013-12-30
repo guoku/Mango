@@ -30,7 +30,7 @@ func TestParse(t *testing.T) {
 
 }
 func TestParseTaobao(t *testing.T) {
-	//t.SkipNow()
+	t.SkipNow()
 	userid, err := GetUserid("http://shop104286230.taobao.com/")
 	if err != nil {
 		t.Fatal(err)
