@@ -180,8 +180,8 @@ func syncOnlineItems() {
 					log.Error(err)
 					continue
 				}
-				log.Infof("%+v", info)
 				info.GuokuItemid = v.ItemId
+				log.Infof("%+v", info)
 				crawler.Save(info, mgoMango)
 			}
 			if item.ItemId != "" {
@@ -265,7 +265,7 @@ func main() {
 	go func() {
 		for {
 			syncOnlineItems()
-			time.Sleep(2 * time.Minute)
+			time.Sleep(time.Hour)
 		}
 	}()
 
