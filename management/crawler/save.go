@@ -87,7 +87,7 @@ func SaveFailed(itemid, shopid, shoptype string, mgofailed *mgo.Collection) {
 
 func SaveSuccessed(itemid, shopid, shoptype, font, detail string, parsed, instock bool, mgopages *mgo.Collection) {
 	font = Compress(font)
-	log.Info("压缩后的字符", font)
+	//log.Info("压缩后的字符", font)
 	detail = Compress(detail)
 	successpage := Pages{ItemId: itemid, ShopId: shopid, ShopType: shoptype, FontPage: font, UpdateTime: time.Now().Unix(), DetailPage: detail, Parsed: parsed, InStock: instock}
 	_, err := mgopages.Upsert(bson.M{"itemid": itemid}, bson.M{"$set": successpage})
