@@ -3,6 +3,7 @@ package crawler
 import (
 	"bytes"
 	"compress/zlib"
+	"container/ring"
 	"github.com/qiniu/log"
 	"math/rand"
 	"net/http"
@@ -10,10 +11,25 @@ import (
 	"time"
 )
 
-func getTransport() (transport *http.Transport) {
+var pxyring *ring.Ring
+
+func init() {
 	length := len(proxys)
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	proxy := proxys[r.Intn(length)]
+	pxyring = ring.New(length)
+	for i := 0; i < length; i++ {
+		pxyring.Value = proxys[i]
+		pxyring = pxyring.Next()
+	}
+}
+
+func getTransport() (transport *http.Transport) {
+	/*
+		length := len(proxys)
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		proxy := proxys[r.Intn(length)]
+	*/
+	pxyring = pxyring.Next()
+	proxy := pxyring.Value.(string)
 	log.Info("使用的proxy为：", proxy)
 	url_i := url.URL{}
 	url_proxy, _ := url_i.Parse(proxy)
