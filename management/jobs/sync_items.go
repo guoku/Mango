@@ -262,13 +262,14 @@ func uploadOfflineItems() {
 
 func main() {
 	runtime.GOMAXPROCS(4)
-	go func() {
-		for {
-			syncOnlineItems()
-			time.Sleep(time.Hour)
-		}
-	}()
-
+	/*
+		go func() {
+			for {
+				syncOnlineItems()
+				time.Sleep(time.Hour)
+			}
+		}()
+	*/
 	go func() {
 		for {
 			uploadOfflineItems()
