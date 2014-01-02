@@ -14,6 +14,7 @@ func getTransport() (transport *http.Transport) {
 	length := len(proxys)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	proxy := proxys[r.Intn(length)]
+	log.Info("使用的proxy为：", proxy)
 	url_i := url.URL{}
 	url_proxy, _ := url_i.Parse(proxy)
 	transport = &http.Transport{Proxy: http.ProxyURL(url_proxy), ResponseHeaderTimeout: time.Duration(30) * time.Second, DisableKeepAlives: true}
