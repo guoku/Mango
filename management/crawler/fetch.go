@@ -38,8 +38,9 @@ func FetchItem(itemid string, shoptype string) (font, detail string, instock boo
 func FetchWithOutType(itemid string) (html, detail, shoptype string, instock bool, err error) {
 	shoplink := fmt.Sprintf("http://a.m.taobao.com/i%s.htm", itemid)
 	instock = true
-	transport := getTransport()
-	client := &http.Client{Transport: transport}
+	//transport := getTransport()
+	//client := &http.Client{Transport: transport}
+	client := &http.Client{}
 	req, err := http.NewRequest("GET", shoplink, nil)
 	if err != nil {
 		log.Error(err)

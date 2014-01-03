@@ -52,11 +52,16 @@ func FetchShopDetail(shoplink string) (*rest.Shop, error) {
 
 //通过这个函数，可以获取淘宝店的昵称，名称，图片，sid
 func GetShopInfo(shoplink string) (*rest.Shop, error) {
-	re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
+	//re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
 	log.Info("raw", shoplink)
-	shopurl := re.FindString(shoplink)
-	log.Info("shopurl", shopurl)
-	link := strings.Replace(shopurl, ".", ".m.", 1)
+	//	shopurl := re.FindString(shoplink)
+	//	log.Info("shopurl", shopurl)
+	link := ""
+	if strings.Contains(shoplink, ".m.") {
+		link = shoplink
+	} else {
+		link = strings.Replace(shoplink, ".", ".m.", 1)
+	}
 	log.Info("shop link", link)
 	doc, e := goquery.NewDocument(link)
 	if e != nil {
@@ -114,6 +119,10 @@ func GetUserid(shoplink string) (string, error) {
 		log.Info("redirectUrl ", redirectUrl)
 		return nil
 	}
+	if strings.Contains(shoplink, ".m.") {
+		shoplink = strings.Replace(shoplink, ".m.", ".", 1)
+	}
+	log.Info(shoplink)
 	client := &http.Client{Transport: transport, CheckRedirect: redirectFunc}
 	req, err := http.NewRequest("GET", shoplink, nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:24.0) Gecko/20100101 Firefox.24.0")
@@ -138,6 +147,8 @@ func GetUserid(shoplink string) (string, error) {
 		return "", err
 	}
 	re := regexp.MustCompile("userId=(?P<id>\\d+)")
+	//log.Info(string(html))
+	log.Info("shop link", shoplink)
 	userId := re.FindStringSubmatch(string(html))[1]
 	return userId, nil
 }

@@ -92,3 +92,25 @@ func TestDecompress(t *testing.T) {
 	log.Info(font)
 
 }
+
+func TestFetchWtype(t *testing.T) {
+	font, _, _, _, err := FetchWithOutType("19864856561")
+	if err != nil {
+		log.Error(err)
+		t.Fatal(err)
+	}
+	nick, err := GetShopNick(font)
+	log.Info("nick is ", nick)
+	if err != nil {
+		log.Error(err)
+		t.Fatal(err)
+	}
+	link, _ := GetShopLink(font)
+	log.Info("link is ", link)
+	sh, _ := FetchShopDetail(link)
+	log.Infof("%+v", sh)
+	shop := models.ShopItem{}
+	shop.ShopInfo = sh
+	log.Infof("%+v", shop.ShopInfo)
+	log.Infof("%+v", shop.ShopInfo.ShopScore)
+}

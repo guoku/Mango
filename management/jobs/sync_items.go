@@ -163,8 +163,16 @@ func syncOnlineItems() {
 				err = mgoShop.Find(bson.M{"shop_info.nick": nick}).One(&shop)
 				if err != nil && err.Error() == "not found" {
 					log.Error(err)
-					link, _ := crawler.GetShopLink(font)
-					sh, _ := crawler.FetchShopDetail(link)
+					link, err := crawler.GetShopLink(font)
+					if err != nil {
+						log.Error(err)
+						continue
+					}
+					sh, err := crawler.FetchShopDetail(link)
+					if err != nil {
+						log.Error(err)
+						continue
+					}
 					shop.ShopInfo = sh
 					shop.CreatedTime = time.Now()
 					shop.LastUpdatedTime = time.Now()
@@ -262,20 +270,21 @@ func uploadOfflineItems() {
 
 func main() {
 	runtime.GOMAXPROCS(4)
+
+	go func() {
+		for {
+			syncOnlineItems()
+			//time.Sleep(time.Hour)
+		}
+	}()
+
 	/*
 		go func() {
 			for {
-				syncOnlineItems()
+				uploadOfflineItems()
 				time.Sleep(time.Hour)
 			}
 		}()
 	*/
-	go func() {
-		for {
-			uploadOfflineItems()
-			time.Sleep(time.Hour)
-		}
-	}()
-
 	select {}
 }
