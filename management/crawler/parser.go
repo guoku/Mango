@@ -308,8 +308,12 @@ func parsefontpage(html string) (*Info, error) {
 	} else {
 		fixtag := doc.Find("div.bd div.box div.detail table.rate_desc tbody tr td.link_btn a span").Text()
 		rege := regexp.MustCompile("\\d+")
-		reviews := rege.FindAllString(fixtag, -1)[0]
-		r, err := strconv.Atoi(reviews)
+		reviews := rege.FindAllString(fixtag, -1)
+		review := "0"
+		if len(reviews) > 0 {
+			review = reviews[0]
+		}
+		r, err := strconv.Atoi(review)
 		if err != nil {
 			return info, err
 		}

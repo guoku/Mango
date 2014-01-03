@@ -245,7 +245,7 @@ func uploadOfflineItems() {
 			}
 			log.Info(resp.Status)
 			//log.Info(string(body))
-			ioutil.WriteFile("err.html", body, 0666)
+			//	ioutil.WriteFile("err.html", body, 0666)
 
 			r := CreateItemsResp{}
 			json.Unmarshal(body, &r)
@@ -259,7 +259,7 @@ func uploadOfflineItems() {
 				}
 			} else if r.ItemId != "" {
 				log.Info("itemid is none")
-				err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId, "uploaded": true}})
+				err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId, "uploaded": false}})
 				if err != nil {
 					log.Info(err.Error())
 				}
@@ -268,23 +268,78 @@ func uploadOfflineItems() {
 	}
 }
 
+func uploadRefreshItems() {
+	cc := utils.MongoInit(MGOHOST, MANGO, "taobao_cats")
+	ic := mgoMango
+	readyCats := make([]models.TaobaoItemCat, 0)
+	cc.Find(bson.M{"matched_guoku_cid": bson.M{"$gt": 0}}).All(&readyCats)
+	for _, v := range readyCats {
+		log.Info("start", v.ItemCat.Cid)
+		items := make([]models.TaobaoItemStd, 0)
+		ic.Find(bson.M{"cid": v.ItemCat.Cid, "refreshed": false, "item_imgs.0": bson.M{"$exists": true}, "score": bson.M{"$gt": 2}}).All(&items)
+		for j := range items {
+			log.Info("deal with ", items[j].NumIid)
+			if items[j].Title == "" {
+				continue
+			}
+			params := url.Values{}
+			utils.GetUploadItemParams(&items[j], &params, v.MatchedGuokuCid)
+			resp, err := http.PostForm("http://114.113.154.47:8000/management/entity/create/offline/", params)
+			//resp, err := http.PostForm("http://10.0.1.109:8000/management/entity/create/offline/", params)
+			log.Infof("%+v", params)
+			if err != nil {
+				continue
+			}
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Error(err)
+			}
+			log.Info(resp.Status)
+			//log.Info(string(body))
+			//ioutil.WriteFile("err.html", body, 0666)
+
+			r := CreateItemsResp{}
+			json.Unmarshal(body, &r)
+			//fmt.Printf("%x", body)
+			log.Info(r)
+			if r.Status == "success" {
+				log.Info("status success")
+				err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId, "refreshed": true, "refresh_time": time.Now()}})
+				if err != nil {
+					log.Info(err.Error())
+				}
+			} else if r.ItemId != "" {
+				log.Info("itemid is none")
+				err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId}})
+				if err != nil {
+					log.Info(err.Error())
+				}
+			}
+		}
+	}
+}
 func main() {
 	runtime.GOMAXPROCS(4)
 
 	go func() {
 		for {
 			syncOnlineItems()
-			//time.Sleep(time.Hour)
+			time.Sleep(time.Hour)
 		}
 	}()
 
-	/*
-		go func() {
-			for {
-				uploadOfflineItems()
-				time.Sleep(time.Hour)
-			}
-		}()
-	*/
+	go func() {
+		for {
+			uploadOfflineItems()
+			time.Sleep(time.Hour)
+		}
+	}()
+
+	go func() {
+		for {
+			uploadRefreshItems()
+			time.Sleep(time.Hour)
+		}
+	}()
 	select {}
 }
