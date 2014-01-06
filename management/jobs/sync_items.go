@@ -43,7 +43,7 @@ func syncOnlineItems() {
 	ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
 	sc := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
 	for {
-		resp, err := http.Get(fmt.Sprintf("http://114.113.154.47:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
+		resp, err := http.Get(fmt.Sprintf("http://10.0.1.109:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
 		//resp, err := http.Get(fmt.Sprintf("http://10.0.1.109:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
 		if err != nil {
 			time.Sleep(time.Minute)
@@ -124,7 +124,7 @@ func syncOnlineItems() {
 	count := 1000
 	offset := 0
 	for {
-		resp, err := http.Get(fmt.Sprintf("http://114.113.154.47:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
+		resp, err := http.Get(fmt.Sprintf("http://10.0.1.109:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
 
 		if err != nil {
 			log.Error(err)
@@ -236,7 +236,7 @@ func uploadOfflineItems() {
 			}
 			params := url.Values{}
 			utils.GetUploadItemParams(&items[j], &params, v.MatchedGuokuCid)
-			resp, err := http.PostForm("http://114.113.154.47:8000/management/entity/create/offline/", params)
+			resp, err := http.PostForm("http://10.0.1.109:8000/management/entity/create/offline/", params)
 			//resp, err := http.PostForm("http://10.0.1.109:8000/management/entity/create/offline/", params)
 			log.Infof("%+v", params)
 			if err != nil {
@@ -288,7 +288,7 @@ func uploadRefreshItems() {
 			}
 			params := url.Values{}
 			utils.GetUploadItemParams(&items[j], &params, v.MatchedGuokuCid)
-			resp, err := http.PostForm("http://114.113.154.47:8000/management/entity/create/offline/", params)
+			resp, err := http.PostForm("http://10.0.1.109:8000/management/entity/create/offline/", params)
 			//resp, err := http.PostForm("http://10.0.1.109:8000/management/entity/create/offline/", params)
 			log.Infof("%+v", params)
 			if err != nil {
@@ -305,8 +305,8 @@ func uploadRefreshItems() {
 			r := CreateItemsResp{}
 			json.Unmarshal(body, &r)
 			//fmt.Printf("%x", body)
-			log.Info(r)
-			if r.Status == "success" {
+			log.Info(r.Status)
+			if r.Status == "success" || r.Status == "updated" {
 				log.Info("status success")
 				err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId, "refreshed": true, "refresh_time": time.Now()}})
 				if err != nil {

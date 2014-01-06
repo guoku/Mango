@@ -45,7 +45,7 @@ func Save(item *Info, mgocol *mgo.Collection) error {
 	} else {
 		change["data_last_revised_time"] = time.Now()
 		change["refreshed"] = true //这个字段表明该商品之前已经爬取了，现在是更新数据,需要refresh
-
+		change["uploaded"] = true
 		change["refresh_time"] = time.Now()
 	}
 	err = mgocol.Update(bson.M{"num_iid": int(item.ItemId)}, bson.M{"$set": change})

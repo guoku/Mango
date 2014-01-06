@@ -125,6 +125,7 @@ func (this *AddShopController) Post() {
 	this.Redirect("/scheduler/list_shops", 302)
 }
 
+//添加店铺
 func addShopItem(shopInfo *rest.Shop) bool {
 	shopLock.Lock()
 	defer shopLock.Unlock()
@@ -135,6 +136,7 @@ func addShopItem(shopInfo *rest.Shop) bool {
 		return false
 	}
 	result.ShopInfo = shopInfo
+	result.ShopInfo.Synced = false
 	result.CreatedTime = time.Now()
 	result.LastUpdatedTime = time.Now()
 	result.Status = "queued"
