@@ -162,6 +162,7 @@ func syncOnlineItems() {
 				shop := models.ShopItem{}
 				err = mgoShop.Find(bson.M{"shop_info.nick": nick}).One(&shop)
 				if err != nil && err.Error() == "not found" {
+					log.Info("店铺不存在，开始抓取店铺信息")
 					log.Error(err)
 					link, err := crawler.GetShopLink(font)
 					if err != nil {
@@ -173,6 +174,7 @@ func syncOnlineItems() {
 						log.Error(err)
 						continue
 					}
+					log.Infof("%+v", sh)
 					shop.ShopInfo = sh
 					shop.CreatedTime = time.Now()
 					shop.LastUpdatedTime = time.Now()
@@ -217,6 +219,7 @@ type CreateItemsResp struct {
 }
 
 func uploadOfflineItems() {
+	log.Info("start to uploadOfflineItems")
 	cc := utils.MongoInit(MGOHOST, MANGO, "taobao_cats")
 	ic := mgoMango
 	readyCats := make([]models.TaobaoItemCat, 0)
@@ -269,6 +272,7 @@ func uploadOfflineItems() {
 }
 
 func uploadRefreshItems() {
+	log.Info("start to uploadRefreshItems")
 	cc := utils.MongoInit(MGOHOST, MANGO, "taobao_cats")
 	ic := mgoMango
 	readyCats := make([]models.TaobaoItemCat, 0)
@@ -276,7 +280,7 @@ func uploadRefreshItems() {
 	for _, v := range readyCats {
 		log.Info("start", v.ItemCat.Cid)
 		items := make([]models.TaobaoItemStd, 0)
-		ic.Find(bson.M{"cid": v.ItemCat.Cid, "refreshed": false, "item_imgs.0": bson.M{"$exists": true}, "score": bson.M{"$gt": 2}}).All(&items)
+		ic.Find(bson.M{"cid": v.ItemCat.Cid, "refreshed": true, "item_imgs.0": bson.M{"$exists": true}, "score": bson.M{"$gt": 2}}).Sort("-refresh_time").All(&items)
 		for j := range items {
 			log.Info("deal with ", items[j].NumIid)
 			if items[j].Title == "" {

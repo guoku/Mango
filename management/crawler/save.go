@@ -44,7 +44,7 @@ func Save(item *Info, mgocol *mgo.Collection) error {
 
 	} else {
 		change["data_last_revised_time"] = time.Now()
-		change["refreshed"] = false //这个字段表明该商品之前已经爬取了，现在是更新数据,需要refresh
+		change["refreshed"] = true //这个字段表明该商品之前已经爬取了，现在是更新数据,需要refresh
 
 		change["refresh_time"] = time.Now()
 	}

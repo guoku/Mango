@@ -157,6 +157,8 @@ func GetUserid(shoplink string) (string, error) {
 //userid是店主的旺旺ID
 func ParseShop(userid string) (*rest.Shop, error) {
 	shop := new(rest.Shop)
+	sellerid, _ := strconv.Atoi(userid)
+	shop.Sellerid = sellerid
 	shop.ShopType = "taobao.com"
 	link := fmt.Sprintf("http://rate.taobao.com/user-rate-%s.htm", userid)
 	log.Info(link)
@@ -169,7 +171,12 @@ func ParseShop(userid string) (*rest.Shop, error) {
 		return shop, err
 	}
 	resp, err := client.Do(req)
-	defer resp.Body.Close()
+	defer func() {
+		if resp == nil {
+			return
+		}
+		resp.Body.Close()
+	}()
 	if err != nil {
 		log.Error(err)
 		return shop, err

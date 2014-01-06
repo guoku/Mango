@@ -36,12 +36,13 @@ func main() {
 }
 func FetchTaobaoItem(threadnum int) {
 	var shops []*crawler.ShopItem
-	mgominer.Find(bson.M{"state": "posted"}).Sort("-date").Limit(10).All(&shops)
+	mgominer.Find(bson.M{"state": "posted"}).Sort("date").Limit(10).All(&shops)
 	log.Infof("t is %d", threadnum)
 	for _, shopitem := range shops {
 
 		var allowchan chan bool = make(chan bool, threadnum)
 		log.Infof("\n\nStart to run fetch")
+		log.Info("date is ", shopitem.Date)
 		shoptype := TAOBAO
 		shopid := strconv.Itoa(shopitem.Shop_id)
 		log.Infof("start to fetch shop %s", shopid)

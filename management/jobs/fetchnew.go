@@ -36,7 +36,7 @@ func main() {
 }
 func FetchTaobaoItem(threadnum int) {
 	var shops []*crawler.ShopItem
-	mgominer.Find(bson.M{"state": "posted"}).Sort("date").Limit(10).All(&shops)
+	mgominer.Find(bson.M{"state": "posted"}).Sort("-date").Limit(10).All(&shops)
 	log.Infof("t is %d", threadnum)
 	for _, shopitem := range shops {
 
