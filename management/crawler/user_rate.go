@@ -290,7 +290,11 @@ func ParseShop(userid string) (*rest.Shop, error) {
 		})
 		semiScore = append(semiScore, ratescore)
 	})
-	shopkps := rest.ShopKPS{DescScore: semiScore[0], ServiceScore: semiScore[1], DeliveryScore: semiScore[2]}
+	//有些店铺可能刚开业，没有半年内服务情况的数据，所以这里要做一个空数组判断
+	shopkps := new(rest.ShopKPS)
+	if len(semiScore) == 3 {
+		shopkps = &rest.ShopKPS{DescScore: semiScore[0], ServiceScore: semiScore[1], DeliveryScore: semiScore[2]}
+	}
 	//提取30天内服务情况
 	serviceScore := new(rest.ShopService)
 	serviceLink := fmt.Sprintf("http://rate.taobao.com/ShopService4C.htm?userNumId=%s", userid)
@@ -313,7 +317,7 @@ func ParseShop(userid string) (*rest.Shop, error) {
 		}
 	}
 
-	shopscore := rest.ShopScore{SemiScore: &shopkps, ServiceScore: serviceScore}
+	shopscore := rest.ShopScore{SemiScore: shopkps, ServiceScore: serviceScore}
 	shop.ShopScore = &shopscore
 	log.Infof("%+v", shop)
 	return shop, nil

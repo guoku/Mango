@@ -43,6 +43,7 @@ func FetchTaobaoItem(threadnum int) {
 		var allowchan chan bool = make(chan bool, threadnum)
 		log.Infof("\n\nStart to run fetch")
 		log.Info("date is ", shopitem.Date)
+		log.Info("state is ", shopitem.State)
 		shoptype := TAOBAO
 		shopid := strconv.Itoa(shopitem.Shop_id)
 		log.Infof("start to fetch shop %s", shopid)

@@ -199,6 +199,7 @@ func syncOnlineItems() {
 				log.Info("already exists", item.NumIid)
 				break
 			} else {
+				log.Info(item.ItemId)
 				mgoMango.Update(bson.M{"num_iid": int(num_iid)}, bson.M{"$set": bson.M{"item_id": v.ItemId}})
 
 			}
