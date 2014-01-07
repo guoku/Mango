@@ -122,7 +122,9 @@ func MongoInit(host, db, collection string) *mgo.Collection {
 	session, err := mgo.Dial(host)
 	if err != nil {
 		log.Info("严重错误")
+		log.Error(err)
 		panic(err)
+		//return nil
 	}
 	return session.DB(db).C(collection)
 }

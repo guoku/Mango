@@ -101,5 +101,7 @@ func main() {
 	beego.Router("/scheduler/api/get_shop_from_queue", &controllers.GetShopFromQueueController{})
 	beego.Router("/scheduler/api/send_taobao_items", &controllers.SendItemsController{})
 	beego.Router("/scheduler/api/send_item_detail", &controllers.SendItemDataController{})
+
+	beego.Router("/sync/shop", &controllers.SyncShopController{})
 	beego.Run()
 }

@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-//通过店铺链接，提取店铺详细数据
+//通过店铺链接，提取店铺详细数据,如评分数据，nick，pic等信息
 func FetchShopDetail(shoplink string) (*rest.Shop, error) {
 	shop := new(rest.Shop)
 	detail, err := GetShopInfo(shoplink)
@@ -35,6 +35,12 @@ func FetchShopDetail(shoplink string) (*rest.Shop, error) {
 		log.Error(err)
 		return shop, err
 	}
+	sellerid, err := strconv.Atoi(userid)
+	if err != nil {
+		log.Error(err)
+		return shop, err
+	}
+	shop.Sellerid = sellerid
 	detail2, err := ParseShop(userid)
 	if err != nil {
 		log.Error(err)
@@ -84,11 +90,16 @@ func GetShopInfo(shoplink string) (*rest.Shop, error) {
 	log.Info(praiseRate)
 	pictag := doc.Find("td.pic img")
 	piclink, _ := pictag.Attr("src")
+	rep := regexp.MustCompile("_\\d+x\\d.jpg$|_b.jpg$")
+	piclink = rep.ReplaceAllString(piclink, "")
 	wwimg := doc.Find("img[alt=ww]")
 	src, _ := wwimg.Attr("src")
+	log.Info("src is ", src)
 	srcparse, _ := url.Parse(src)
 	srcquery := srcparse.Query()
 	nick := srcquery.Get("nick")
+	slink := srcquery.Get("returnUrl")
+	log.Info("shoplink is ", slink)
 	log.Println(nick)
 	sidtag, exists := wwimg.Parent().Attr("href")
 	var sid int

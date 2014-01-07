@@ -39,7 +39,7 @@ func TestParseTaobao(t *testing.T) {
 }
 
 func TestGetInfo(t *testing.T) {
-	t.SkipNow()
+	//t.SkipNow()
 	//GetInfo("http://shop71839143.taobao.com/")
 	GetShopInfo("http://dumex.tmall.com/")
 }

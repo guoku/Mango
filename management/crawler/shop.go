@@ -99,6 +99,7 @@ func GetShopLink(html string) (string, error) {
 	}
 }
 
+//通过wap版某件商品的页面，获取其所属店铺的店主nick
 func GetShopNick(fontpage string) (nick string, err error) {
 	reader := strings.NewReader(fontpage)
 	doc, err := goquery.NewDocumentFromReader(reader)
