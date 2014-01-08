@@ -2,11 +2,12 @@ package filter
 
 import (
 	//"encoding/json"
-	//"fmt"
+	"fmt"
 	"github.com/qiniu/log"
 	//"io/ioutil"
 	//"net/http"
 	//"sort"
+    "strings"
 	"Mango/management/segment"
 	"testing"
 )
@@ -18,14 +19,14 @@ func TestFilterBrand(t *testing.T) {
 	var sego *segment.GuokuSegmenter = new(segment.GuokuSegmenter)
 	sego.LoadDictionary()
 	texts := sego.Segment("L‘occitane J.L.YTOURNEL Maybelline/美宝莲tuleste market三星hello kitty China&HongKong 苹果外贸原单进口，幸福小天使个性定制日本德国进口I我 am Here'89 89韩国进口正品[【】]hello@kitty打折 吕洗发水/防脱深层修复 护发素400ml爱茉莉")
-	log.Info(texts)
+	fmt.Println(texts)
+    fmt.Println(strings.Join(SegSliceToSegString(texts), "||"))
 	brand := tree.FilterBrand(texts)
 	log.Info(brand)
 	clean := tree.Filtrate(texts)
 	log.Info(clean)
 	log.Info(tree.Cleanning("L‘occitane J.L.YTOURNEL Maybelline/美宝莲tuleste market三星hello kitty China&HongKong 苹果外贸原单进口，幸福小天使个性定制日本德国进口I我 am Here'89 89韩国进口正品[【】]hello@kitty打折 吕洗发水/防脱深层修复 护发素400ml爱茉莉"))
 }
-
 /*
 func TestLoadData(t *testing.T) {
 	t.SkipNow()
