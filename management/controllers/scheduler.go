@@ -109,6 +109,7 @@ type AddShopController struct {
 	SchedulerController
 }
 
+//添加店铺链接获取店铺信息
 func (this *AddShopController) Post() {
 	shoplink := this.GetString("shop_name")
 	//	re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
@@ -450,7 +451,7 @@ func (this *UpdateTaobaoShopController) Post() {
 		SingleTail: single_tail, Original: original, Gifts: gifts, Commission: commission}
 	crawler_info := &models.CrawlerInfo{Priority: int(priority), Cycle: int(cycle)}
 	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
-	err := c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"extended_info": extended_info, "crawler_info": crawler_info, "shop_info.main_products": main_products}})
+	err := c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"extended_info": extended_info, "crawler_info": crawler_info, "shop_info.main_products": main_products, "shop_info.updated_time": time.Now()}})
 	if err != nil {
 		this.Abort("404")
 		return
