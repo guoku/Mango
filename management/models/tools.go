@@ -1,7 +1,7 @@
 package models
 
 import (
-	"fmt"
+	"github.com/qiniu/log"
 	"html/template"
 	"net/url"
 )
@@ -22,7 +22,7 @@ func NewSimplePaginator(currentPage int, total int, numInOnePage int, params url
 	paginator.TotalPages = total / numInOnePage
 	params.Del("p")
 	paginator.OtherParams = template.URL(params.Encode())
-	fmt.Println(paginator.OtherParams)
+	log.Info(paginator.OtherParams)
 	if total%numInOnePage > 0 {
 		paginator.TotalPages += 1
 	}

@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"Mango/management/models"
+	"Mango/management/utils"
 	"fmt"
 	"github.com/qiniu/log"
 	"labix.org/v2/mgo"
@@ -25,24 +26,26 @@ func TestParse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	Parse(userid)
+	ParseShop(userid)
+
 }
 func TestParseTaobao(t *testing.T) {
 	t.SkipNow()
-	userid, err := GetUserid("http://shop71839143.taobao.com/")
+	userid, err := GetUserid("http://shop104286230.taobao.com/")
 	if err != nil {
 		t.Fatal(err)
 	}
-	Parse(userid)
+	ParseShop(userid)
 }
 
 func TestGetInfo(t *testing.T) {
-	t.SkipNow()
+	//t.SkipNow()
 	//GetInfo("http://shop71839143.taobao.com/")
-	GetInfo("http://dumex.tmall.com/")
+	GetShopInfo("http://dumex.tmall.com/")
 }
 
 func TestFetch(t *testing.T) {
+	t.SkipNow()
 	mgosession, err := mgo.Dial("127.0.0.1")
 	if err != nil {
 		t.Fatal(err)
@@ -59,7 +62,7 @@ func TestFetch(t *testing.T) {
 	log.Info(sid)
 
 	link := fmt.Sprintf("http://shop%d.taobao.com", sid)
-	shop, err := Fetch(link)
+	shop, err := FetchShopDetail(link)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,4 +81,36 @@ func TestFetch(t *testing.T) {
 		log.Error(err)
 		log.Fatal(err)
 	}
+}
+
+func TestDecompress(t *testing.T) {
+	t.SkipNow()
+	mgopage := utils.MongoInit("10.0.1.23", "zerg", "pages")
+	var pages *Pages
+	mgopage.Find(bson.M{"itemid": "18634001513"}).One(&pages)
+	font, _ := Decompress(pages.FontPage)
+	log.Info(font)
+
+}
+
+func TestFetchWtype(t *testing.T) {
+	font, _, _, _, err := FetchWithOutType("19864856561")
+	if err != nil {
+		log.Error(err)
+		t.Fatal(err)
+	}
+	nick, err := GetShopNick(font)
+	log.Info("nick is ", nick)
+	if err != nil {
+		log.Error(err)
+		t.Fatal(err)
+	}
+	link, _ := GetShopLink(font)
+	log.Info("link is ", link)
+	sh, _ := FetchShopDetail(link)
+	log.Infof("%+v", sh)
+	shop := models.ShopItem{}
+	shop.ShopInfo = sh
+	log.Infof("%+v", shop.ShopInfo)
+	log.Infof("%+v", shop.ShopInfo.ShopScore)
 }

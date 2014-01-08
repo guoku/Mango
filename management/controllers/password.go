@@ -7,10 +7,10 @@ import (
 
 	"Mango/management/models"
 	"Mango/management/utils"
-
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"github.com/astaxie/beego/validation"
+	"github.com/qiniu/log"
 	//_ "github.com/go-sql-driver/mysql"
 )
 
@@ -98,12 +98,12 @@ type PasswordUser struct {
 }
 
 func (this *PasswordUser) CheckPermission(level int) bool {
-	fmt.Print(this.PermissionLevel, level)
+	log.Info(this.PermissionLevel, level)
 	if this.PermissionLevel == level {
-		fmt.Println("true")
+		log.Info("true")
 		return true
 	}
-	fmt.Println("false")
+	log.Info("false")
 	return false
 }
 

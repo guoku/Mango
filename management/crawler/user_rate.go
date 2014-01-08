@@ -17,10 +17,10 @@ import (
 	"time"
 )
 
-//通过店铺链接，提取店铺详细数据
-func Fetch(shoplink string) (*rest.Shop, error) {
+//通过店铺链接，提取店铺详细数据,如评分数据，nick，pic等信息
+func FetchShopDetail(shoplink string) (*rest.Shop, error) {
 	shop := new(rest.Shop)
-	detail, err := GetInfo(shoplink)
+	detail, err := GetShopInfo(shoplink)
 	if err != nil {
 		return shop, err
 	}
@@ -35,25 +35,39 @@ func Fetch(shoplink string) (*rest.Shop, error) {
 		log.Error(err)
 		return shop, err
 	}
-	detail, err = Parse(userid)
+	sellerid, err := strconv.Atoi(userid)
 	if err != nil {
 		log.Error(err)
 		return shop, err
 	}
-	shop.ShopType = detail.ShopType
+	shop.Sellerid = sellerid
+	detail2, err := ParseShop(userid)
+	if err != nil {
+		log.Error(err)
+		return shop, err
+	}
+	shop.ShopType = detail2.ShopType
 	shop.UpdatedTime = time.Now()
-	shop.Company = detail.Company
-	shop.Location = detail.Location
-	shop.MainProducts = detail.MainProducts
-	shop.ShopScore = detail.ShopScore
+	shop.Company = detail2.Company
+	shop.Location = detail2.Location
+	shop.MainProducts = detail2.MainProducts
+	shop.ShopScore = detail2.ShopScore
+	log.Infof("%+v", shop)
 	return shop, nil
 }
 
 //通过这个函数，可以获取淘宝店的昵称，名称，图片，sid
-func GetInfo(shoplink string) (*rest.Shop, error) {
-	re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
-	shopurl := re.FindString(shoplink)
-	link := strings.Replace(shopurl, ".", ".m.", 1)
+func GetShopInfo(shoplink string) (*rest.Shop, error) {
+	//re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
+	log.Info("raw", shoplink)
+	//	shopurl := re.FindString(shoplink)
+	//	log.Info("shopurl", shopurl)
+	link := ""
+	if strings.Contains(shoplink, ".m.") {
+		link = shoplink
+	} else {
+		link = strings.Replace(shoplink, ".", ".m.", 1)
+	}
 	log.Info("shop link", link)
 	doc, e := goquery.NewDocument(link)
 	if e != nil {
@@ -76,11 +90,16 @@ func GetInfo(shoplink string) (*rest.Shop, error) {
 	log.Info(praiseRate)
 	pictag := doc.Find("td.pic img")
 	piclink, _ := pictag.Attr("src")
+	rep := regexp.MustCompile("_\\d+x\\d.jpg$|_b.jpg$")
+	piclink = rep.ReplaceAllString(piclink, "")
 	wwimg := doc.Find("img[alt=ww]")
 	src, _ := wwimg.Attr("src")
+	log.Info("src is ", src)
 	srcparse, _ := url.Parse(src)
 	srcquery := srcparse.Query()
 	nick := srcquery.Get("nick")
+	slink := srcquery.Get("returnUrl")
+	log.Info("shoplink is ", slink)
 	log.Println(nick)
 	sidtag, exists := wwimg.Parent().Attr("href")
 	var sid int
@@ -111,6 +130,10 @@ func GetUserid(shoplink string) (string, error) {
 		log.Info("redirectUrl ", redirectUrl)
 		return nil
 	}
+	if strings.Contains(shoplink, ".m.") {
+		shoplink = strings.Replace(shoplink, ".m.", ".", 1)
+	}
+	log.Info(shoplink)
 	client := &http.Client{Transport: transport, CheckRedirect: redirectFunc}
 	req, err := http.NewRequest("GET", shoplink, nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:24.0) Gecko/20100101 Firefox.24.0")
@@ -135,13 +158,18 @@ func GetUserid(shoplink string) (string, error) {
 		return "", err
 	}
 	re := regexp.MustCompile("userId=(?P<id>\\d+)")
+	//log.Info(string(html))
+	log.Info("shop link", shoplink)
 	userId := re.FindStringSubmatch(string(html))[1]
 	return userId, nil
 }
 
 //解析评价数据页面的信息
-func Parse(userid string) (*rest.Shop, error) {
+//userid是店主的旺旺ID
+func ParseShop(userid string) (*rest.Shop, error) {
 	shop := new(rest.Shop)
+	sellerid, _ := strconv.Atoi(userid)
+	shop.Sellerid = sellerid
 	shop.ShopType = "taobao.com"
 	link := fmt.Sprintf("http://rate.taobao.com/user-rate-%s.htm", userid)
 	log.Info(link)
@@ -154,7 +182,12 @@ func Parse(userid string) (*rest.Shop, error) {
 		return shop, err
 	}
 	resp, err := client.Do(req)
-	defer resp.Body.Close()
+	defer func() {
+		if resp == nil {
+			return
+		}
+		resp.Body.Close()
+	}()
 	if err != nil {
 		log.Error(err)
 		return shop, err
@@ -268,7 +301,11 @@ func Parse(userid string) (*rest.Shop, error) {
 		})
 		semiScore = append(semiScore, ratescore)
 	})
-	shopkps := rest.ShopKPS{DescScore: semiScore[0], ServiceScore: semiScore[1], DeliveryScore: semiScore[2]}
+	//有些店铺可能刚开业，没有半年内服务情况的数据，所以这里要做一个空数组判断
+	shopkps := new(rest.ShopKPS)
+	if len(semiScore) == 3 {
+		shopkps = &rest.ShopKPS{DescScore: semiScore[0], ServiceScore: semiScore[1], DeliveryScore: semiScore[2]}
+	}
 	//提取30天内服务情况
 	serviceScore := new(rest.ShopService)
 	serviceLink := fmt.Sprintf("http://rate.taobao.com/ShopService4C.htm?userNumId=%s", userid)
@@ -291,7 +328,8 @@ func Parse(userid string) (*rest.Shop, error) {
 		}
 	}
 
-	shopscore := rest.ShopScore{SemiScore: &shopkps, ServiceScore: serviceScore}
+	shopscore := rest.ShopScore{SemiScore: shopkps, ServiceScore: serviceScore}
 	shop.ShopScore = &shopscore
+	log.Infof("%+v", shop)
 	return shop, nil
 }

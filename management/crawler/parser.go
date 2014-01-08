@@ -1,17 +1,9 @@
-package utils
+package crawler
 
 import (
-	//"Mango/management/crawler"
-	//"Mango/management/filter"
-	"Mango/management/models"
-	"encoding/json"
 	"errors"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/qiniu/log"
-	"io/ioutil"
-	"labix.org/v2/mgo"
-	"labix.org/v2/mgo/bson"
-	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -19,132 +11,40 @@ import (
 	"time"
 )
 
-var states map[string]bool = map[string]bool{
-	"北京":  true,
-	"上海":  true,
-	"天津":  true,
-	"重庆":  true,
-	"广东":  true,
-	"江苏":  true,
-	"山东":  true,
-	"浙江":  true,
-	"河北":  true,
-	"山西":  true,
-	"辽宁":  true,
-	"吉林":  true,
-	"河南":  true,
-	"安徽":  true,
-	"福建":  true,
-	"江西":  true,
-	"黑龙江": true,
-	"湖南":  true,
-	"湖北":  true,
-	"海南":  true,
-	"四川":  true,
-	"贵州":  true,
-	"云南":  true,
-	"陕西":  true,
-	"甘肃":  true,
-	"青海":  true,
-	"台湾":  true,
-	"西藏":  true,
-	"内蒙古": true,
-	"广西":  true,
-	"宁夏":  true,
-	"新疆":  true,
-	"香港":  true,
-	"澳门":  true,
-	"海外":  true,
-}
-
-type Info struct {
-	Desc       string            `json:"desc"`
-	Cid        int               `json:"cid"`
-	Promprice  float64           `json:"promotion_price"`
-	Price      float64           `json:"price"`
-	Imgs       []string          `json:"item_imgs"`
-	Count      int               `json:"monthly_sales_volume"`
-	Reviews    int               `json:"reviews_count"`
-	Nick       string            `json:"nick"`
-	InStock    bool              `json:"in_stock"`
-	Attr       map[string]string `json:"props"`
-	Location   *Loc              `json:"location"`
-	UpdateTime int64             `json:"data_updated_time"`
-	ItemId     int               `json:"num_iid"`
-	Sid        int               `json:"sid"`
-	Title      string            `json:"title"`
-	Brand      string            `json:"brand"`
-	ShopType   string            `json:"shop_type"`
-	DetailUrl  string            `json:"detail_url"`
-}
-type Loc struct {
-	State string
-	City  string
-}
-
-func Save(item *Info, mgocol *mgo.Collection) error {
-	tItem := models.TaobaoItemStd{}
-	change := bson.M{
-		"detail_url":        item.DetailUrl,
-		"title":             item.Title,
-		"nick":              item.Nick,
-		"desc":              item.Desc,
-		"sid":               item.Sid,
-		"cid":               item.Cid,
-		"price":             item.Price,
-		"location":          item.Location,
-		"promotion_price":   item.Promprice,
-		"shop_type":         item.ShopType,
-		"reviews_count":     item.Reviews,
-		"monthly_sales_num": item.Count,
-		"props":             item.Attr,
-		"item_imgs":         item.Imgs,
-		"in_stock":          item.InStock,
-	}
-	err := mgocol.Find(bson.M{"num_iid": int(item.ItemId)}).One(&tItem)
-	if err != nil {
-		return err
-	}
-	if tItem.Title == "" {
-		t := time.Now()
-		change["data_updated_time"] = t
-		change["data_last_revised_time"] = time.Now()
-
-	} else {
-		change["data_last_revised_time"] = time.Now()
-	}
-	err = mgocol.Update(bson.M{"num_iid": int(item.ItemId)}, bson.M{"$set": change})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func Post(info *Info) error {
-	data, err := json.Marshal(info)
-	if err != nil {
-		return err
-	}
-	posturl := "http://10.0.1.23:8080/scheduler/api/send_item_detail?token=d61995660774083ccb8b533024f9b8bb"
-	reader := strings.NewReader(string(data))
-	log.Info(string(data))
-	transport := &http.Transport{ResponseHeaderTimeout: time.Duration(30) * time.Second, DisableKeepAlives: true}
-	var DefaultClinet = &http.Client{Transport: transport}
-	resp, err := DefaultClinet.Post(posturl, "application/json", reader)
-	if err != nil {
-		return err
-	}
-	st, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	log.Info(string(st))
-	return nil
-}
 func ParseWithoutID(fontpage, detailpage string) (info *Info, missing bool, err error) {
 	return Parse(fontpage, detailpage, "", "", "")
 }
+
+//如果返回错误，应该看是否下架，下架了就不保存了
+//这是对Parse的封装，因为要根据Parse返回的error，判断是否要保存这个item
+func ParsePage(font, detail, itemid, shopid, shoptype string) (info *Info, instock bool, err error) {
+	info, missing, err := Parse(font, detail, itemid, shopid, shoptype)
+	log.Info("解析完毕")
+	instock = true
+	if err != nil {
+		if missing {
+			instock = false
+			return
+		} else if err.Error() == "聚划算" || err.Error() == "cattag" {
+			//商品来自聚划算或者找不着了
+			//直接丢弃，不予以保存
+			instock = false
+			return
+		} else {
+			//只是解析错误，出现了新情况，暂时不管先
+			log.Error(err)
+			return
+		}
+	} else {
+		instock = info.InStock
+		//即使解析出来的结果还是下架的，但这个结果要保存
+		//因为淘宝的这种下架方式还可以查看页面，就是不能购买
+		//且有货了之后可能会重新上架
+		return
+	}
+}
+
+//解析页面数据
 func Parse(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info, missing bool, err error) {
 	font, err := parsefontpage(fontpage)
 	info = new(Info)
@@ -164,7 +64,7 @@ func Parse(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info, m
 	info = font
 	if shopid == itemid || shopid == "" {
 		//由于之前代码错误导致部分商品的shopid为itemid
-		link := GetShopLink(fontpage)
+		link, _ := GetShopLink(fontpage)
 		id, e := GetShopid(link)
 		if e != nil {
 			log.Info(e)
@@ -180,26 +80,6 @@ func Parse(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info, m
 	info.UpdateTime = time.Now().Unix()
 	return
 
-}
-
-//通过wap版某件商品的页面，获取其所属店铺的wap超链接
-func GetShopLink(html string) string {
-	//	re := regexp.MustCompile("\\<a href=\\\"(.+com).+进入店铺")
-	if html == "" {
-		return ""
-	}
-	reader := strings.NewReader(html)
-	doc, e := goquery.NewDocumentFromReader(reader)
-	if e != nil {
-		log.Info(e.Error())
-		return ""
-	}
-	shoptag := doc.Find("html body div.bd div.left-margin-5 p strong a")
-	shoplink, exists := shoptag.Attr("href")
-	if exists {
-		return shoplink
-	}
-	return ""
 }
 
 func parsefontpage(html string) (*Info, error) {
@@ -273,13 +153,13 @@ func parsefontpage(html string) (*Info, error) {
 	if tmp != "联系卖家" {
 		imgurl, exists := imgurltag.Attr("src")
 		if exists {
-			re := regexp.MustCompile("_\\d+x\\d+\\.jpg")
+			re := regexp.MustCompile("_\\d+x\\d+\\.jpg|_b\\.jpg")
 			imgurl := re.ReplaceAllString(imgurl, "")
 			imgs = append(imgs, imgurl)
 			log.Info(imgurl)
 		}
 		doc.Find("div.bd div.box div.detail table.mt tbody tr td a img").Each(func(i int, s *goquery.Selection) {
-			re := regexp.MustCompile("_\\d+x\\d+\\.jpg")
+			re := regexp.MustCompile("_\\d+x\\d+\\.jpg|_b\\.jpg")
 			src, exists := s.Attr("src")
 			if exists {
 				src = re.ReplaceAllString(src, "")
@@ -428,8 +308,12 @@ func parsefontpage(html string) (*Info, error) {
 	} else {
 		fixtag := doc.Find("div.bd div.box div.detail table.rate_desc tbody tr td.link_btn a span").Text()
 		rege := regexp.MustCompile("\\d+")
-		reviews := rege.FindAllString(fixtag, -1)[0]
-		r, err := strconv.Atoi(reviews)
+		reviews := rege.FindAllString(fixtag, -1)
+		review := "0"
+		if len(reviews) > 0 {
+			review = reviews[0]
+		}
+		r, err := strconv.Atoi(review)
 		if err != nil {
 			return info, err
 		}
@@ -444,6 +328,11 @@ func parsefontpage(html string) (*Info, error) {
 	q := p.Query()
 	log.Info(q.Get("nick"))
 	info.Nick = q.Get("nick")
+	shoptag := doc.Find("html body div.bd div.left-margin-5 p strong a")
+	shoplink, exists := shoptag.Attr("href")
+	if exists {
+		info.DetailUrl = shoplink
+	}
 
 	//由于代码错误导致有部分商品的店铺id与商品id是一样的
 

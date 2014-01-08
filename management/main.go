@@ -47,10 +47,14 @@ func init() {
 	beego.HttpCertFile = "server.crt"
 	beego.HttpKeyFile = "server.key"
 	beego.SessionOn = true
+	/*if beego.SessionProvider == "redis" {
+		beego.SessionSavePath = beego.AppConfig.String("redispath")
+	}*/
+	//beego.UseFcgi = true
 	if beego.SessionProvider == "redis" {
-	    beego.SessionSavePath = beego.AppConfig.String("redispath")
+		beego.SessionSavePath = beego.AppConfig.String("redispath")
 	}
-    //beego.UseFcgi = true
+	//beego.UseFcgi = true
 	session, err := mgo.Dial(mongoHost)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -97,5 +101,7 @@ func main() {
 	beego.Router("/scheduler/api/get_shop_from_queue", &controllers.GetShopFromQueueController{})
 	beego.Router("/scheduler/api/send_taobao_items", &controllers.SendItemsController{})
 	beego.Router("/scheduler/api/send_item_detail", &controllers.SendItemDataController{})
+
+	beego.Router("/sync/shop", &controllers.SyncShopController{})
 	beego.Run()
 }

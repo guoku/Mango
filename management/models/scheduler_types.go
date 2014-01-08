@@ -89,7 +89,9 @@ type TaobaoItemStd struct {
 	ScoreUpdatedTime   time.Time         `bson:"score_updated_time"`
 	ItemId             string            `bson:"item_id"`
 	Uploaded           bool              `bson:"uploaded"`
-    GroupId            int               `bson:"group_id"`
+	GroupId            int               `bson:"group_id"`
+	Refreshed          bool              `bson:"refreshed"` //对一个商品再次抓取后，设置为false，上传后设为true
+	RefreshTime        time.Time         `bson:"refresh_time"`
 }
 
 type TaobaoProp struct {

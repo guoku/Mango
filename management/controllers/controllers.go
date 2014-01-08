@@ -4,7 +4,7 @@ import (
 	"Mango/management/models"
 	"Mango/management/utils"
 	"fmt"
-	"log"
+	"github.com/qiniu/log"
 	"strconv"
 	"time"
 
@@ -28,7 +28,7 @@ func (this *UserSessionController) Prepare() {
 	v := this.GetSession("user_id")
 	if v == nil {
 		this.Redirect("/login", 302)
-		log.Printf("The user_id is null")
+		log.Infof("The user_id is null")
 		return
 	}
 	userId := v.(int)
@@ -36,7 +36,7 @@ func (this *UserSessionController) Prepare() {
 	o := orm.NewOrm()
 	err := o.Read(&user)
 	if err != nil {
-		log.Println(err.Error())
+		log.Info(err.Error())
 		this.DestroySession()
 		this.Redirect("/login", 302)
 		return
@@ -52,7 +52,7 @@ func (this *AdminSessionController) Prepare() {
 	this.UserSessionController.Prepare()
 	user := this.Data["User"].(*models.User)
 	if !user.IsAdmin {
-		fmt.Println("not admin")
+		log.Info("not admin")
 		this.Redirect("/list_users", 302)
 	}
 	/*else {
@@ -202,7 +202,7 @@ func (this *RegisterController) Get() {
 	o := orm.NewOrm()
 	err := o.QueryTable(&invitation).Filter("token", token).One(&invitation)
 	if err == orm.ErrNoRows || err == orm.ErrMissPK {
-		fmt.Println(err.Error())
+		log.Error(err)
 		this.Ctx.WriteString("Token doesn't exist")
 	} else if invitation.Expired {
 		this.Ctx.WriteString("Token expired")
@@ -214,10 +214,9 @@ func (this *RegisterController) Get() {
 		flash := beego.ReadFromRequest(&this.Controller)
 		if _, ok := flash.Data["error"]; ok {
 			this.Data["HasErrors"] = true
-			fmt.Println("true")
+
 		} else {
 			this.Data["HasErrors"] = false
-			fmt.Println("false")
 		}
 		this.Data["Invitation"] = invitation
 		this.Data["Title"] = "Registration"
@@ -252,7 +251,7 @@ func (this *RegisterController) Post() {
 	o := orm.NewOrm()
 	err := o.QueryTable(&invitation).Filter("token", rForm.Token).One(&invitation)
 	if err == orm.ErrNoRows || err == orm.ErrMissPK {
-		fmt.Println(err.Error())
+		log.Error(err)
 		this.Ctx.WriteString("Token doesn't exist")
 	} else if invitation.Expired {
 		this.Ctx.WriteString("Token expired")
@@ -416,7 +415,7 @@ func (this *LoginController) Get() {
 		this.Redirect("/list_users", 302)
 		return
 	}
-	log.Println("there is no user id")
+	log.Info("there is no user id")
 	this.Layout = DefaultLayoutFile
 	this.TplNames = "login.tpl"
 }
@@ -429,17 +428,19 @@ func (this *LoginController) Post() {
 	o := orm.NewOrm()
 	err := o.QueryTable(&user).Filter("email", email).One(&user)
 	if err != nil {
-		log.Println(err.Error())
+		log.Info(err.Error())
 	}
 	if user.Id != 0 {
-		fmt.Println("login", user.Id)
-		log.Printf("login name %s", user.Name)
+		log.Infof("login %d", user.Id)
+		log.Infof("login name %s", user.Name)
 		o.QueryTable(&additional).Filter("user_id", user.Id).One(&additional)
 		if user.Password == utils.EncryptPassword(password, additional.Salt) {
 			this.SetSession("user_id", int(user.Id))
 			this.SetSession("is_admin", user.IsAdmin)
 			this.Redirect("/list_users", 302)
 			return
+		} else {
+			log.Info("wrong password")
 		}
 	}
 	this.Redirect("/login", 302)
