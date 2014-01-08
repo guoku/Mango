@@ -29,7 +29,7 @@ func FetchShopDetail(shoplink string) (*rest.Shop, error) {
 	shop.PicPath = detail.PicPath
 	shop.Sid = detail.Sid
 	shop.ShopScore = detail.ShopScore
-
+	shop.ShopLink = detail.ShopLink
 	userid, err := GetUserid(shoplink)
 	if err != nil {
 		log.Error(err)
@@ -56,7 +56,7 @@ func FetchShopDetail(shoplink string) (*rest.Shop, error) {
 	return shop, nil
 }
 
-//通过这个函数，可以获取淘宝店的昵称，名称，图片，sid
+//通过这个函数，可以获取淘宝店的昵称，名称，图片，sid,店铺url
 func GetShopInfo(shoplink string) (*rest.Shop, error) {
 	//re := regexp.MustCompile("http://[A-Za-z0-9]+\\.(taobao|tmall)\\.com")
 	log.Info("raw", shoplink)
@@ -69,13 +69,30 @@ func GetShopInfo(shoplink string) (*rest.Shop, error) {
 		link = strings.Replace(shoplink, ".", ".m.", 1)
 	}
 	log.Info("shop link", link)
-	doc, e := goquery.NewDocument(link)
+	var redirectFunc = func(req *http.Request, via []*http.Request) error {
+		shoplink = req.URL.String()
+		log.Info("跳转店铺url", shoplink)
+		return nil
+	}
+	client := &http.Client{CheckRedirect: redirectFunc}
+	req, _ := http.NewRequest("GET", link, nil)
+	resq, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	doc, e := goquery.NewDocumentFromResponse(resq)
 	if e != nil {
 		log.Println(e.Error())
 		return nil, e
 	}
 
 	titletag := doc.Find("p.box").Text()
+	if len(titletag) == 0 {
+		//店铺不存在了，如:http://shop67638353.m.taobao.com
+		err = errors.New("the shop is no longer exist")
+		return nil, err
+	}
 	title := titletag[7:]
 	title = strings.TrimSpace(title)
 	log.Println(title)
@@ -90,7 +107,7 @@ func GetShopInfo(shoplink string) (*rest.Shop, error) {
 	log.Info(praiseRate)
 	pictag := doc.Find("td.pic img")
 	piclink, _ := pictag.Attr("src")
-	rep := regexp.MustCompile("_\\d+x\\d.jpg$|_b.jpg$")
+	rep := regexp.MustCompile("_\\d+x\\d+.jpg$|_b.jpg$")
 	piclink = rep.ReplaceAllString(piclink, "")
 	wwimg := doc.Find("img[alt=ww]")
 	src, _ := wwimg.Attr("src")
@@ -118,7 +135,11 @@ func GetShopInfo(shoplink string) (*rest.Shop, error) {
 	}
 	log.Info(prate)
 	shopscore.PraiseRate = float32(prate)
-	shopinfo = &rest.Shop{Nick: nick, Title: title, PicPath: piclink, Sid: sid, ShopScore: shopscore}
+	if strings.Contains(shoplink, ".m.t") {
+		shoplink = strings.Replace(shoplink, ".m.t", ".t", 1)
+		log.Info("修改后的店铺url是", shoplink)
+	}
+	shopinfo = &rest.Shop{Nick: nick, Title: title, PicPath: piclink, Sid: sid, ShopScore: shopscore, ShopLink: shoplink}
 	return shopinfo, nil
 }
 
@@ -157,11 +178,20 @@ func GetUserid(shoplink string) (string, error) {
 		log.Error(err)
 		return "", err
 	}
-	re := regexp.MustCompile("userId=(?P<id>\\d+)")
+	re := regexp.MustCompile("(userId|userid|sellerid|sellerId)=(?P<id>\\d+)")
 	//log.Info(string(html))
 	log.Info("shop link", shoplink)
-	userId := re.FindStringSubmatch(string(html))[1]
-	return userId, nil
+	userIds := re.FindStringSubmatch(string(html))
+	userId := ""
+	log.Info(userIds)
+	if len(userIds) >= 3 {
+		userId = userIds[2]
+		return userId, nil
+	} else {
+		log.Info(userIds)
+		err = errors.New("sellerid not found")
+		return "", err
+	}
 }
 
 //解析评价数据页面的信息
@@ -216,34 +246,37 @@ func ParseShop(userid string) (*rest.Shop, error) {
 	}
 	//提取主营业务和所在地区
 	dm := doc.Find("div#shop-rate-box.shop-rate-box div.personal-info div.col-sub div.left-box div.bd div.info-block ul li")
-	re := regexp.MustCompile("当前主营：(.+)")
-	dt := re.FindStringSubmatch(dm.Eq(1).Text())
-	if len(dt) < 2 {
-		dt = re.FindStringSubmatch(dm.Eq(0).Text())
-	}
-	domain := dt[1]
-	log.Info(domain)
-	domain = strings.TrimSpace(domain)
-	shop.MainProducts = domain
-	loc := dm.Eq(2).Text()
-	re = regexp.MustCompile("所在地区：[\\pC ]+(\\pL+)")
-	lc := re.FindStringSubmatch(loc)
-	if len(lc) >= 2 {
-		loc = lc[1]
-	} else {
-		loc = dm.Eq(1).Text()
-		log.Info(loc)
-		lc = re.FindStringSubmatch(loc)
-		if len(lc) < 2 {
-			loc = ""
-		} else {
-			loc = lc[1]
-
+	if dm.Length() >= 2 {
+		//小于2的时候，可能是个新卖家，基本没有数据
+		re := regexp.MustCompile("当前主营：(.+)")
+		dt := re.FindStringSubmatch(dm.Eq(1).Text())
+		if len(dt) < 2 {
+			dt = re.FindStringSubmatch(dm.Eq(0).Text())
 		}
+		domain := dt[1]
+		log.Info(domain)
+		domain = strings.TrimSpace(domain)
+		shop.MainProducts = domain
+		loc := dm.Eq(2).Text()
+		re = regexp.MustCompile("所在地区：[\\pC ]+(\\pL+)")
+		lc := re.FindStringSubmatch(loc)
+		if len(lc) >= 2 {
+			loc = lc[1]
+		} else {
+			loc = dm.Eq(1).Text()
+			log.Info(loc)
+			lc = re.FindStringSubmatch(loc)
+			if len(lc) < 2 {
+				loc = ""
+			} else {
+				loc = lc[1]
+
+			}
+		}
+		loc = strings.TrimSpace(loc)
+		shop.Location = loc
+		log.Info(loc)
 	}
-	loc = strings.TrimSpace(loc)
-	shop.Location = loc
-	log.Info(loc)
 
 	//提取30天内服务情况
 	var semiScore []*rest.RateScore
@@ -316,7 +349,7 @@ func ParseShop(userid string) (*rest.Shop, error) {
 	} else {
 		data, _ := ioutil.ReadAll(resp.Body)
 		jdata := string(data)
-		re = regexp.MustCompile("\\\"([0-9\\.]+)\\\"")
+		re := regexp.MustCompile("\\\"([0-9\\.]+)\\\"")
 		var f = func(repl string) string {
 			return repl[1 : len(repl)-1]
 		}
