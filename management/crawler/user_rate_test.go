@@ -12,8 +12,8 @@ import (
 )
 
 func TestGetUserid(t *testing.T) {
-	t.SkipNow()
-	userId, err := GetUserid("http://shop70766218.taobao.com/")
+	//t.SkipNow()
+	userId, err := GetUserid("http://shop33634329.taobao.com")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestParseTaobao(t *testing.T) {
 }
 
 func TestGetInfo(t *testing.T) {
-	//t.SkipNow()
+	t.SkipNow()
 	//GetInfo("http://shop71839143.taobao.com/")
 	GetShopInfo("http://dumex.tmall.com/")
 }
@@ -94,6 +94,7 @@ func TestDecompress(t *testing.T) {
 }
 
 func TestFetchWtype(t *testing.T) {
+	t.SkipNow()
 	font, _, _, _, err := FetchWithOutType("19864856561")
 	if err != nil {
 		log.Error(err)

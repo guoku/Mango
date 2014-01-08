@@ -137,7 +137,7 @@ func addShopItem(shopInfo *rest.Shop) bool {
 		return false
 	}
 	result.ShopInfo = shopInfo
-	result.ShopInfo.Synced = false
+	result.ShopInfo.UpdatedTime = time.Now()
 	result.CreatedTime = time.Now()
 	result.LastUpdatedTime = time.Now()
 	result.Status = "queued"
