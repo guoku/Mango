@@ -7,6 +7,7 @@ import (
 	"github.com/qiniu/log"
 	"labix.org/v2/mgo/bson"
 	"strconv"
+	"time"
 )
 
 type SyncShopController struct {
@@ -33,16 +34,18 @@ func (this *SyncShopController) Get() {
 		}
 	}
 
-	//all参数为true，表示要无差别对所有数据进行sync
-	all, err := this.GetBool("all")
-	if err != nil {
-		log.Error(err)
-		all = false
-	}
 	query := bson.M{}
-	if !all {
-		log.Info("only synced")
-		query["shop_info.synced"] = false
+	date := this.GetString("date")
+	if date != "" {
+		form := "2006010203"
+		t, err := time.Parse(form, date)
+		if err != nil {
+			log.Error(err)
+			this.Ctx.WriteString(err.Error())
+			return
+		}
+		log.Info(t)
+		query["shop_info.updated_time"] = bson.M{"$gte": t}
 	}
 	shops := make([]*models.ShopItem, count)
 	mgoc := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
