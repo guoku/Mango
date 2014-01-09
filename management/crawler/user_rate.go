@@ -193,9 +193,17 @@ func GetUserid(shoplink string) (string, error) {
 		userId = userIds[2]
 		return userId, nil
 	} else {
-		log.Info(userIds)
-		err = errors.New("sellerid not found")
-		return "", err
+		re = regexp.MustCompile("userId:\"(\\d+)\"")
+		userIds = re.FindStringSubmatch(string(html))
+		if len(userIds) >= 2 {
+			userId = userIds[1]
+			return userId, nil
+		} else {
+			log.Info(userIds)
+			err = errors.New("sellerid not found")
+			return "", err
+
+		}
 	}
 }
 
