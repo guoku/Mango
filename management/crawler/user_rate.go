@@ -163,7 +163,12 @@ func GetUserid(shoplink string) (string, error) {
 		return "", err
 	}
 	resp, err := client.Do(req)
-	defer resp.Body.Close()
+
+	defer func() {
+		if resp != nil {
+			resp.Body.Close()
+		}
+	}()
 	if err != nil {
 		log.Info(err.Error())
 		return "", err

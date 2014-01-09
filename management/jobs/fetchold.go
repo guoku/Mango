@@ -21,11 +21,6 @@ const (
 	MANGO   string = "mango"
 )
 
-var mgopages *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "pages")
-var mgofailed *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "failed")
-var mgominer *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "minerals")
-var mgoMango *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_items_depot")
-
 func main() {
 	var t int
 	flag.IntVar(&t, "t", 1, "启动多少个线程,默认为1")
@@ -35,6 +30,10 @@ func main() {
 	}
 }
 func FetchTaobaoItem(threadnum int) {
+	var mgopages *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "pages")
+	var mgofailed *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "failed")
+	var mgominer *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "minerals")
+	var mgoMango *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_items_depot")
 	var shops []*crawler.ShopItem
 	mgominer.Find(bson.M{"state": "posted"}).Sort("date").Limit(10).All(&shops)
 	log.Infof("t is %d", threadnum)

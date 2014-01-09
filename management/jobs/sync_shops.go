@@ -17,7 +17,7 @@ func main() {
 }
 func syncOnlineShops() {
 	count := 50
-	offset := 4560
+	offset := 0
 	var mgoShop *mgo.Collection = utils.MongoInit("10.0.1.23", "mango", "taobao_shops_depot")
 	for {
 		link := fmt.Sprintf("http://b.guoku.com/sync/shop?all=true&count=%d&offset=%d", count, offset)
@@ -46,6 +46,7 @@ func syncOnlineShops() {
 			change, err := mgoShop.Upsert(bson.M{"shop_info.sid": sid}, bson.M{"$set": shop})
 			if err != nil {
 				log.Error(err)
+				continue
 			}
 			log.Info(change.Updated)
 		}
