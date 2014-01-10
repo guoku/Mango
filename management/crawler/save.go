@@ -16,10 +16,8 @@ import (
 func Save(item *Info, mgocol *mgo.Collection) error {
 	tItem := models.TaobaoItemStd{}
 	change := bson.M{
-		"detail_url":        item.DetailUrl,
 		"title":             item.Title,
 		"nick":              item.Nick,
-		"desc":              item.Desc,
 		"sid":               item.Sid,
 		"cid":               item.Cid,
 		"price":             item.Price,

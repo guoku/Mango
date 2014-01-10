@@ -199,7 +199,8 @@ func syncOnlineItems() {
 				log.Info("already exists", item.NumIid)
 				break
 			} else {
-				log.Info(item.ItemId)
+				log.Info(num_iid)
+				return
 				mgoMango.Update(bson.M{"num_iid": int(num_iid)}, bson.M{"$set": bson.M{"item_id": v.ItemId}})
 
 			}
@@ -293,6 +294,7 @@ func uploadRefreshItems() {
 			//resp, err := http.PostForm("http://114.113.154.47:8000/management/entity/create/offline/", params)
 			log.Infof("%+v", params)
 			if err != nil {
+				log.Error(err)
 				continue
 			}
 			body, err := ioutil.ReadAll(resp.Body)
@@ -311,6 +313,7 @@ func uploadRefreshItems() {
 				log.Info("status success")
 				err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId, "refreshed": true, "refresh_time": time.Now()}})
 				if err != nil {
+					log.Error(err)
 					log.Info(err.Error())
 				}
 			} else if r.ItemId != "" {

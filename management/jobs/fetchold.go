@@ -34,6 +34,7 @@ func FetchTaobaoItem(threadnum int) {
 	var mgofailed *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "failed")
 	var mgominer *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "minerals")
 	var mgoMango *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_items_depot")
+	var mgoShop *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_shops_depot")
 	var shops []*crawler.ShopItem
 	mgominer.Find(bson.M{"state": "posted"}).Sort("date").Limit(10).All(&shops)
 	log.Infof("t is %d", threadnum)
@@ -101,6 +102,10 @@ func FetchTaobaoItem(threadnum int) {
 			log.Info("update minerals state error")
 			log.Info(err.Error())
 
+		}
+		err = mgoShop.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"status": "finished"}})
+		if err != nil {
+			log.Error(err)
 		}
 
 	}

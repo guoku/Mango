@@ -328,12 +328,13 @@ func parsefontpage(html string) (*Info, error) {
 	q := p.Query()
 	log.Info(q.Get("nick"))
 	info.Nick = q.Get("nick")
-	shoptag := doc.Find("html body div.bd div.left-margin-5 p strong a")
-	shoplink, exists := shoptag.Attr("href")
-	if exists {
-		info.DetailUrl = shoplink
-	}
-
+	/*
+		shoptag := doc.Find("html body div.bd div.left-margin-5 p strong a")
+		shoplink, exists := shoptag.Attr("href")
+		if exists {
+			info.DetailUrl = shoplink
+		}
+	*/
 	//由于代码错误导致有部分商品的店铺id与商品id是一样的
 
 	return info, nil

@@ -14,7 +14,7 @@ import (
 func main() {
 	for {
 		refresh()
-		time.Sleep(2 * time.Minute)
+		time.Sleep(1 * time.Minute)
 
 	}
 }
