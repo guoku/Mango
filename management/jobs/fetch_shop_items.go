@@ -35,6 +35,9 @@ func GetItems() {
 		log.Error(err)
 		return
 	}
+	if len(shops) == 0 {
+		time.Sleep(1 * time.Hour)
+	}
 	for _, shop := range shops {
 		log.Infof("%+v", shop)
 		sid := shop.ShopInfo.Sid
