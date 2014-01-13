@@ -377,3 +377,18 @@ func parsedetail(html string) (*Info, error) {
 	detail.Attr = attrs
 	return detail, nil
 }
+
+type WebData struct {
+}
+
+func ParseWeb(html string) (*WebData, error) {
+	reader := strings.NewReader(html)
+	doc, e := goquery.NewDocumentFromReader(reader)
+	if e != nil {
+		return nil, e
+	}
+	log.Info(html)
+	pprice := doc.Find("body")
+	log.Info(pprice.Text())
+	return nil, nil
+}

@@ -230,3 +230,22 @@ func Fetch(itemid string, shoptype string) (html string, err error, detail strin
 	err = nil
 	return
 }
+
+func FetchWeb(itemlink string) {
+	transport := getTransport()
+	client := &http.Client{Transport: transport}
+	req, _ := http.NewRequest("GET", itemlink, nil)
+	useragent := userAgentGen()
+	req.Header.Set("User-Agent", useragent)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	ParseWeb(string(body))
+}

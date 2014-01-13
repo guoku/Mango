@@ -65,6 +65,7 @@ func sync(t int64) {
 			process(ent)
 
 		}
+		offset = offset + count
 	}
 }
 
@@ -101,6 +102,7 @@ func fetch(itemid string) {
 	crawler.Save(info, mgoMango)
 	sid := strconv.Itoa(info.Sid)
 	crawler.SaveSuccessed(itemid, sid, shoptype, font, detail, true, instock, mgopages)
+	fetchShop(sid)
 }
 
 func fetchWithShopid(itemid string, shopid int, shoptype string) {
@@ -119,6 +121,16 @@ func fetchWithShopid(itemid string, shopid int, shoptype string) {
 	}
 	crawler.Save(info, mgoMango)
 	crawler.SaveSuccessed(itemid, sid, shoptype, font, detail, true, instock, mgopages)
+}
+
+func fetchShop(sid string) {
+	shoplink := fmt.Sprintf("http://shop%s.taobao.com", sid)
+	shopinfo, err := crawler.FetchShopDetail(shoplink)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	mgoShop.Insert(shopinfo)
 }
 
 type Item struct {

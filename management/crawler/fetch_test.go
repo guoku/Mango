@@ -92,3 +92,8 @@ func TestFetchWithouttype(t *testing.T) {
 
 	}
 }
+
+func TestFetchWeb(t *testing.T) {
+	//	FetchWeb("http://detail.tmall.com/item.htm?&id=19864856561")
+	FetchWeb("http://item.taobao.com/item.htm?id=35940684948")
+}
