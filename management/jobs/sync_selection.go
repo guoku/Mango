@@ -32,9 +32,10 @@ const (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	go syncMonth()
-	go syncWeek()
-	select {}
+	for {
+		go syncMonth()
+		go syncWeek()
+	}
 }
 
 func syncWeek() {
