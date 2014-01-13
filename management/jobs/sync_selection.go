@@ -11,6 +11,7 @@ import (
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"net/http"
+	"runtime"
 	"strconv"
 	"time"
 )
@@ -21,23 +22,37 @@ var mgoMango *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_items_dep
 var mgoShop *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_shops_depot")
 
 const (
-	MGOHOST string = "10.0.1.23"
-	MGODB   string = "zerg"
-	TAOBAO  string = "taobao.com"
-	TMALL   string = "tmall.com"
-	MANGO   string = "mango"
+	MGOHOST   string = "10.0.1.23"
+	MGODB     string = "zerg"
+	TAOBAO    string = "taobao.com"
+	TMALL     string = "tmall.com"
+	MANGO     string = "mango"
+	THREADNUM int    = 4
 )
 
 func main() {
-	t := time.Now()
-	t = t.Add(-24 * time.Hour)
-	sync(t.Unix())
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	go syncMonth()
+	go syncWeek()
+	select {}
 }
 
-func sync(t int64) {
+func syncWeek() {
+	t := time.Now()
+	t = t.Add(-7 * 24 * time.Hour)
+	sync(t.Unix(), 0)
+	time.Sleep(24 * time.Hour)
+}
+
+func syncMonth() {
+	t := time.Now()
+	t = t.Add(-time.Hour * 24 * 30)
+	sync(t.Unix(), 500) //每天90多件精选，一周不会少于500件，这500件肯定被syncWeek更新过了
+	time.Sleep(72 * time.Hour)
+}
+func sync(t int64, offset int) {
 	//t是时间戳，表示提取的数据大于这个时间就可以了
 	count := 100
-	offset := 0
 	for {
 		link := fmt.Sprintf("http://114.113.154.47:8000/management/selection/sync?count=%d&offset=%d", count, offset)
 		resp, err := http.Get(link)
@@ -57,19 +72,21 @@ func sync(t int64) {
 		}
 
 		log.Info("start to sync selection")
+		allowchan := make(chan bool, THREADNUM)
 		for _, ent := range entities {
 			log.Infof("%+v", ent)
 			if ent.PostTime < float64(t) {
 				return
 			}
-			process(ent)
+			allowchan <- true
+			go process(ent, allowchan)
 
 		}
 		offset = offset + count
 	}
 }
 
-func process(ent Entity) {
+func process(ent Entity, allowchan chan bool) {
 	for _, item := range ent.Items {
 		itemid := item.Id
 		nick := item.Nick
@@ -84,6 +101,7 @@ func process(ent Entity) {
 		fetchWithShopid(itemid, shop.ShopInfo.Sid, shop.ShopInfo.ShopType)
 
 	}
+	<-allowchan
 }
 
 func fetch(itemid string) {
