@@ -33,8 +33,8 @@ const (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	for {
-		go syncMonth()
-		go syncWeek()
+		syncWeek()
+		syncMonth()
 	}
 }
 
@@ -58,18 +58,27 @@ func sync(t int64, offset int) {
 		link := fmt.Sprintf("http://114.113.154.47:8000/management/selection/sync?count=%d&offset=%d", count, offset)
 		resp, err := http.Get(link)
 		if err != nil {
+			resp.Body.Close()
 			log.Error(err)
-			continue
+			time.Sleep(10 * time.Second)
+			//continue
+			return
 		}
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Error(err)
-			continue
+			resp.Body.Close()
+			time.Sleep(10 * time.Second)
+			//continue
+			return
 		}
 		entities := make([]Entity, 100)
 		json.Unmarshal(body, &entities)
 		if len(entities) == 0 {
-			continue
+			resp.Body.Close()
+			time.Sleep(10 * time.Second)
+			//continue
+			return
 		}
 
 		log.Info("start to sync selection")
@@ -84,6 +93,7 @@ func sync(t int64, offset int) {
 
 		}
 		offset = offset + count
+		resp.Body.Close()
 	}
 }
 

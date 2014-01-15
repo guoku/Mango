@@ -370,7 +370,6 @@ func (this *SendItemDataController) Post() {
 	ic := session.DB(MgoDbName).C("taobao_items_depot")
 	tItem := models.TaobaoItemStd{}
 	change := bson.M{
-		"detail_url":        item.DetailUrl,
 		"title":             item.Title,
 		"nick":              item.Nick,
 		"desc":              item.Desc,
@@ -381,7 +380,7 @@ func (this *SendItemDataController) Post() {
 		"promotion_price":   item.PromotionPrice,
 		"shop_type":         item.ShopType,
 		"reviews_count":     item.ReviewsCount,
-		"monthly_sales_num": item.MonthlySalesVolume,
+		"monthly_sales_num": item.MonthlySalesNum,
 		"props":             item.Props,
 		"item_imgs":         item.ItemImgs,
 		"in_stock":          item.InStock,

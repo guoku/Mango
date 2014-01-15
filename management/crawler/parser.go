@@ -3,8 +3,11 @@ package crawler
 import (
 	"errors"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/qiniu/iconv"
 	"github.com/qiniu/log"
+	"io/ioutil"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -382,13 +385,24 @@ type WebData struct {
 }
 
 func ParseWeb(html string) (*WebData, error) {
+	convd, err := iconv.Open("utf-8", "gbk")
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	defer convd.Close()
+	html = convd.ConvString(html)
+	cur, _ := os.Getwd()
+	log.Info(cur)
+	ioutil.WriteFile("/Users/guoku/guoku/src/Mango/management/crawler/page.html", []byte(html), 0666)
+	log.Info(html)
 	reader := strings.NewReader(html)
 	doc, e := goquery.NewDocumentFromReader(reader)
 	if e != nil {
 		return nil, e
 	}
-	log.Info(html)
-	pprice := doc.Find("body")
+	//	log.Info(html)
+	pprice := doc.Find("html.G360 body.enableHover div#page div#content div#detail div#J_DetailMeta.tm-detail-meta div.tm-clear div.tb-gallery ul#J_UlThumb.tb-thumb li.tb-pic a img")
 	log.Info(pprice.Text())
 	return nil, nil
 }
