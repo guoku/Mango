@@ -15,9 +15,9 @@ import (
 //这里下架与否的判断设计得比较不好,如果抓取正常，instock是未知的，只有进行解析后才知道结果
 //而如果出现了err，则应该看instock与否，如果下架了，这个itemid就不需要保存了
 //这个是对Fetch的封装，因为返回的错误类型需要用来判断是否要保存这个item
-func FetchItem(itemid string, shoptype string) (font, detail string, instock bool, err error) {
+func FetchItem(itemid string, shoptype string) (font, detail string, instock bool, err error, isWeb bool) {
 	log.Infof("start to fetch %s", itemid)
-	font, err, detail = Fetch(itemid, shoptype)
+	font, detail, err, isWeb = Fetch(itemid, shoptype)
 	if err != nil {
 		log.Infof("%s failed", itemid)
 		if err.Error() != "404" {
@@ -133,7 +133,7 @@ func FetchWithOutType(itemid string) (html, detail, shoptype string, instock boo
 }
 
 //根据商品id和店铺类型抓取页面
-func Fetch(itemid string, shoptype string) (html string, err error, detail string) {
+func Fetch(itemid string, shoptype string) (html string, detail string, err error, isWeb bool) {
 	url := ""
 	detailurl := ""
 	if shoptype == "tmall.com" {
@@ -150,7 +150,7 @@ func Fetch(itemid string, shoptype string) (html string, err error, detail strin
 	req.Header.Set("User-Agent", useragent)
 	if err != nil {
 		log.Print(err.Error())
-		return "", err, ""
+		return
 	}
 	log.Info("start to do request")
 	resp, err := client.Do(req)
@@ -161,9 +161,16 @@ func Fetch(itemid string, shoptype string) (html string, err error, detail strin
 		}
 		time.Sleep(1 * time.Second)
 		log.Info(err.Error())
-		return "", err, ""
+		return
 	}
 	defer resp.Body.Close()
+	resplink := resp.Request.URL.String()
+	log.Info(resplink)
+	if strings.Contains(resplink, "cloud-jump") {
+		html, detail, err = FetchWeb(itemid, shoptype)
+		isWeb = true
+		return
+	}
 	if resp.StatusCode == 200 {
 		//fmt.Println(resp.Request.URL.String())
 		resplink := resp.Request.URL.String()
@@ -174,29 +181,29 @@ func Fetch(itemid string, shoptype string) (html string, err error, detail strin
 			log.Info("taobao forbidden")
 			return
 		}
-		robots, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
+		robots, e := ioutil.ReadAll(resp.Body)
+		if e != nil {
+			err = e
 			log.Info(err.Error())
-			return "", err, ""
+			return
 		}
 		html = string(robots)
 	} else {
 		log.Info(resp.Status)
-		html = ""
 		err = errors.New("404")
-		return html, err, ""
+		return
 	}
 	resp.Body.Close()
 	req, err = http.NewRequest("GET", detailurl, nil)
 	req.Header.Set("User-Agent", useragent)
 	if err != nil {
 		log.Print(err.Error())
-		return "", err, ""
+		return
 	}
 	resp, err = client.Do(req)
 	if err != nil {
 		log.Info(err.Error())
-		return "", err, ""
+		return
 	}
 	if resp.StatusCode == 200 {
 		//fmt.Println(resp.Request.URL.String())
@@ -208,17 +215,18 @@ func Fetch(itemid string, shoptype string) (html string, err error, detail strin
 			log.Info("taobao forbidden")
 			return
 		}
-		robots, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
+		robots, e := ioutil.ReadAll(resp.Body)
+		if e != nil {
+			err = e
 			log.Info(err.Error())
-			return "", err, ""
+			return
 		}
 		detail = string(robots)
 	} else {
 		log.Info(resp.StatusCode)
 		html = ""
 		err = errors.New(resp.Status)
-		return html, err, ""
+		return
 	}
 	resp.Body.Close()
 	re := regexp.MustCompile("\\<style[\\S\\s]+?\\</style\\>")
@@ -231,21 +239,45 @@ func Fetch(itemid string, shoptype string) (html string, err error, detail strin
 	return
 }
 
-func FetchWeb(itemlink string) {
+func FetchWeb(itemid string, shoptype string) (string, string, error) {
+	var fonturl, detailurl string
+	if shoptype == "tmall.com" {
+		fonturl = fmt.Sprintf("http://detail.tmall.com/item.htm?id=%s", itemid)
+		detailurl = fmt.Sprintf("http://a.m.tmall.com/da%s.htm", itemid)
+	} else {
+		fonturl = fmt.Sprintf("http://item.taobao.com/item.htm?id=%s", itemid)
+		detailurl = fmt.Sprintf("http://a.m.taobao.com/da%s.htm", itemid)
+	}
 	transport := getTransport()
 	client := &http.Client{Transport: transport}
-	req, _ := http.NewRequest("GET", itemlink, nil)
+	req, _ := http.NewRequest("GET", fonturl, nil)
 	useragent := userAgentGen()
 	req.Header.Set("User-Agent", useragent)
+	req.Header.Set("Cookie", "cna=I2H3CtFnDlgCAbRP3eN/4Ujy; t=2609558ec16b631c4a25eae0aad3e2dc; w_sec_step=step_login; x=e%3D1%26p%3D*%26s%3D0%26c%3D0%26f%3D0%26g%3D0%26t%3D0%26__ll%3D-1%26_ato%3D0; lzstat_uv=26261492702291067296|2341454@2511607@2938535@2581747@3284827@2581759@2938538@2817407@2879138@3010391; tg=0; _cc_=URm48syIZQ%3D%3D; tracknick=; uc3=nk2=&id2=&lg2=; __utma=6906807.613088467.1388062461.1388062461.1388062461.1; __utmz=6906807.1388062461.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); mt=ci=0_0&cyk=0_0; _m_h5_tk=6457881dd2bbeba22fc0b9d54ec0f4d9_1389601777274; _m_h5_tk_enc=3c432a80ff4e2f677c6e7b8ee62bdb48; _tb_token_=uHyzMrqWeUaM; cookie2=3f01e7e62c8f3a311a6f83fb1b3456ee; wud=wud; lzstat_ss=2446520129_1_1389711010_2581747|2258142779_0_1389706922_2938535|1182737663_4_1389706953_3284827|942709971_0_1389706966_2938538|2696785043_0_1389707052_2817407|50754089_2_1389707124_2879138|2574845227_1_1389707111_3010391|377674404_1_1389711010_2581759; linezing_session=3lJ2NagSIjQvEYbpCk5o8clc_1389693042774lS4I_5; swfstore=254259; whl=-1%260%260%261389692419141; ck1=; uc1=cookie14=UoLU4ni6x8i9JA%3D%3D; v=0")
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Error(err)
-		return
+		return "", "", err
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error(err)
-		return
+		return "", "", err
 	}
-	ParseWeb(string(body))
+	fonthtml := string(body)
+
+	req, _ = http.NewRequest("GET", detailurl, nil)
+	resp, err = client.Do(req)
+	if err != nil {
+		log.Error(err)
+		return "", "", err
+	}
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error(err)
+		return "", "", err
+	}
+	detaihtml := string(body)
+	return fonthtml, detaihtml, nil
+
 }

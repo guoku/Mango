@@ -5,13 +5,15 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/qiniu/iconv"
 	"github.com/qiniu/log"
-	"io/ioutil"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+)
+
+const (
+	IMG_POSTFIX string = "_\\d+x\\d+.*\\.jpg|_b\\.jpg"
 )
 
 func ParseWithoutID(fontpage, detailpage string) (info *Info, missing bool, err error) {
@@ -47,6 +49,38 @@ func ParsePage(font, detail, itemid, shopid, shoptype string) (info *Info, insto
 	}
 }
 
+func ParseWeb(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info, err error) {
+	if shoptype == "taobao.com" {
+		info, err = ParseWebFontTaobao(fontpage)
+		if err != nil {
+			return
+		}
+	} else {
+		//可能是天猫，也可能没有传人店铺类型
+		info, err = ParseWebFontTmall(fontpage)
+		if err != nil {
+			info, err = ParseWebFontTaobao(fontpage)
+			if err != nil {
+				return
+			}
+
+		}
+	}
+	detail, err := parsedetail(detailpage)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	sid, _ := strconv.Atoi(shopid)
+	info.Sid = sid
+	iid, _ := strconv.Atoi(itemid)
+	info.ItemId = iid
+	info.ShopType = shoptype
+	info.Attr = detail.Attr
+	info.UpdateTime = time.Now().Unix()
+	return
+}
+
 //解析页面数据
 func Parse(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info, missing bool, err error) {
 	font, err := parsefontpage(fontpage)
@@ -62,6 +96,7 @@ func Parse(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info, m
 	}
 	detail, err := parsedetail(detailpage)
 	if err != nil {
+		log.Error(err)
 		return
 	}
 	info = font
@@ -381,28 +416,177 @@ func parsedetail(html string) (*Info, error) {
 	return detail, nil
 }
 
-type WebData struct {
-}
-
-func ParseWeb(html string) (*WebData, error) {
-	convd, err := iconv.Open("utf-8", "gbk")
+func ParseWebFontTmall(fonthtml string) (*Info, error) {
+	reader := strings.NewReader(fonthtml)
+	doc, err := goquery.NewDocumentFromReader(reader)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
-	defer convd.Close()
-	html = convd.ConvString(html)
-	cur, _ := os.Getwd()
-	log.Info(cur)
-	ioutil.WriteFile("/Users/guoku/guoku/src/Mango/management/crawler/page.html", []byte(html), 0666)
-	log.Info(html)
-	reader := strings.NewReader(html)
-	doc, e := goquery.NewDocumentFromReader(reader)
-	if e != nil {
-		return nil, e
+	re := regexp.MustCompile("categoryId':'(\\d+)")
+	cats := re.FindStringSubmatch(fonthtml)
+	if len(cats) == 0 {
+		err = errors.New("categoryId is not exist")
+		return nil, err
 	}
-	//	log.Info(html)
-	pprice := doc.Find("html.G360 body.enableHover div#page div#content div#detail div#J_DetailMeta.tm-detail-meta div.tm-clear div.tb-gallery ul#J_UlThumb.tb-thumb li.tb-pic a img")
-	log.Info(pprice.Text())
-	return nil, nil
+	cid, _ := strconv.Atoi(cats[1])
+	log.Info("cid", cid)
+	re = regexp.MustCompile("sellerNickName\" : '(.+)'")
+	seller := re.FindStringSubmatch(fonthtml)
+	if len(seller) == 0 {
+		err = errors.New("seller nick is not exist")
+		return nil, err
+	}
+	nick := seller[1]
+	nick, err = url.QueryUnescape(nick)
+	if err != nil {
+		log.Error(err)
+		return nil, nil
+	}
+	log.Info("nick, ", nick)
+	re = regexp.MustCompile("reservePrice' : '(\\d+\\.\\d+)")
+	pricetag := re.FindStringSubmatch(fonthtml)
+	if len(pricetag) == 0 {
+		err = errors.New("price is not exist")
+		return nil, err
+	}
+	price, _ := strconv.ParseFloat(pricetag[1], 64)
+	log.Info("price ", price)
+	re = regexp.MustCompile("isOnline':(true|false)")
+	online := re.FindStringSubmatch(fonthtml)
+	var isOnline bool
+	if len(online) == 0 {
+		isOnline = true
+	}
+	isOnline, _ = strconv.ParseBool(online[1])
+	log.Info("is online", isOnline)
+	var imgs []string
+	re = regexp.MustCompile(IMG_POSTFIX)
+	fimg := doc.Find("img#J_ImgBooth")
+	if fimg.Length() == 0 {
+		err = errors.New("no img")
+		log.Error(err)
+		return nil, err
+	}
+	fimgurl, _ := fimg.Attr("src")
+	fimgurl = re.ReplaceAllString(fimgurl, "")
+	imgs = append(imgs, fimgurl)
+	log.Info("fimgurl", fimgurl)
+	optimgs := doc.Find("ul#J_UlThumb li a img")
+	optimgs.Each(func(i int, sq *goquery.Selection) {
+		op, _ := sq.Attr("src")
+		op = re.ReplaceAllString(op, "")
+		log.Info(op)
+		imgs = append(imgs, op)
+	})
+	cd, _ := iconv.Open("utf-8", "gbk")
+	defer cd.Close()
+	titletg := doc.Find("title")
+	title := titletg.Text()
+	title = cd.ConvString(title)
+	rt := []rune(title)
+	rtsub := rt[0 : len(rt)-12]
+	title = string(rtsub)
+	log.Info(title)
+	data := Info{
+		Title:     title,
+		Nick:      nick,
+		Cid:       cid,
+		Price:     price,
+		Promprice: price,
+		ShopType:  "tmall.com",
+		Imgs:      imgs,
+		InStock:   isOnline,
+	}
+	return &data, nil
+
+}
+
+func ParseWebFontTaobao(fonthtml string) (*Info, error) {
+	cd, _ := iconv.Open("utf-8", "gbk")
+	defer cd.Close()
+	fonthtml = cd.ConvString(fonthtml)
+	re := regexp.MustCompile(" cid:'(\\d+)")
+	cats := re.FindStringSubmatch(fonthtml)
+	if len(cats) == 0 {
+		re = regexp.MustCompile("data-catid =\"(\\d+)")
+		cats = re.FindStringSubmatch(fonthtml)
+	}
+	if len(cats) == 0 {
+		err := errors.New("no categoryId")
+		return nil, err
+	}
+	log.Info(cats)
+	cid, _ := strconv.Atoi(cats[1])
+	log.Info("cid", cid)
+	re = regexp.MustCompile("sellerNick:\"(.+)\"")
+	seller := re.FindStringSubmatch(fonthtml)
+	if len(seller) == 0 {
+		err := errors.New("seller nick is not exist")
+		return nil, err
+	}
+	nick := seller[1]
+	log.Info("nick ", nick)
+
+	reader := strings.NewReader(fonthtml)
+	doc, err := goquery.NewDocumentFromReader(reader)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	ptag := doc.Find("div.tb-wrap-newshop ul li strong em.tb-rmb-num")
+	if ptag.Length() == 0 {
+		err = errors.New("No price")
+		log.Error(err)
+		return nil, err
+	}
+	pr := ptag.Text()
+	re = regexp.MustCompile("\\d+\\.\\d+")
+	ps := re.FindAllString(pr, 1)
+	if len(ps) == 0 {
+		err = errors.New("No price")
+		return nil, err
+	}
+	price, _ := strconv.ParseFloat(ps[0], 64)
+	log.Info("price ", price)
+	fimg := doc.Find("img#J_ImgBooth")
+	var imgs []string
+	fimgurl, _ := fimg.Attr("data-src")
+	re = regexp.MustCompile(IMG_POSTFIX)
+	fimgurl = re.ReplaceAllString(fimgurl, "")
+	log.Info(fimgurl)
+	imgs = append(imgs, fimgurl)
+
+	optimgs := doc.Find("ul#J_UlThumb li div a img")
+	log.Info("optimgs size", optimgs.Length())
+	optimgs.Each(func(i int, sq *goquery.Selection) {
+		op, _ := sq.Attr("data-src")
+		op = re.ReplaceAllString(op, "")
+		log.Info("optimgs", op)
+		imgs = append(imgs, op)
+	})
+	title := doc.Find("title").Text()
+	rt := []rune(title)
+	title = string(rt[0 : len(rt)-4])
+	log.Info(title)
+
+	isonline := doc.Find("div.tb-out-of-date div p.tb-hint strong")
+	online := true
+	if isonline.Length() > 0 {
+		online = false
+	}
+	log.Info(isonline.Text())
+	log.Info("is online ", online)
+	data := Info{
+		Title:     title,
+		Nick:      nick,
+		Cid:       cid,
+		Price:     price,
+		Promprice: price,
+		ShopType:  "taobao.com",
+		Imgs:      imgs,
+		InStock:   online,
+	}
+	return &data, nil
 }

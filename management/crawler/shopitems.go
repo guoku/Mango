@@ -33,6 +33,7 @@ func GetShopItems(shoplink string) ([]string, error) {
 		log.Error(err)
 		return nil, err
 	}
+	var items []string
 	if resp.StatusCode == 200 {
 		doc, err := goquery.NewDocumentFromResponse(resp)
 		if err != nil {
@@ -54,14 +55,14 @@ func GetShopItems(shoplink string) ([]string, error) {
 			return nil, err
 		}
 		resp.Body.Close()
-		items, err := getitems(allitemsurl)
+		items, err = getitems(allitemsurl)
 		if err != nil {
 			log.Error(err)
 			return nil, err
 		}
-		log.Info(items)
+		//log.Info(items)
 	}
-	return nil, nil
+	return items, nil
 }
 
 func getitems(alllink string) (items []string, err error) {
@@ -89,10 +90,8 @@ func getitems(alllink string) (items []string, err error) {
 			log.Error("not exist")
 			return
 		}
-		log.Info(link)
 		ids := re.FindAllString(link, 1)
 		if len(ids) == 1 {
-			log.Info(ids[0])
 			items = append(items, ids[0])
 		}
 	})
@@ -106,7 +105,6 @@ func getitems(alllink string) (items []string, err error) {
 		if !exist {
 			return
 		}
-		log.Info(nextlink)
 		nextitems, nerr := getitems(nextlink)
 		if nerr != nil {
 			log.Error(err)

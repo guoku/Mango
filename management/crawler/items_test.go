@@ -57,7 +57,7 @@ func TestFetchIItem(t *testing.T) {
 		go func(itemid string) {
 			defer wg.Done()
 			defer func() { <-allowchan }()
-			font, detail, instock, err := FetchItem(itemid, shoptype)
+			font, detail, instock, err, _ := FetchItem(itemid, shoptype)
 			if err != nil {
 				if instock {
 					SaveFailed(itemid, shopid, shoptype, mgofailed)

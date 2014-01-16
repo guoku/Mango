@@ -51,8 +51,14 @@ func GetItems() {
 			log.Error(err)
 			continue
 		}
+
 		sits := Shopitems{Sid: sid, Date: time.Now(), State: "posted", ItemNum: len(items), ItemsList: items, ShopType: shop.ShopInfo.ShopType}
-		minerals.Upsert(bson.M{"shop_id": sid}, bson.M{"$set": sits})
+		cg, err := minerals.Upsert(bson.M{"shop_id": sid}, bson.M{"$set": sits})
+		if err != nil {
+			log.Error(err)
+		}
+		log.Info(cg.Updated)
+		log.Info("shopid", sid)
 		mgoShop.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"status": "crawling"}})
 	}
 }

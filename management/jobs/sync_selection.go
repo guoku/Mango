@@ -139,21 +139,32 @@ func fetch(itemid string) {
 }
 
 func fetchWithShopid(itemid string, shopid int, shoptype string) {
-	font, detail, instock, err := crawler.FetchItem(itemid, shoptype)
+	font, detail, instock, err, isWeb := crawler.FetchItem(itemid, shoptype)
 	sid := strconv.Itoa(shopid)
 	if err != nil {
 		crawler.SaveFailed(itemid, sid, shoptype, mgofailed)
 		log.Error(err)
 		return
 	}
-	info, instock, err := crawler.ParsePage(font, detail, itemid, sid, shoptype)
-	if err != nil {
-		crawler.SaveFailed(itemid, sid, shoptype, mgofailed)
-		log.Error(err)
-		return
+	if isWeb {
+		info, err := crawler.ParseWeb(font, detail, itemid, sid, shoptype)
+		if err != nil {
+			log.Error(err)
+			crawler.SaveFailed(itemid, sid, shoptype, mgofailed)
+		}
+		crawler.Save(info, mgoMango)
+		crawler.SaveSuccessed(itemid, sid, shoptype, font, detail, true, instock, mgopages)
+
+	} else {
+		info, instock, err := crawler.ParsePage(font, detail, itemid, sid, shoptype)
+		if err != nil {
+			crawler.SaveFailed(itemid, sid, shoptype, mgofailed)
+			log.Error(err)
+			return
+		}
+		crawler.Save(info, mgoMango)
+		crawler.SaveSuccessed(itemid, sid, shoptype, font, detail, true, instock, mgopages)
 	}
-	crawler.Save(info, mgoMango)
-	crawler.SaveSuccessed(itemid, sid, shoptype, font, detail, true, instock, mgopages)
 }
 
 func fetchShop(sid string) {
