@@ -47,7 +47,7 @@ func run(t int) {
 				log.Info(info.Removed)
 				log.Info(err.Error())
 			}
-			page, detail, instock, err := crawler.FetchItem(failed.ItemId, failed.ShopType)
+			page, detail, instock, err, isWeb := crawler.FetchItem(failed.ItemId, failed.ShopType)
 			if err != nil {
 				if instock {
 					crawler.SaveFailed(failed.ItemId, failed.ShopId, failed.ShopType, mgofailed)
@@ -56,18 +56,32 @@ func run(t int) {
 				}
 			} else {
 				log.Info("%s refetch successed", failed.ItemId)
-				info, instock, err := crawler.ParsePage(page, detail, failed.ItemId, failed.ShopId, failed.ShopType)
+				if isWeb {
+					info, err := crawler.ParseWeb(page, detail, failed.ItemId, failed.ShopId, failed.ShopType)
+					if err != nil {
+						log.Error(err)
+						return
+					}
+					err = crawler.Save(info, mgoMango)
+					if err != nil {
+						log.Error(err)
+						return
+					}
+				} else {
+					info, instock, err := crawler.ParsePage(page, detail, failed.ItemId, failed.ShopId, failed.ShopType)
 
-				if err != nil {
-					return
+					if err != nil {
+						log.Error(err)
+						return
+					}
+					instock = info.InStock
+					err = crawler.Save(info, mgoMango)
+					if err != nil {
+						log.Error(err)
+						return
+					}
+					crawler.SaveSuccessed(failed.ItemId, failed.ShopId, failed.ShopType, page, detail, true, instock, mgopages)
 				}
-				instock = info.InStock
-				err = crawler.Save(info, mgoMango)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-				crawler.SaveSuccessed(failed.ItemId, failed.ShopId, failed.ShopType, page, detail, true, instock, mgopages)
 			}
 		}(failed)
 	}
