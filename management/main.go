@@ -62,6 +62,7 @@ func init() {
 	}
 	controllers.MgoSession = session
 	controllers.MgoDbName = beego.AppConfig.String("mongodbname")
+	controllers.OfflineMode, _ = beego.AppConfig.Bool("offline")
 	fmt.Println(beego.SessionGCMaxLifetime)
 }
 
@@ -82,26 +83,28 @@ func main() {
 	beego.Router("/scheduler/list_shops", &controllers.ShopListController{})
 	beego.Router("/scheduler/shop_detail/taobao/", &controllers.TaobaoShopDetailController{})
 	beego.Router("/scheduler/update_taobaoshop_info", &controllers.UpdateTaobaoShopController{})
-	beego.Router("/scheduler/item_detail/taobao/", &controllers.TaobaoItemDetailController{})
-	beego.Router("/dict_manage/", &controllers.DictManagerController{})
-	beego.Router("/dict_manage/blacklist/", &controllers.BlacklistManager{})
-	beego.Router("/dict_manage/blacklist/update/", &controllers.BlacklistUpdateController{})
-	beego.Router("/dict_manage/blacklist/delete/", &controllers.BlacklistDeleteController{})
-	beego.Router("/dict_manage/blacklist/add/", &controllers.BlacklistAddController{})
-	beego.Router("/dict_manage/brands/", &controllers.BrandsManageController{})
-	beego.Router("/dict_manage/brands/update/", &controllers.BrandsUpdateController{})
-	beego.Router("/dict_manage/brands/add/", &controllers.BrandsAddController{})
-	beego.Router("/dict_manage/brands/delete/", &controllers.BrandsDeleteController{})
-	beego.Router("/commodity/category/", &controllers.CategoryController{})
-	beego.Router("/commodity/add_online_items/", &controllers.CreateOnlineItemsController{})
-	beego.Router("/commodity/category_manage/", &controllers.CategoryManageController{})
-	beego.Router("/commodity/category_manage/add_taobao_category/", &controllers.AddMatchedCategoryController{})
 	beego.Router("/scheduler/add_shop", &controllers.AddShopController{})
 	beego.Router("/scheduler/api/add_shop", &controllers.AddShopFromApiController{})
 	beego.Router("/scheduler/api/get_shop_from_queue", &controllers.GetShopFromQueueController{})
-	beego.Router("/scheduler/api/send_taobao_items", &controllers.SendItemsController{})
-	beego.Router("/scheduler/api/send_item_detail", &controllers.SendItemDataController{})
-
+	beego.Router("/scheduler/item_detail/taobao/", &controllers.TaobaoItemDetailController{})
 	beego.Router("/sync/shop", &controllers.SyncShopController{})
+
+    if controllers.OfflineMode {
+        beego.Router("/dict_manage/", &controllers.DictManagerController{})
+        beego.Router("/dict_manage/blacklist/", &controllers.BlacklistManager{})
+        beego.Router("/dict_manage/blacklist/update/", &controllers.BlacklistUpdateController{})
+        beego.Router("/dict_manage/blacklist/delete/", &controllers.BlacklistDeleteController{})
+        beego.Router("/dict_manage/blacklist/add/", &controllers.BlacklistAddController{})
+        beego.Router("/dict_manage/brands/", &controllers.BrandsManageController{})
+        beego.Router("/dict_manage/brands/update/", &controllers.BrandsUpdateController{})
+        beego.Router("/dict_manage/brands/add/", &controllers.BrandsAddController{})
+        beego.Router("/dict_manage/brands/delete/", &controllers.BrandsDeleteController{})
+        beego.Router("/commodity/category/", &controllers.CategoryController{})
+        beego.Router("/commodity/add_online_items/", &controllers.CreateOnlineItemsController{})
+        beego.Router("/commodity/category_manage/", &controllers.CategoryManageController{})
+        beego.Router("/commodity/category_manage/add_taobao_category/", &controllers.AddMatchedCategoryController{})
+        beego.Router("/scheduler/api/send_taobao_items", &controllers.SendItemsController{})
+        beego.Router("/scheduler/api/send_item_detail", &controllers.SendItemDataController{})
+    }
 	beego.Run()
 }

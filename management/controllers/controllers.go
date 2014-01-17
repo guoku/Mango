@@ -15,6 +15,7 @@ import (
 	"github.com/riobard/go-mailgun"
 )
 
+var OfflineMode bool
 const (
 	DefaultLayoutFile = "layout.html"
 	MailgunKey        = "key-7n8gut3y8rpk1u-0edgmgaj7vs50gig8"
@@ -42,6 +43,7 @@ func (this *UserSessionController) Prepare() {
 		return
 	}
 	this.Data["User"] = &user
+    this.Data["OfflineMode"] = OfflineMode
 }
 
 type AdminSessionController struct {
