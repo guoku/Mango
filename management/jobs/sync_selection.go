@@ -69,7 +69,7 @@ func sync(t int64, offset int) {
 			return
 		}
 		if resp.StatusCode != 200 {
-			Log.Error(resp.Status)
+			log.Error(resp.Status)
 			return
 		}
 		body, err := ioutil.ReadAll(resp.Body)
