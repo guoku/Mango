@@ -30,6 +30,7 @@ func syncOnlineShops() {
 	utime := new(Uptime)
 	mgoTime.Find(bson.M{"name": "last"}).One(&utime)
 	date := utime.Last.Format("2006010203")
+	log.Info(date)
 	for {
 		link := fmt.Sprintf("http://b.guoku.com/sync/shop?count=%d&offset=%d&date=%s", count, offset, date)
 		resp, err := http.Get(link)
@@ -37,7 +38,10 @@ func syncOnlineShops() {
 			log.Error(err)
 			return
 		}
-
+		if resp.StatusCode != 200 {
+			log.Error(resp.Status)
+			return
+		}
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Error(err)
@@ -51,6 +55,9 @@ func syncOnlineShops() {
 			return
 		}
 		for _, shop := range shops {
+			if shop.ShopInfo == nil {
+				continue
+			}
 			sid := shop.ShopInfo.Sid
 			log.Info(sid)
 			log.Info(shop.ShopInfo.Title)
