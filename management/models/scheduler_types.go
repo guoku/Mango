@@ -66,32 +66,31 @@ type TaobaoItem struct {
 }
 
 type TaobaoItemStd struct {
-	DetailUrl          string            `bson:"detail_url" json:"detail_url"`
-	NumIid             int               `bson:"num_iid" json:"num_iid"`
-	Title              string            `bson:"title" json:"title"`
-	Nick               string            `bson:"nick" json:"nick"`
-	Desc               string            `bson:"desc" json:"desc"`
-	Cid                int               `bson:"cid" json:"cid"`
-	Sid                int               `bson:"sid" son:"sid"`
-	Price              float32           `bson:"price" json:"price"`
-	Location           *rest.Location    `bson:"location" json:"location"`
-	PromotionPrice     float32           `bson:"promotion_price" json:"promotion_price"`
-	ItemImgs           []string          `bson:"item_imgs" json:"item_imgs"`
-	ShopType           string            `bson:"shop_type" json:"shop_type"`
-	ReviewsCount       int               `bson:"reviews_count" json:"reviews_count"`
-	MonthlySalesVolume int               `bson:"monthly_sales_volume" json:"monthly_sales_volume"`
-	Props              map[string]string `bson:"props" json:"props"`
-	InStock            bool              `bson:"in_stock" json:"in_stock"`
-	CreatedTime        time.Time         `bson:"created_time"`
-	DataUpdatedTime    time.Time         `bson:"data_updated_time"`
-	ScoreInfo          *ScoreInfo        `bson:"score_info"`
-	Score              float64           `bson:"score"`
-	ScoreUpdatedTime   time.Time         `bson:"score_updated_time"`
-	ItemId             string            `bson:"item_id"`
-	Uploaded           bool              `bson:"uploaded"`
-	GroupId            int               `bson:"group_id"`
-	Refreshed          bool              `bson:"refreshed"` //对一个商品再次抓取后，设置为false，上传后设为true
-	RefreshTime        time.Time         `bson:"refresh_time"`
+	NumIid           int               `bson:"num_iid" json:"num_iid"`
+	Title            string            `bson:"title" json:"title"`
+	Nick             string            `bson:"nick" json:"nick"`
+	Desc             string            `bson:"desc" json:"desc"`
+	Cid              int               `bson:"cid" json:"cid"`
+	Sid              int               `bson:"sid" son:"sid"`
+	Price            float32           `bson:"price" json:"price"`
+	Location         *rest.Location    `bson:"location" json:"location"`
+	PromotionPrice   float32           `bson:"promotion_price" json:"promotion_price"`
+	ItemImgs         []string          `bson:"item_imgs" json:"item_imgs"`
+	ShopType         string            `bson:"shop_type" json:"shop_type"`
+	ReviewsCount     int               `bson:"reviews_count" json:"reviews_count"`
+	MonthlySalesNum  int               `bson:"monthly_sales_num" json:"monthly_sales_num"`
+	Props            map[string]string `bson:"props" json:"props"`
+	InStock          bool              `bson:"in_stock" json:"in_stock"`
+	CreatedTime      time.Time         `bson:"created_time"`
+	DataUpdatedTime  time.Time         `bson:"data_updated_time"`
+	ScoreInfo        *ScoreInfo        `bson:"score_info"`
+	Score            float64           `bson:"score"`
+	ScoreUpdatedTime time.Time         `bson:"score_updated_time"`
+	ItemId           string            `bson:"item_id"`
+	Uploaded         bool              `bson:"uploaded"`
+	GroupId          int               `bson:"group_id"`
+	Refreshed        bool              `bson:"refreshed"` //对一个商品再次抓取后，设置为false，上传后设为true
+	RefreshTime      time.Time         `bson:"refresh_time"`
 }
 
 type TaobaoProp struct {

@@ -2,11 +2,15 @@ package main
 
 import (
 	"Mango/management/crawler"
+	"Mango/management/models"
 	"Mango/management/utils"
 	"flag"
+	"fmt"
 	"github.com/qiniu/log"
+	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"sync"
+	"time"
 )
 
 const (
@@ -16,6 +20,8 @@ const (
 	TMALL   string = "tmall.com"
 	MANGO   string = "mango"
 )
+
+var mgoShop *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_shops_depot")
 
 func main() {
 	var t int
@@ -47,7 +53,7 @@ func run(t int) {
 				log.Info(info.Removed)
 				log.Info(err.Error())
 			}
-			page, detail, instock, err := crawler.FetchItem(failed.ItemId, failed.ShopType)
+			page, detail, instock, err, isWeb := crawler.FetchItem(failed.ItemId, failed.ShopType)
 			if err != nil {
 				if instock {
 					crawler.SaveFailed(failed.ItemId, failed.ShopId, failed.ShopType, mgofailed)
@@ -56,18 +62,34 @@ func run(t int) {
 				}
 			} else {
 				log.Info("%s refetch successed", failed.ItemId)
-				info, instock, err := crawler.ParsePage(page, detail, failed.ItemId, failed.ShopId, failed.ShopType)
+				if isWeb {
+					info, err := crawler.ParseWeb(page, detail, failed.ItemId, failed.ShopId, failed.ShopType)
+					if err != nil {
+						log.Error(err)
+						return
+					}
+					fetchShop(info.Sid)
+					err = crawler.Save(info, mgoMango)
+					if err != nil {
+						log.Error(err)
+						return
+					}
+				} else {
+					info, instock, err := crawler.ParsePage(page, detail, failed.ItemId, failed.ShopId, failed.ShopType)
 
-				if err != nil {
-					return
+					if err != nil {
+						log.Error(err)
+						return
+					}
+					instock = info.InStock
+					fetchShop(info.Sid)
+					err = crawler.Save(info, mgoMango)
+					if err != nil {
+						log.Error(err)
+						return
+					}
+					crawler.SaveSuccessed(failed.ItemId, failed.ShopId, failed.ShopType, page, detail, true, instock, mgopages)
 				}
-				instock = info.InStock
-				err = crawler.Save(info, mgoMango)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-				crawler.SaveSuccessed(failed.ItemId, failed.ShopId, failed.ShopType, page, detail, true, instock, mgopages)
 			}
 		}(failed)
 	}
@@ -75,5 +97,29 @@ func run(t int) {
 	close(allowchan)
 	if err := iter.Close(); err != nil {
 		log.Info(err.Error())
+	}
+}
+func fetchShop(sid int) {
+	sp := new(models.ShopItem)
+	//如果店铺不存在，就抓取存入
+	mgoShop.Find(bson.M{"shop_info.sid": sid}).One(&sp)
+	if sp.ShopInfo == nil {
+		log.Info("开始爬取店铺")
+		shoplink := fmt.Sprintf("http://shop%d.taobao.com", sid)
+		shopinfo, err := crawler.FetchShopDetail(shoplink)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		log.Infof("%+v", shopinfo)
+		shop := models.ShopItem{}
+		shop.ShopInfo = shopinfo
+		shop.CreatedTime = time.Now()
+		shop.LastUpdatedTime = time.Now()
+		shop.LastCrawledTime = time.Now()
+		shop.Status = "queued"
+		shop.CrawlerInfo = &models.CrawlerInfo{Priority: 10, Cycle: 720}
+		shop.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type: shopinfo.ShopType, Orientational: false, CommissionRate: -1}
+		mgoShop.Insert(shop)
 	}
 }

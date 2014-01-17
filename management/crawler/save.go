@@ -16,10 +16,8 @@ import (
 func Save(item *Info, mgocol *mgo.Collection) error {
 	tItem := models.TaobaoItemStd{}
 	change := bson.M{
-		"detail_url":        item.DetailUrl,
 		"title":             item.Title,
 		"nick":              item.Nick,
-		"desc":              item.Desc,
 		"sid":               item.Sid,
 		"cid":               item.Cid,
 		"price":             item.Price,
@@ -41,6 +39,7 @@ func Save(item *Info, mgocol *mgo.Collection) error {
 		change["data_updated_time"] = t
 		change["data_last_revised_time"] = time.Now()
 		change["uploaded"] = false
+		change["created_time"] = time.Now()
 
 	} else {
 		change["data_last_revised_time"] = time.Now()
@@ -48,7 +47,7 @@ func Save(item *Info, mgocol *mgo.Collection) error {
 		change["uploaded"] = true
 		change["refresh_time"] = time.Now()
 	}
-	err = mgocol.Update(bson.M{"num_iid": int(item.ItemId)}, bson.M{"$set": change})
+	_, err = mgocol.Upsert(bson.M{"num_iid": int(item.ItemId)}, bson.M{"$set": change})
 	if err != nil {
 		return err
 	}

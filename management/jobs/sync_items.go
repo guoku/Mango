@@ -36,90 +36,6 @@ type Response struct {
 	TaobaoId string `json:"taobao_id"`
 }
 
-/*
-func syncOnlineItems() {
-	count := 1000
-	offset := 0
-	ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
-	sc := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
-	for {
-		resp, err := http.Get(fmt.Sprintf("http://114.113.154.47:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
-		//resp, err := http.Get(fmt.Sprintf("http://114.113.154.47:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
-		if err != nil {
-			time.Sleep(time.Minute)
-			continue
-		}
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			time.Sleep(time.Minute)
-			continue
-		}
-		r := make([]Response, 0)
-		json.Unmarshal(body, &r)
-		log.Info(r)
-		if len(r) == 0 {
-			break
-		}
-		allNew := true
-		for _, v := range r {
-			log.Info("taobao_id", v.TaobaoId)
-			iid, _ := strconv.Atoi(v.TaobaoId)
-			item := models.TaobaoItem{}
-			err := ic.Find(bson.M{"num_iid": int(iid)}).One(&item)
-			if err != nil && err.Error() == "not found" {
-				//log.Info("not found", iid)
-				ti, te := taobaoclient.GetTaobaoItemInfo(int(iid))
-				if te != nil {
-					log.Info("error", te.Error())
-					continue
-				}
-				item.ApiData = ti
-				item.ApiDataReady = true
-				item.NumIid = int(iid)
-				shop := models.ShopItem{}
-				se := sc.Find(bson.M{"shop_info.nick": ti.Nick}).One(&shop)
-				if se != nil {
-					if se.Error() == "not found" {
-						ts, te := taobaoclient.GetTaobaoShopInfo(ti.Nick)
-						if te != nil {
-							log.Info("shop error", te.Error())
-							continue
-						}
-						shop.ShopInfo = ts
-						shop.CreatedTime = time.Now()
-						shop.LastUpdatedTime = time.Now()
-						shop.Status = "queued"
-						shop.CrawlerInfo = &models.CrawlerInfo{Priority: 10, Cycle: 720}
-						shop.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type: "unknown", Orientational: false, CommissionRate: -1}
-						se = sc.Insert(&shop)
-					} else {
-						continue
-					}
-				}
-				item.Sid = shop.ShopInfo.Sid
-				item.CreatedTime = time.Now()
-				item.ItemId = v.ItemId
-				ic.Insert(&item)
-				log.Info("insert", item.NumIid)
-				continue
-			}
-			if item.ItemId != "" {
-				allNew = false
-				log.Info("already exists", item.NumIid)
-				break
-			} else {
-				ic.Update(bson.M{"num_iid": int(iid)}, bson.M{"$set": bson.M{"item_id": v.ItemId}})
-				log.Info("update", item.NumIid)
-			}
-		}
-		if !allNew {
-			break
-		}
-		offset += count
-	}
-}
-*/
-
 func syncOnlineItems() {
 	count := 1000
 	offset := 0
@@ -199,7 +115,8 @@ func syncOnlineItems() {
 				log.Info("already exists", item.NumIid)
 				break
 			} else {
-				log.Info(item.ItemId)
+				log.Info(num_iid)
+				return
 				mgoMango.Update(bson.M{"num_iid": int(num_iid)}, bson.M{"$set": bson.M{"item_id": v.ItemId}})
 
 			}
@@ -293,6 +210,7 @@ func uploadRefreshItems() {
 			//resp, err := http.PostForm("http://114.113.154.47:8000/management/entity/create/offline/", params)
 			log.Infof("%+v", params)
 			if err != nil {
+				log.Error(err)
 				continue
 			}
 			body, err := ioutil.ReadAll(resp.Body)
@@ -311,6 +229,7 @@ func uploadRefreshItems() {
 				log.Info("status success")
 				err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId, "refreshed": true, "refresh_time": time.Now()}})
 				if err != nil {
+					log.Error(err)
 					log.Info(err.Error())
 				}
 			} else if r.ItemId != "" {
@@ -348,3 +267,87 @@ func main() {
 	}()
 	select {}
 }
+
+/*
+func syncOnlineItems() {
+	count := 1000
+	offset := 0
+	ic := MgoSession.DB(MgoDbName).C("taobao_items_depot")
+	sc := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+	for {
+		resp, err := http.Get(fmt.Sprintf("http://114.113.154.47:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
+		//resp, err := http.Get(fmt.Sprintf("http://114.113.154.47:8000/management/taobao/item/sync/?count=%d&offset=%d", count, offset))
+		if err != nil {
+			time.Sleep(time.Minute)
+			continue
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			time.Sleep(time.Minute)
+			continue
+		}
+		r := make([]Response, 0)
+		json.Unmarshal(body, &r)
+		log.Info(r)
+		if len(r) == 0 {
+			break
+		}
+		allNew := true
+		for _, v := range r {
+			log.Info("taobao_id", v.TaobaoId)
+			iid, _ := strconv.Atoi(v.TaobaoId)
+			item := models.TaobaoItem{}
+			err := ic.Find(bson.M{"num_iid": int(iid)}).One(&item)
+			if err != nil && err.Error() == "not found" {
+				//log.Info("not found", iid)
+				ti, te := taobaoclient.GetTaobaoItemInfo(int(iid))
+				if te != nil {
+					log.Info("error", te.Error())
+					continue
+				}
+				item.ApiData = ti
+				item.ApiDataReady = true
+				item.NumIid = int(iid)
+				shop := models.ShopItem{}
+				se := sc.Find(bson.M{"shop_info.nick": ti.Nick}).One(&shop)
+				if se != nil {
+					if se.Error() == "not found" {
+						ts, te := taobaoclient.GetTaobaoShopInfo(ti.Nick)
+						if te != nil {
+							log.Info("shop error", te.Error())
+							continue
+						}
+						shop.ShopInfo = ts
+						shop.CreatedTime = time.Now()
+						shop.LastUpdatedTime = time.Now()
+						shop.Status = "queued"
+						shop.CrawlerInfo = &models.CrawlerInfo{Priority: 10, Cycle: 720}
+						shop.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type: "unknown", Orientational: false, CommissionRate: -1}
+						se = sc.Insert(&shop)
+					} else {
+						continue
+					}
+				}
+				item.Sid = shop.ShopInfo.Sid
+				item.CreatedTime = time.Now()
+				item.ItemId = v.ItemId
+				ic.Insert(&item)
+				log.Info("insert", item.NumIid)
+				continue
+			}
+			if item.ItemId != "" {
+				allNew = false
+				log.Info("already exists", item.NumIid)
+				break
+			} else {
+				ic.Update(bson.M{"num_iid": int(iid)}, bson.M{"$set": bson.M{"item_id": v.ItemId}})
+				log.Info("update", item.NumIid)
+			}
+		}
+		if !allNew {
+			break
+		}
+		offset += count
+	}
+}
+*/

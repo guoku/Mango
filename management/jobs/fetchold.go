@@ -21,11 +21,6 @@ const (
 	MANGO   string = "mango"
 )
 
-var mgopages *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "pages")
-var mgofailed *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "failed")
-var mgominer *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "minerals")
-var mgoMango *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_items_depot")
-
 func main() {
 	var t int
 	flag.IntVar(&t, "t", 1, "启动多少个线程,默认为1")
@@ -35,6 +30,11 @@ func main() {
 	}
 }
 func FetchTaobaoItem(threadnum int) {
+	var mgopages *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "pages")
+	var mgofailed *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "failed")
+	var mgominer *mgo.Collection = utils.MongoInit(MGOHOST, MGODB, "minerals")
+	var mgoMango *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_items_depot")
+	var mgoShop *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_shops_depot")
 	var shops []*crawler.ShopItem
 	mgominer.Find(bson.M{"state": "posted"}).Sort("date").Limit(10).All(&shops)
 	log.Infof("t is %d", threadnum)
@@ -49,6 +49,7 @@ func FetchTaobaoItem(threadnum int) {
 		log.Infof("start to fetch shop %s", shopid)
 		items := shopitem.Items_list
 		if len(items) == 0 {
+			mgominer.Update(bson.M{"shop_id": shopitem.Shop_id}, bson.M{"$set": bson.M{"state": "fetched", "date": time.Now()}})
 			return
 		}
 		istmall, err := crawler.IsTmall(items[0])
@@ -67,29 +68,44 @@ func FetchTaobaoItem(threadnum int) {
 			go func(itemid string) {
 				defer wg.Done()
 				defer func() { <-allowchan }()
-				font, detail, instock, err := crawler.FetchItem(itemid, shoptype)
+				font, detail, instock, err, isWeb := crawler.FetchItem(itemid, shoptype)
 				if err != nil {
 					if instock {
 						crawler.SaveFailed(itemid, shopid, shoptype, mgofailed)
 					}
 				} else {
-					info, instock, err := crawler.ParsePage(font, detail, itemid, shopid, shoptype)
-					if err != nil {
-						if instock {
-							crawler.SaveSuccessed(itemid, shopid, shoptype, font, detail, false, instock, mgopages)
-						}
-					} else {
-						//保存解析结果到mongo
-						err := crawler.Save(info, mgoMango)
-						fmt.Printf("%+v", info)
-						parsed := false
+
+					if isWeb {
+						info, err := crawler.ParseWeb(font, detail, itemid, shopid, shoptype)
 						if err != nil {
 							log.Error(err)
-							parsed = false
-						} else {
-							parsed = true
+							crawler.SaveFailed(itemid, shopid, shoptype, mgofailed)
 						}
-						crawler.SaveSuccessed(itemid, shopid, shoptype, font, detail, parsed, instock, mgopages)
+						err = crawler.Save(info, mgoMango)
+						if err != nil {
+							log.Error(err)
+							crawler.SaveFailed(itemid, shopid, shoptype, mgofailed)
+						}
+
+					} else {
+						info, instock, err := crawler.ParsePage(font, detail, itemid, shopid, shoptype)
+						if err != nil {
+							if instock {
+								crawler.SaveSuccessed(itemid, shopid, shoptype, font, detail, false, instock, mgopages)
+							}
+						} else {
+							//保存解析结果到mongo
+							err := crawler.Save(info, mgoMango)
+							fmt.Printf("%+v", info)
+							parsed := false
+							if err != nil {
+								log.Error(err)
+								parsed = false
+							} else {
+								parsed = true
+							}
+							crawler.SaveSuccessed(itemid, shopid, shoptype, font, detail, parsed, instock, mgopages)
+						}
 					}
 				}
 			}(itemid)
@@ -102,6 +118,10 @@ func FetchTaobaoItem(threadnum int) {
 			log.Info("update minerals state error")
 			log.Info(err.Error())
 
+		}
+		err = mgoShop.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"status": "finished"}})
+		if err != nil {
+			log.Error(err)
 		}
 
 	}

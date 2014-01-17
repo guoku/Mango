@@ -370,7 +370,6 @@ func (this *SendItemDataController) Post() {
 	ic := session.DB(MgoDbName).C("taobao_items_depot")
 	tItem := models.TaobaoItemStd{}
 	change := bson.M{
-		"detail_url":        item.DetailUrl,
 		"title":             item.Title,
 		"nick":              item.Nick,
 		"desc":              item.Desc,
@@ -381,7 +380,7 @@ func (this *SendItemDataController) Post() {
 		"promotion_price":   item.PromotionPrice,
 		"shop_type":         item.ShopType,
 		"reviews_count":     item.ReviewsCount,
-		"monthly_sales_num": item.MonthlySalesVolume,
+		"monthly_sales_num": item.MonthlySalesNum,
 		"props":             item.Props,
 		"item_imgs":         item.ItemImgs,
 		"in_stock":          item.InStock,
@@ -422,6 +421,7 @@ func (this *GetShopFromQueueController) Get() {
 	this.ServeJson()
 }
 
+//更新店铺数据，主要更新的是ExtendInfo
 type UpdateTaobaoShopController struct {
 	SchedulerController
 }
@@ -451,7 +451,7 @@ func (this *UpdateTaobaoShopController) Post() {
 		SingleTail: single_tail, Original: original, Gifts: gifts, Commission: commission}
 	crawler_info := &models.CrawlerInfo{Priority: int(priority), Cycle: int(cycle)}
 	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
-	err := c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"extended_info": extended_info, "crawler_info": crawler_info, "shop_info.main_products": main_products, "shop_info.updated_time": time.Now()}})
+	err := c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"extended_info": extended_info, "crawler_info": crawler_info, "shop_info.main_products": main_products, "shop_info.updated_time": time.Now(), "last_updated_time": time.Now()}})
 	if err != nil {
 		this.Abort("404")
 		return
