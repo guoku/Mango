@@ -55,6 +55,8 @@ func run(t int) {
 			}
 			page, detail, instock, err, isWeb := crawler.FetchItem(failed.ItemId, failed.ShopType)
 			if err != nil {
+				log.Error(err)
+
 				if instock {
 					crawler.SaveFailed(failed.ItemId, failed.ShopId, failed.ShopType, mgofailed)
 				} else {

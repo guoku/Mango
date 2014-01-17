@@ -30,10 +30,7 @@ func Save(item *Info, mgocol *mgo.Collection) error {
 		"item_imgs":         item.Imgs,
 		"in_stock":          item.InStock,
 	}
-	err := mgocol.Find(bson.M{"num_iid": int(item.ItemId)}).One(&tItem)
-	if err != nil {
-		return err
-	}
+	mgocol.Find(bson.M{"num_iid": int(item.ItemId)}).One(&tItem)
 	if tItem.Title == "" {
 		t := time.Now()
 		change["data_updated_time"] = t
@@ -47,8 +44,9 @@ func Save(item *Info, mgocol *mgo.Collection) error {
 		change["uploaded"] = true
 		change["refresh_time"] = time.Now()
 	}
-	_, err = mgocol.Upsert(bson.M{"num_iid": int(item.ItemId)}, bson.M{"$set": change})
+	_, err := mgocol.Upsert(bson.M{"num_iid": int(item.ItemId)}, bson.M{"$set": change})
 	if err != nil {
+		log.Error(err, item.ItemId)
 		return err
 	}
 	log.Info("解析数据保存成功")
@@ -95,6 +93,7 @@ func SaveSuccessed(itemid, shopid, shoptype, font, detail string, parsed, instoc
 	successpage := Pages{ItemId: itemid, ShopId: shopid, ShopType: shoptype, FontPage: font, UpdateTime: time.Now().Unix(), DetailPage: detail, Parsed: parsed, InStock: instock}
 	_, err := mgopages.Upsert(bson.M{"itemid": itemid}, bson.M{"$set": successpage})
 	if err != nil {
+		log.Error(itemid)
 		log.Error(err)
 	}
 	log.Info("保存页面数据成功")
