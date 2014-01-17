@@ -113,6 +113,9 @@ func process(ent Entity, allowchan chan bool) {
 			fetch(itemid)
 			continue
 		}
+		if shop.ShopInfo == nil {
+			continue
+		}
 		fetchWithShopid(itemid, shop.ShopInfo.Sid, shop.ShopInfo.ShopType)
 
 	}
