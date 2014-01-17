@@ -156,7 +156,7 @@ func fetchWithShopid(itemid string, shopid int, shoptype string) {
 	sid := strconv.Itoa(shopid)
 	if err != nil {
 		crawler.SaveFailed(itemid, sid, shoptype, mgofailed)
-		log.Error(err)
+		//log.Error(err)
 		return
 	}
 	if isWeb {
