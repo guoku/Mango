@@ -19,6 +19,7 @@ type Uptime struct {
 }
 
 func main() {
+	log.SetOutputLevel(log.Lerror)
 	syncOnlineShops()
 	time.Sleep(time.Hour * 24)
 }

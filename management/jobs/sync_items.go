@@ -244,7 +244,7 @@ func uploadRefreshItems() {
 }
 func main() {
 	runtime.GOMAXPROCS(4)
-
+	log.SetOutputLevel(log.Lerror)
 	go func() {
 		for {
 			syncOnlineItems()

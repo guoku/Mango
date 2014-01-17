@@ -32,6 +32,7 @@ const (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	log.SetOutputLevel(log.Lerror)
 	go func() {
 		for {
 			syncMonth()

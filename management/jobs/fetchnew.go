@@ -22,6 +22,7 @@ const (
 )
 
 func main() {
+	log.SetOutputLevel(log.Lerror)
 	var t int
 	flag.IntVar(&t, "t", 1, "启动多少个线程,默认为1")
 	flag.Parse()

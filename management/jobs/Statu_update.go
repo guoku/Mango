@@ -12,6 +12,8 @@ import (
 )
 
 func main() {
+
+	log.SetOutputLevel(log.Lerror)
 	Update_statu()
 
 }
