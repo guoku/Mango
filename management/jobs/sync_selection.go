@@ -111,9 +111,14 @@ func process(ent Entity, allowchan chan bool) {
 		err := mgoShop.Find(bson.M{"shop_info.nick": nick}).One(shop)
 		if err != nil && err.Error() == mgo.ErrNotFound.Error() {
 			fetch(itemid)
+			log.Error(err)
+			log.Info("没有找到", nick)
 			continue
 		}
 		if shop.ShopInfo == nil {
+			log.Error(err)
+			log.Info("没有找到", nick)
+			fetch(itemid)
 			continue
 		}
 		fetchWithShopid(itemid, shop.ShopInfo.Sid, shop.ShopInfo.ShopType)
@@ -177,7 +182,16 @@ func fetchShop(sid string) {
 		log.Error(err)
 		return
 	}
-	mgoShop.Insert(shopinfo)
+	log.Infof("%+v", shopinfo)
+	shop := models.ShopItem{}
+	shop.ShopInfo = shopinfo
+	shop.CreatedTime = time.Now()
+	shop.LastUpdatedTime = time.Now()
+	shop.LastCrawledTime = time.Now()
+	shop.Status = "queued"
+	shop.CrawlerInfo = &models.CrawlerInfo{Priority: 10, Cycle: 720}
+	shop.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type: shopinfo.ShopType, Orientational: false, CommissionRate: -1}
+	mgoShop.Insert(shop)
 }
 
 type Item struct {
