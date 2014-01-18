@@ -607,6 +607,9 @@ func ParseWebFontTaobao(fonthtml string) (*Info, error) {
 		att := sq.Text()
 		att = strings.TrimSpace(att)
 		kv := strings.Split(att, ":")
+		if len(kv) < 2 {
+			return
+		}
 		attrs[kv[0]] = kv[1]
 	})
 	data := Info{
