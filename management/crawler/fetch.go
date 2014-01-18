@@ -240,13 +240,11 @@ func Fetch(itemid string, shoptype string) (html string, detail string, err erro
 }
 
 func FetchWeb(itemid string, shoptype string) (string, string, error) {
-	var fonturl, detailurl string
+	var fonturl string
 	if shoptype == "tmall.com" {
 		fonturl = fmt.Sprintf("http://detail.tmall.com/item.htm?id=%s", itemid)
-		detailurl = fmt.Sprintf("http://a.m.tmall.com/da%s.htm", itemid)
 	} else {
 		fonturl = fmt.Sprintf("http://item.taobao.com/item.htm?id=%s", itemid)
-		detailurl = fmt.Sprintf("http://a.m.taobao.com/da%s.htm", itemid)
 	}
 	transport := getTransport()
 	client := &http.Client{Transport: transport}
@@ -266,18 +264,6 @@ func FetchWeb(itemid string, shoptype string) (string, string, error) {
 	}
 	fonthtml := string(body)
 
-	req, _ = http.NewRequest("GET", detailurl, nil)
-	resp, err = client.Do(req)
-	if err != nil {
-		log.Error(err)
-		return "", "", err
-	}
-	body, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(err)
-		return "", "", err
-	}
-	detaihtml := string(body)
-	return fonthtml, detaihtml, nil
+	return fonthtml, "", nil
 
 }
