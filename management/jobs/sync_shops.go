@@ -19,7 +19,7 @@ type Uptime struct {
 }
 
 func main() {
-	log.SetOutputLevel(log.Lerror)
+	//log.SetOutputLevel(log.Lerror)
 	syncOnlineShops()
 	time.Sleep(time.Hour * 24)
 }
@@ -52,7 +52,10 @@ func syncOnlineShops() {
 		json.Unmarshal(body, &shops)
 		if len(shops) == 0 {
 			log.Info("all shops are synced")
-			mgoTime.Update(bson.M{"name": "last"}, bson.M{"$set": bson.M{"last": time.Now()}})
+			err = mgoTime.Update(bson.M{"name": "last"}, bson.M{"$set": bson.M{"last": time.Now()}})
+			if err != nil {
+				panic(err)
+			}
 			return
 		}
 		for _, shop := range shops {
@@ -67,11 +70,17 @@ func syncOnlineShops() {
 			if sp.ShopInfo == nil {
 				//说明这家店铺是新添加的
 				log.Info("新添加的店铺")
-				mgoShop.Insert(shop)
+				err = mgoShop.Insert(shop)
+				if err != nil {
+					log.Error(err)
+				}
 			} else {
 				log.Info("更新的店铺")
 				shoptype := shop.ExtendedInfo.Type
-				mgoShop.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"extended_info": shop.ExtendedInfo, "crawler_info": shop.CrawlerInfo, "shop_info.shop_type": shoptype}})
+				err = mgoShop.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"extended_info": shop.ExtendedInfo, "crawler_info": shop.CrawlerInfo, "shop_info.shop_type": shoptype}})
+				if err != nil {
+					log.Error(err)
+				}
 			}
 
 		}

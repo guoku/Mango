@@ -72,6 +72,7 @@ func GetShopid(shoplink string) (string, error) {
 	if len(shopIds) < 2 {
 		err = errors.New("no shopid")
 		log.Error(err, shoplink)
+		return "", err
 	}
 	shopId := shopIds[1]
 	if shopId == "" {
