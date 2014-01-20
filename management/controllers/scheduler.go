@@ -76,10 +76,11 @@ func (this *ShopListController) Get() {
 		}
 	}
 	log.Info(sortOn)
-	results := make([]models.ShopItem, 0)
+	results := make([]*models.ShopItem, 0)
 	if sortCon != "" {
 		err = c.Find(query).Sort(sortCon).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
 		if err != nil {
+			log.Error(err)
 			this.Abort("500")
 			return
 		}
@@ -98,6 +99,19 @@ func (this *ShopListController) Get() {
 	}
 	total, _ := c.Find(query).Count()
 	paginator := models.NewSimplePaginator(int(page), total, NumInOnePage, this.Input())
+	for i, shop := range results {
+		if shop.ShopInfo == nil {
+			results = append(results[:i], results[i+1:]...)
+			continue
+		}
+		if shop.CrawlerInfo == nil {
+			shop.CrawlerInfo = &models.CrawlerInfo{Priority: 10, Cycle: 720}
+		}
+		if shop.ExtendedInfo == nil {
+			log.Info(shop.ShopInfo)
+			shop.ExtendedInfo = &models.TaobaoShopExtendedInfo{Type: strings.TrimSpace((*shop).ShopInfo.ShopType), Orientational: false, CommissionRate: -1}
+		}
+	}
 	this.Data["ShopList"] = results
 	this.Data["Paginator"] = paginator
 	this.Data["SortOn"] = sortOn
