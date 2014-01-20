@@ -63,7 +63,6 @@ func sync(t int64, offset int) {
 		link := fmt.Sprintf("http://114.113.154.47:8000/management/selection/sync?count=%d&offset=%d", count, offset)
 		resp, err := http.Get(link)
 		if err != nil {
-			resp.Body.Close()
 			log.Error(err)
 			time.Sleep(10 * time.Second)
 			//continue
