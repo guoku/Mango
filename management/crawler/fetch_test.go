@@ -95,13 +95,9 @@ func TestFetchWithouttype(t *testing.T) {
 
 func TestFetchWeb(t *testing.T) {
 	//	FetchWeb("http://detail.tmall.com/item.htm?id=19864856561")
-	Fetch("35940684948", "tmall.com")
-	resp, _ := http.Get("http://item.taobao.com/item.htm?&id=16356882686")
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(err)
-		t.Fatal(err)
-	}
-	_, err = ParseWebFontTaobao(string(body))
+	//	Fetch("35940684948", "tmall.com")
+	font, _, err := FetchWeb("35940684948", "taobao.com")
+	info, err := ParseWebFontTaobao(font)
 	log.Error(err)
+	log.Infof("%+v", info)
 }

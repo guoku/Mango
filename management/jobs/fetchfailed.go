@@ -24,6 +24,7 @@ const (
 var mgoShop *mgo.Collection = utils.MongoInit(MGOHOST, MANGO, "taobao_shops_depot")
 
 func main() {
+	log.SetOutputLevel(log.Lerror)
 	var t int
 	flag.IntVar(&t, "t", 1, "启动线程的数量，默认为1")
 	flag.Parse()
@@ -34,7 +35,6 @@ func main() {
 
 func run(t int) {
 	var allowchan chan bool = make(chan bool, t)
-	log.SetOutputLevel(log.Ldebug)
 	mgopages := utils.MongoInit(MGOHOST, MGODB, "pages")
 	mgofailed := utils.MongoInit(MGOHOST, MGODB, "failed")
 	mgoMango := utils.MongoInit(MGOHOST, MANGO, "taobao_items_depot")
@@ -55,6 +55,8 @@ func run(t int) {
 			}
 			page, detail, instock, err, isWeb := crawler.FetchItem(failed.ItemId, failed.ShopType)
 			if err != nil {
+				log.Error(err)
+
 				if instock {
 					crawler.SaveFailed(failed.ItemId, failed.ShopId, failed.ShopType, mgofailed)
 				} else {

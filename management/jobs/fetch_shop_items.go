@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	log.SetOutputLevel(log.Lerror)
 	for {
 		GetItems()
 		time.Sleep(2 * time.Minute)

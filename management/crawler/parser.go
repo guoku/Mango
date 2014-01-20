@@ -37,7 +37,9 @@ func ParsePage(font, detail, itemid, shopid, shoptype string) (info *Info, insto
 			return
 		} else {
 			//只是解析错误，出现了新情况，暂时不管先
+			log.Error("解析错误", itemid)
 			log.Error(err)
+
 			return
 		}
 	} else {
@@ -53,6 +55,8 @@ func ParseWeb(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info
 	if shoptype == "taobao.com" {
 		info, err = ParseWebFontTaobao(fontpage)
 		if err != nil {
+			log.Error(err)
+			log.Error("解析错误", itemid)
 			return
 		}
 	} else {
@@ -61,22 +65,26 @@ func ParseWeb(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info
 		if err != nil {
 			info, err = ParseWebFontTaobao(fontpage)
 			if err != nil {
+				log.Error(err)
+				log.Error("解析错误", itemid)
 				return
 			}
 
 		}
 	}
-	detail, err := parsedetail(detailpage)
-	if err != nil {
-		log.Error(err)
-		return
-	}
+	/*
+		detail, err := parsedetail(detailpage)
+		if err != nil {
+			log.Error(err)
+			log.Error("解析detail页面出错", itemid)
+			return
+		}
+	*/
 	sid, _ := strconv.Atoi(shopid)
 	info.Sid = sid
 	iid, _ := strconv.Atoi(itemid)
 	info.ItemId = iid
 	info.ShopType = shoptype
-	info.Attr = detail.Attr
 	info.UpdateTime = time.Now().Unix()
 	return
 }
@@ -87,15 +95,17 @@ func Parse(fontpage, detailpage, itemid, shopid, shoptype string) (info *Info, m
 	info = new(Info)
 	missing = false
 	if err != nil {
-		log.Info(err.Error())
 		if err.Error() == "missing" {
 			//抓取的页面属于屏蔽的页面
 			missing = true
 		}
+		log.Error(err, itemid)
+
 		return
 	}
 	detail, err := parsedetail(detailpage)
 	if err != nil {
+		log.Error("解析详情页出错", itemid)
 		log.Error(err)
 		return
 	}
@@ -145,6 +155,8 @@ func parsefontpage(html string) (*Info, error) {
 	}
 	if len(titletag) < 18 {
 		err := errors.New("index out of range")
+		log.Error(err)
+		log.Error(titletag)
 		return info, err
 	}
 	desc := titletag[0 : len(titletag)-18]
@@ -168,6 +180,8 @@ func parsefontpage(html string) (*Info, error) {
 		cid := re.FindAllString(cidurl, -1)[0]
 		c, err := strconv.Atoi(cid)
 		if err != nil {
+			log.Error(err)
+			log.Error(desc)
 			return info, err
 		}
 		info.Cid = c
@@ -243,6 +257,8 @@ func parsefontpage(html string) (*Info, error) {
 				prom := proms[0]
 				p, err := strconv.ParseFloat(prom, 64)
 				if err != nil {
+					log.Error(err)
+					log.Error(desc)
 					return info, err
 				}
 				info.Promprice = p
@@ -488,6 +504,13 @@ func ParseWebFontTmall(fonthtml string) (*Info, error) {
 	rtsub := rt[0 : len(rt)-12]
 	title = string(rtsub)
 	log.Info(title)
+	attrs := make(map[string]string)
+	doc.Find("div.attributes div ul#J_AttrUL li").Each(func(i int, sq *goquery.Selection) {
+		att := sq.Text()
+		att = strings.TrimSpace(att)
+		kv := strings.Split(att, ":")
+		attrs[kv[0]] = kv[1]
+	})
 	data := Info{
 		Title:     title,
 		Nick:      nick,
@@ -497,6 +520,7 @@ func ParseWebFontTmall(fonthtml string) (*Info, error) {
 		ShopType:  "tmall.com",
 		Imgs:      imgs,
 		InStock:   isOnline,
+		Attr:      attrs,
 	}
 	return &data, nil
 
@@ -578,6 +602,16 @@ func ParseWebFontTaobao(fonthtml string) (*Info, error) {
 	}
 	log.Info(isonline.Text())
 	log.Info("is online ", online)
+	attrs := make(map[string]string)
+	doc.Find("div.attributes ul li").Each(func(i int, sq *goquery.Selection) {
+		att := sq.Text()
+		att = strings.TrimSpace(att)
+		kv := strings.Split(att, ":")
+		if len(kv) < 2 {
+			return
+		}
+		attrs[kv[0]] = kv[1]
+	})
 	data := Info{
 		Title:     title,
 		Nick:      nick,
@@ -587,6 +621,7 @@ func ParseWebFontTaobao(fonthtml string) (*Info, error) {
 		ShopType:  "taobao.com",
 		Imgs:      imgs,
 		InStock:   online,
+		Attr:      attrs,
 	}
 	return &data, nil
 }

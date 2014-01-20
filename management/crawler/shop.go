@@ -67,7 +67,14 @@ func GetShopid(shoplink string) (string, error) {
 		return "", err
 	}
 	re = regexp.MustCompile("shopId=(?P<id>\\d+)")
-	shopId := re.FindStringSubmatch(string(html))[1]
+
+	shopIds := re.FindStringSubmatch(string(html))
+	if len(shopIds) < 2 {
+		err = errors.New("no shopid")
+		log.Error(err, shoplink)
+		return "", err
+	}
+	shopId := shopIds[1]
 	if shopId == "" {
 		err = errors.New("no shopid")
 	}

@@ -4,7 +4,6 @@ import (
 	"Mango/management/crawler"
 	"Mango/management/utils"
 	"flag"
-	"fmt"
 	"github.com/qiniu/log"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -22,6 +21,7 @@ const (
 )
 
 func main() {
+	log.SetOutputLevel(log.Lerror)
 	var t int
 	flag.IntVar(&t, "t", 1, "启动多少个线程,默认为1")
 	flag.Parse()
@@ -96,7 +96,7 @@ func FetchTaobaoItem(threadnum int) {
 						} else {
 							//保存解析结果到mongo
 							err := crawler.Save(info, mgoMango)
-							fmt.Printf("%+v", info)
+							log.Infof("%+v", info)
 							parsed := false
 							if err != nil {
 								log.Error(err)

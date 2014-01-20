@@ -91,6 +91,7 @@ type TaobaoItemStd struct {
 	GroupId          int               `bson:"group_id"`
 	Refreshed        bool              `bson:"refreshed"` //对一个商品再次抓取后，设置为false，上传后设为true
 	RefreshTime      time.Time         `bson:"refresh_time"`
+	DetailUrl        string            `bson:"detail_url"`
 }
 
 type TaobaoProp struct {

@@ -12,7 +12,7 @@ import (
 )
 
 func TestGetUserid(t *testing.T) {
-	//t.SkipNow()
+	t.SkipNow()
 	userId, err := GetUserid("http://shop33634329.taobao.com")
 	if err != nil {
 		t.Fatal(err)
