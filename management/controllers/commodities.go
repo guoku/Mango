@@ -266,3 +266,21 @@ func (this *AddMatchedCategoryController) Post() {
 	cc.Update(bson.M{"item_cat.cid": tcid}, bson.M{"$set": bson.M{"matched_guoku_cid": gcid}})
 	this.Redirect("/commodity/category_manage/", 302)
 }
+
+
+type ItemGroupIndexController struct {
+    CommodityController
+}
+
+func (this *ItemGroupIndexController) Get() {
+    gc := MgoSession.DB(MgoDbName).C("item_group")
+    groups := make([]models.ItemGroup, 0)
+    gc.Find(nil).All(&groups)
+    
+}
+
+type ItemGroupDetailController struct {
+}
+
+func (this *ItemGroupDetailController) Get() {
+}

@@ -126,5 +126,5 @@ func sliceToString(text []string) string {
 		return strings.TrimSpace(repl)
 	}
 	result = re.ReplaceAllStringFunc(result, repfunc)
-	return result
+	return strings.TrimSpace(result)
 }

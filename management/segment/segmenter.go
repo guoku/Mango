@@ -5,11 +5,11 @@ import (
 	"Mango/management/models"
 	"Mango/management/utils"
 	"github.com/jason-zou/sego"
-	"github.com/qiniu/log"
+	//"github.com/qiniu/log"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	"path"
-	"runtime"
+	//"path"
+	//"runtime"
 	"strings"
 )
 
@@ -19,13 +19,13 @@ type GuokuSegmenter struct {
 
 func (seg *GuokuSegmenter) LoadDictionary() bool {
 	//fmt.Println(os.Chdir("/home/jasonz/gocode/src/Mango/management"))
-	_, file, _, _ := runtime.Caller(0)
+	/*_, file, _, _ := runtime.Caller(0)
 	curdir, _ := path.Split(file)
 	log.Info(curdir)
 	diccur := path.Join(curdir, "../dictionary/dictionary.txt")
 	log.Info("diccur", diccur)
 	//seg.seg.LoadDictionary("dictionary/dictionary.txt")
-	seg.seg.LoadDictionary(diccur)
+	seg.seg.LoadDictionary(diccur)*/
 	sess, err := mgo.Dial("10.0.1.23")
 	if err != nil {
 		return false

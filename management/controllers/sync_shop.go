@@ -48,7 +48,7 @@ func (this *SyncShopController) Get() {
 		query["shop_info.updated_time"] = bson.M{"$gte": t}
 	}
 	shops := make([]*models.ShopItem, count)
-	mgoc := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+	mgoc := MgoSession.DB(MgoDbName).C("taobao_shop")
 	err = mgoc.Find(query).Limit(count).Skip(offset).All(&shops)
 	if err != nil {
 		log.Error(err)
@@ -69,7 +69,7 @@ func (this *SyncShopController) Post() {
 		this.Ctx.WriteString("data is wrong")
 	}
 	sid := shop.ShopInfo.Sid
-	mgoc := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+	mgoc := MgoSession.DB(MgoDbName).C("taobao_shop")
 	_, err := mgoc.Upsert(bson.M{"shop_info.sid": sid}, bson.M{"$set": shop})
 	if err != nil {
 		log.Error(err)
