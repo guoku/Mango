@@ -232,6 +232,11 @@ func (this *TaobaoShopDetailController) Get() {
 	}
 	log.Info(shop.ExtendedInfo.Type)
 	this.Data["Paginator"] = models.NewSimplePaginator(int(page), total, NumInOnePage, this.Input())
+	for _, item := range results {
+		if item.DetailUrl == "" {
+			item.DetailUrl = fmt.Sprintf("http://item.taobao.com/item.htm?id=%d", item.NumIid)
+		}
+	}
 	this.Data["ItemList"] = results
 	this.Data["Priorities"] = Priorities
 	this.Data["TaobaoShopTypes"] = TaobaoShopTypes
@@ -257,6 +262,10 @@ func (this *TaobaoItemDetailController) Get() {
 		this.Abort("500")
 		return
 	}
+	if result.DetailUrl == "" {
+		result.DetailUrl = fmt.Sprintf("http://item.taobao.com/item.htm?id=%d", result.NumIid)
+	}
+
 	this.Data["Item"] = result
 	this.Layout = DefaultLayoutFile
 	this.TplNames = "taobao_item_detail.tpl"

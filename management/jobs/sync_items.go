@@ -244,21 +244,22 @@ func uploadRefreshItems() {
 }
 func main() {
 	runtime.GOMAXPROCS(4)
-	log.SetOutputLevel(log.Lerror)
-	go func() {
-		for {
-			syncOnlineItems()
-			time.Sleep(time.Hour)
-		}
-	}()
+	//log.SetOutputLevel(log.Lerror)
+	/*
+		go func() {
+			for {
+				syncOnlineItems()
+				time.Sleep(time.Hour)
+			}
+		}()
 
-	go func() {
-		for {
-			uploadOfflineItems()
-			time.Sleep(time.Hour)
-		}
-	}()
-
+		go func() {
+			for {
+				uploadOfflineItems()
+				time.Sleep(time.Hour)
+			}
+		}()
+	*/
 	go func() {
 		for {
 			uploadRefreshItems()
