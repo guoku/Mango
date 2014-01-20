@@ -75,6 +75,7 @@ func (this *ShopListController) Get() {
 			sortCon = ""
 		}
 	}
+	log.Info(sortOn)
 	results := make([]models.ShopItem, 0)
 	if sortCon != "" {
 		err = c.Find(query).Sort(sortCon).Skip(int((page - 1) * NumInOnePage)).Limit(NumInOnePage).All(&results)
@@ -158,6 +159,10 @@ func updateShopItem(shopInfo *rest.Shop) bool {
 	c.Find(bson.M{"shop_info.sid": shopInfo.Sid}).One(&result)
 	result.ShopInfo = shopInfo
 	result.LastUpdatedTime = time.Now()
+	if result.ExtendedInfo == nil {
+		extend := new(models.TaobaoShopExtendedInfo)
+		result.ExtendedInfo = extend
+	}
 	if result.ExtendedInfo.Type == "taobao.com" || result.ExtendedInfo.Type == "unknown" {
 		//防止把全球购的信息给覆盖了
 		result.ExtendedInfo.Type = strings.TrimSpace(shopInfo.ShopType)
