@@ -51,7 +51,7 @@ type ShopListController struct {
 }
 
 func (this *ShopListController) Get() {
-	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+	c := MgoSession.DB(MgoDbName).C("taobao_shop")
 	page, err := this.GetInt("p")
 	if err != nil {
 		page = 1
@@ -131,7 +131,7 @@ func addShopItem(shopInfo *rest.Shop) bool {
 	shopLock.Lock()
 	defer shopLock.Unlock()
 	result := models.ShopItem{}
-	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+	c := MgoSession.DB(MgoDbName).C("taobao_shop")
 	c.Find(bson.M{"shop_info.sid": shopInfo.Sid}).One(&result)
 	if result.ShopInfo != nil {
 		return false
@@ -154,7 +154,7 @@ func updateShopItem(shopInfo *rest.Shop) bool {
 	shopLock.Lock()
 	defer shopLock.Unlock()
 	result := models.ShopItem{}
-	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+	c := MgoSession.DB(MgoDbName).C("taobao_shop")
 	c.Find(bson.M{"shop_info.sid": shopInfo.Sid}).One(&result)
 	result.ShopInfo = shopInfo
 	result.LastUpdatedTime = time.Now()
@@ -185,7 +185,7 @@ func (this *TaobaoShopDetailController) Get() {
 		this.Abort("404")
 		return
 	}
-	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+	c := MgoSession.DB(MgoDbName).C("taobao_shop")
 	shop := models.ShopItem{}
 	err = c.Find(bson.M{"shop_info.sid": sid}).One(&shop)
 	if err != nil || shop.ShopInfo == nil {
@@ -337,7 +337,7 @@ func (this *SendItemsController) Post() {
 	}
 	finish, _ := this.GetInt("finish")
 	if finish == 1 {
-		c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+		c := MgoSession.DB(MgoDbName).C("taobao_shop")
 		c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"status": "finished"}})
 		t := MgoSession.DB("test").C("status")
 		t.Update(bson.M{"_id": 1}, bson.M{"$set": bson.M{"timestamp": time.Now()}})
@@ -406,7 +406,7 @@ type GetShopFromQueueController struct {
 }
 
 func (this *GetShopFromQueueController) Get() {
-	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+	c := MgoSession.DB(MgoDbName).C("taobao_shop")
 	result := models.ShopItem{}
 	c.Find(bson.M{"status": "queued"}).Sort("crawler_info.priority", "last_crawled_time").One(&result)
 	if result.ShopInfo == nil {
@@ -450,7 +450,7 @@ func (this *UpdateTaobaoShopController) Post() {
 	extended_info := &models.TaobaoShopExtendedInfo{Type: shop_type, Orientational: orientational, CommissionRate: float32(commission_rate),
 		SingleTail: single_tail, Original: original, Gifts: gifts, Commission: commission}
 	crawler_info := &models.CrawlerInfo{Priority: int(priority), Cycle: int(cycle)}
-	c := MgoSession.DB(MgoDbName).C("taobao_shops_depot")
+	c := MgoSession.DB(MgoDbName).C("taobao_shop")
 	err := c.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"extended_info": extended_info, "crawler_info": crawler_info, "shop_info.main_products": main_products, "shop_info.updated_time": time.Now(), "last_updated_time": time.Now()}})
 	if err != nil {
 		this.Abort("404")
