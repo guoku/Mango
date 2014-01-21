@@ -510,7 +510,7 @@ func ParseWebFontTmall(fonthtml string) (*Info, error) {
         att = strings.TrimSpace(att)
         kv := strings.Split(att, ":")
         if len(kv) < 2 {
-            continue
+            return
         }
         attrs[kv[0]] = kv[1]
     })
