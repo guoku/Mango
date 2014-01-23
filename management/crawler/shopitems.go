@@ -44,6 +44,7 @@ func GetShopItems(shoplink string) ([]string, error) {
         if alllink.Length() < 2 {
             log.Error(shoplink)
             err = errors.New("超链接提取出错")
+            //出现这种情况一般是店铺不存在了
             return nil, err
         }
         linktag := alllink.Eq(1)

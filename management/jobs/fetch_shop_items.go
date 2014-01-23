@@ -62,5 +62,6 @@ func GetItems() {
         log.Info(cg.Updated)
         log.Info("shopid", sid)
         mgoShop.Update(bson.M{"shop_info.sid": sid}, bson.M{"$set": bson.M{"status": "crawling"}})
+
     }
 }
