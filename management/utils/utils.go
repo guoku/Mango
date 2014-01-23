@@ -104,7 +104,11 @@ func GetUploadItemParams(item *models.TaobaoItemStd, params *url.Values, matched
     } else {
         params.Add("taobao_price", fmt.Sprintf("%f", item.Price))
     }
-    params.Add("is_instock", item.InStock)
+    if item.InStock {
+        params.Add("taobao_soldout", 0)
+    } else {
+        params.Add("taobao_soldout", 1)
+    }
     itemImgs := item.ItemImgs
     if itemImgs != nil && len(itemImgs) > 0 {
         params.Add("chief_image_url", itemImgs[0])
