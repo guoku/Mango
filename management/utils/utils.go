@@ -100,9 +100,9 @@ func GetUploadItemParams(item *models.TaobaoItemStd, params *url.Values, matched
     params.Add("taobao_title", item.Title)
     params.Add("taobao_shop_nick", item.Nick)
     if item.PromotionPrice > 0.0 {
-        params.Add("taobao_price", fmt.Sprint("%f", item.PromotionPrice))
+        params.Add("taobao_price", fmt.Sprint("%f", float64(item.PromotionPrice)))
     } else {
-        params.Add("taobao_price", fmt.Sprintf("%f", item.Price))
+        params.Add("taobao_price", fmt.Sprintf("%f", float64(item.Price)))
     }
     if item.InStock {
         params.Add("taobao_soldout", "0")
