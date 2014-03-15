@@ -136,12 +136,13 @@ type CreateItemsResp struct {
     Status   string `json:"status"`
 }
 
-func uploadOfflineItems() {
+func uploadOfflineItems() int {
     log.Info("start to uploadOfflineItems")
     cc := utils.MongoInit(MGOHOST, MANGO, "taobao_cats")
     ic := mgoMango
     readyCats := make([]models.TaobaoItemCat, 0)
     cc.Find(bson.M{"matched_guoku_cid": bson.M{"$gt": 0}}).All(&readyCats)
+    uploadCount := 0
     for _, v := range readyCats {
         log.Info("start", v.ItemCat.Cid)
         items := make([]models.TaobaoItemStd, 0)
@@ -173,28 +174,33 @@ func uploadOfflineItems() {
             //fmt.Printf("%x", body)
             log.Info(r)
             if r.Status == "success" {
+                uploadCount += 1
                 log.Info("status success")
                 err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId, "uploaded": true}})
                 if err != nil {
-                    log.Info(err.Error())
+                    log.Error(r.EntityId)
+                    log.Error(err.Error())
                 }
             } else if r.ItemId != "" {
                 log.Info("itemid is none")
                 err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId, "uploaded": false}})
                 if err != nil {
-                    log.Info(err.Error())
+                    log.Error(err.Error())
                 }
             }
         }
     }
+
+    return uploadCount
 }
 
-func uploadRefreshItems() {
+func uploadRefreshItems() int {
     log.Info("start to uploadRefreshItems")
     cc := utils.MongoInit(MGOHOST, MANGO, "taobao_cats")
     ic := mgoMango
     readyCats := make([]models.TaobaoItemCat, 0)
     cc.Find(bson.M{"matched_guoku_cid": bson.M{"$gt": 0}}).All(&readyCats)
+    uploadCount := 0
     for _, v := range readyCats {
         log.Info("start", v.ItemCat.Cid)
         items := make([]models.TaobaoItemStd, 0)
@@ -227,8 +233,10 @@ func uploadRefreshItems() {
             log.Info(r.Status)
             if r.Status == "success" || r.Status == "updated" {
                 log.Info("status success")
+                uploadCount += 1
                 err = ic.Update(bson.M{"num_iid": items[j].NumIid}, bson.M{"$set": bson.M{"item_id": r.ItemId, "refreshed": true, "refresh_time": time.Now()}})
                 if err != nil {
+                    log.Error(r.EntityId)
                     log.Error(err)
                     log.Info(err.Error())
                 }
@@ -241,6 +249,8 @@ func uploadRefreshItems() {
             }
         }
     }
+
+    return uploadCount
 }
 func main() {
     runtime.GOMAXPROCS(4)
@@ -255,14 +265,16 @@ func main() {
 
     go func() {
         for {
-            uploadOfflineItems()
+            count := uploadOfflineItems()
+            log.Errorf("%s 上传了 %d 新爬取商品", time.Now(), count)
             time.Sleep(time.Hour)
         }
     }()
 
     go func() {
         for {
-            uploadRefreshItems()
+            count := uploadRefreshItems()
+            log.Errorf("%s 上传了 %d 更新商品", time.Now(), count)
             time.Sleep(time.Hour)
         }
     }()
