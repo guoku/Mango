@@ -61,6 +61,8 @@ func FetchTaobaoItem(threadnum int) {
         if err != nil {
             log.Errorf("判断是否为天猫商品失败，itemid %s", items[0])
             log.Error(err)
+            sid, _ := strconv.Atoi(shopid)
+            mgominer.Update(bson.M{"shop_id": sid}, bson.M{"$set": bson.M{"state": "fetched", "date": time.Now()}})
             continue
         }
         if istmall {

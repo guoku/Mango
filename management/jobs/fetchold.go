@@ -55,6 +55,8 @@ func FetchTaobaoItem(threadnum int) {
         istmall, err := crawler.IsTmall(items[0])
         if err != nil {
             log.Error(err)
+            sid, _ := strconv.Atoi(shopid)
+            mgominer.Update(bson.M{"shop_id": sid}, bson.M{"$set": bson.M{"state": "fetched", "date": time.Now()}})
             continue
         }
         if istmall {
