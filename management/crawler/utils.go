@@ -39,7 +39,7 @@ func getTransport() (transport *http.Transport) {
 func IsTmall(itemid string) (bool, error) {
     url := "http://a.m.taobao.com/i" + itemid + ".htm"
     request, _ := http.NewRequest("GET", url, nil)
-    transport := getTransport()
+    //transport := getTransport()
     client := &http.Client{}
     resp, err := client.Do(request)
     if err != nil {
