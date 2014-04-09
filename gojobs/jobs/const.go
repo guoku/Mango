@@ -1,6 +1,7 @@
 package jobs
 
 const (
-    START = "start"
-    STOP  = "stop"
+    START    = "start"
+    STOP     = "stop"
+    FETCHNEW = "jobs:fetchnew"
 )

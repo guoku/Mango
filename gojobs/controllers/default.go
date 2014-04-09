@@ -1,15 +1,34 @@
 package controllers
 
 import (
-	"github.com/astaxie/beego"
+    "Mango/gojobs/rpc"
+    "github.com/astaxie/beego"
 )
 
 type MainController struct {
-	beego.Controller
+    beego.Controller
+}
+
+type ServiceInfo struct {
+    Name  string
+    Statu string
 }
 
 func (this *MainController) Get() {
-	this.Data["Website"] = "beego.me"
-	this.Data["Email"] = "astaxie@gmail.com"
-	this.TplNames = "index.tpl"
+    service := []*ServiceInfo{}
+    for k, v := range rpc.RegistedService {
+        info := new(ServiceInfo)
+        info.Name = k
+        var result string
+        v.Statu("", &result)
+        if result == "已经启动" {
+            info.Statu = "started"
+        } else {
+            info.Statu = "stoped"
+        }
+        service = append(service, info)
+    }
+    this.Data["serviceInfo"] = service
+    this.Layout = "layout.html"
+    this.TplNames = "index.tpl"
 }

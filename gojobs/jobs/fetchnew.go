@@ -3,11 +3,12 @@ package jobs
 import (
     "Mango/gojobs/crawler"
     "Mango/gojobs/log"
+    "fmt"
     "github.com/astaxie/beego"
+    "github.com/xuyu/goredis"
     "labix.org/v2/mgo"
     "labix.org/v2/mgo/bson"
     "strconv"
-    "sync"
     "time"
 )
 
@@ -26,6 +27,8 @@ var (
 
     TAOBAO string = "taobao.com"
     TMALL  string = "tmall.com"
+
+    REDIS_CLIENT *goredis.Redis
 )
 
 func init() {
@@ -38,47 +41,91 @@ func init() {
     PAGES = beego.AppConfig.String("zerg::pages")
     FAILED = beego.AppConfig.String("zerg::failed")
     MINERALS = beego.AppConfig.String("zerg::minerals")
+    var err error
+    THREADNUM, err = beego.AppConfig.Int("fetchnew::threadnum")
+    if err != nil {
+        log.Error(err)
+        THREADNUM = 1
+    }
 
-    THREADNUM, _ = beego.AppConfig.Int("fetchnew:threadnum")
+    redis_server := beego.AppConfig.String("redis::server")
+    redis_port := beego.AppConfig.String("redis::port")
+    REDIS_CLIENT, err = goredis.Dial(&goredis.DialConfig{Address: fmt.Sprintf("%s:%s", redis_server, redis_port)})
+    if err != nil {
+        panic(err)
+    }
+
+}
+
+func sadd(key, value string) {
+    _, err := REDIS_CLIENT.SAdd(key, value)
+    if err != nil {
+        log.ErrorfType("redis err", "%s", err.Error())
+    }
+    num, err := REDIS_CLIENT.SCard(key)
+    if err != nil {
+        log.ErrorfType("redis err", "%s", err.Error())
+        return
+    }
+    if num == 1 {
+        REDIS_CLIENT.PExpire(key, 24*3600*1000) //设置过期时间为一天
+    }
 }
 
 type FetchNew struct {
     start bool
 }
 
-func (f *FetchNew) Start(arg interface{}, result *string) error {
-    if arg.(string) == START {
+func (f *FetchNew) Start(arg string, result *string) error {
+    if arg == START {
         if f.start {
             *result = "已经启动"
             return nil
         }
         *result = "开始启动"
         f.start = true
-        go f.Run()
+        //这里rpc相当奇怪，根据http://golang.org/src/pkg/net/rpc/server.go
+        //这个文件286行的方法，要求rpc方法有两个参数，第一个不能为指针
+        //第二个必须为指针，必须有一个接收者（这里是FetchNew),必须有一个返回值
+        //但是为什么Run也需要达到这个要求呢?否则就报错
+        //看了源代码发现，所有public方法，都必须按照这个要求，但是私有方法则不需要
+        go f.run()
     }
 
     return nil
 }
 
-func (f *FetchNew) Stop(arg interface{}, result *string) error {
-    if arg.(string) == STOP {
+func (f *FetchNew) Stop(arg string, result *string) error {
+    if arg == STOP {
         f.start = false
         *result = "已经停止运行"
     }
     return nil
 }
 
-func (f *FetchNew) Run() {
+func (f *FetchNew) Statu(arg string, result *string) error {
+    if f.start {
+        *result = "已经启动"
+    } else {
+        *result = "已经停止"
+    }
+    return nil
+}
+
+func (f *FetchNew) run() error {
+
     defer func() {
+        fmt.Println("\n\n running over \n\n")
         f.start = false
     }()
     for {
         if f.start == false {
-            return
+            return nil
         }
 
         FetchTaobaoItem(THREADNUM)
     }
+    return nil
 }
 
 func FetchTaobaoItem(threadnum int) {
@@ -91,7 +138,10 @@ func FetchTaobaoItem(threadnum int) {
     var shops []*crawler.ShopItem
     mgominer.Find(bson.M{"state": "posted"}).Sort("-date").Limit(10).All(&shops)
     log.Infof("shop length is %d", len(shops))
-
+    if len(shops) == 0 {
+        fmt.Println("睡眠一个小时")
+        time.Sleep(time.Hour * 1)
+    }
     for _, shopitem := range shops {
         var allowchan chan bool = make(chan bool, threadnum)
         log.Infof("start to fetch %d", shopitem.Shop_id)
@@ -114,15 +164,12 @@ func FetchTaobaoItem(threadnum int) {
             shoptype = TMALL
         }
 
-        var wg sync.WaitGroup
         for _, itemid := range items {
             allowchan <- true
-            wg.Add(1)
-            go fetch(itemid, shopid, shoptype, mgofailed, item_depot, mgopages, wg, allowchan)
+            go fetch(itemid, shopid, shoptype, mgofailed, item_depot, mgopages, allowchan)
         }
-        wg.Wait()
         close(allowchan)
-        updateshop(shopitem.Shop_id, mgominer, mgoshop)
+        updateshop(shopitem.Shop_id, mgominer, shop_depot)
     }
 }
 
@@ -134,14 +181,18 @@ func updateshop(shopid int, mgominer, mgoshop *mgo.Collection) {
         log.Errorf("update minerals state error, shopid is %d , err is %s",
             shopid, err.Error())
     }
-    err = mgoshop.Update(bson.M{"shop_info.sid"})
+    err = mgoshop.Update(bson.M{"shop_info.sid": shopid}, bson.M{"$set": bson.M{"status": "finished"}})
+    if err != nil {
+        log.Errorf("update shop err, shop id is %d, err is %s", shopid, err.Error())
+    }
 }
 func fetch(itemid, shopid, shoptype string,
     mgofailed, item_depot, mgopages *mgo.Collection,
-    wg sync.WaitGroup,
     allowchan chan bool) {
-    defer wg.Done()
-    defer func() { <-allowchan }()
+    defer func() {
+        <-allowchan
+        fmt.Println("\n执行一次\n")
+    }()
     font, detail, instock, err, isWeb := crawler.FetchItem(itemid, shoptype)
     if err != nil {
         log.Errorf("抓取页面失败，itemid 是 %s, 错误为 %s", itemid, err.Error())
@@ -163,12 +214,15 @@ func fetch(itemid, shopid, shoptype string,
                 crawler.SaveFailed(itemid, shopid, shoptype, mgofailed)
                 return
             }
+            sadd(FETCHNEW, itemid)
+
         } else {
             info, instock, err := crawler.ParsePage(font, detail, itemid, shopid, shoptype)
             if err != nil {
                 if instock {
                     crawler.SaveSuccessed(itemid, shopid, shoptype,
                         font, detail, false, instock, mgopages)
+                    sadd(FETCHNEW, itemid)
                     return
                 }
             } else {
@@ -183,6 +237,7 @@ func fetch(itemid, shopid, shoptype string,
                 }
                 crawler.SaveSuccessed(itemid, shopid, shoptype,
                     font, detail, parsed, instock, mgopages)
+                sadd(FETCHNEW, itemid)
             }
         }
     }

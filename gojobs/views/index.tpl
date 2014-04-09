@@ -1,19 +1,29 @@
 {{ template "nav.tpl" . }}
 
 <div class="container-fluid">
-    <div class="span10">
-        <form class="form-search" method="POST" action="/start">
-            <input type="hidden" class="input-medium search-query" name="start" value=1>
-            <button type="submit" class="btn">启动</button>
-        </form>
-    </div>
-
-    <div class="span10">
-        <form class="form-search" method="POST" action="/end">
-            <input type="hidden" class="input-medium search-query" name="end" value=2>
-            <button type="submit" class="btn">停止</button>
-        </form>
-    </div>
+    <table class="table table-bordered table-striped">
+        <tr>
+            <th>Service Name</th>
+            <th>Statu</th>
+        </tr>
+        <tr>
+            {{ range .serviceInfo }}
+            <tr>
+                <td> {{ .Name }} </td>
+                <td>
+                <form method="POST" class="narrow-form update_form" margin-bottom="0px" action="/switcher/">
+                   <input class="service" type="hidden" name="serviceName" value="{{ .Name }}"/> 
+                {{ if compare .Statu "started" }}
+                   <button type="submit" class="btn">停止</button>
+                <input class="service" type="hidden" name="actionName" value="stop"/>
+                {{ else }}
+                    <input class="service" type="hidden" name="actionName" value="start"/>
+                    <button type="submit" class="btn">启动</button>
+                {{ end }}
+                </form>
+                </td>
+            </tr>
+            {{ end }}
+        </tr>
+    </table>
 </div>
-
-{{ template "paginator.tpl" .}}

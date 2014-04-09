@@ -1,24 +1,13 @@
 package tmp
 
 import (
+    "Mango/gojobs/jobs"
     "fmt"
     "net"
     "net/http"
     "net/rpc"
     "time"
 )
-
-func init() {
-    watcher := new(Watcher)
-    rpc.Register(watcher)
-    rpc.HandleHTTP()
-    ls, err := net.Listen("tcp", ":2301")
-    if err != nil {
-        panic(err)
-    }
-    fmt.Println("正在监听2301端口")
-    go http.Serve(ls, nil)
-}
 
 type Watcher struct {
     start bool
