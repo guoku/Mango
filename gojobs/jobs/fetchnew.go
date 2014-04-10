@@ -129,7 +129,6 @@ func fetch(itemid, shopid, shoptype string,
     allowchan chan bool) {
     defer func() {
         <-allowchan
-        fmt.Println("\n执行一次\n")
     }()
     font, detail, instock, err, isWeb := crawler.FetchItem(itemid, shoptype)
     if err != nil {
@@ -152,7 +151,7 @@ func fetch(itemid, shopid, shoptype string,
                 crawler.SaveFailed(itemid, shopid, shoptype, mgofailed)
                 return
             }
-            sadd(FETCHNEW, itemid)
+            SAdd(FETCHNEW, itemid)
 
         } else {
             info, instock, err := crawler.ParsePage(font, detail, itemid, shopid, shoptype)
@@ -160,7 +159,7 @@ func fetch(itemid, shopid, shoptype string,
                 if instock {
                     crawler.SaveSuccessed(itemid, shopid, shoptype,
                         font, detail, false, instock, mgopages)
-                    sadd(FETCHNEW, itemid)
+                    SAdd(FETCHNEW, itemid)
                     return
                 }
             } else {
@@ -175,7 +174,7 @@ func fetch(itemid, shopid, shoptype string,
                 }
                 crawler.SaveSuccessed(itemid, shopid, shoptype,
                     font, detail, parsed, instock, mgopages)
-                sadd(FETCHNEW, itemid)
+                SAdd(FETCHNEW, itemid)
             }
         }
     }

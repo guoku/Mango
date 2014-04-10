@@ -53,7 +53,9 @@ func init() {
 
 }
 
-func sadd(key, value string) {
+//每成功抓取一个商品，就放到redis的集合里面
+//便于统计每日成功量，过期时间为一天
+func SAdd(key, value string) {
     _, err := REDIS_CLIENT.SAdd(key, value)
     if err != nil {
         log.ErrorfType("redis err", "%s", err.Error())
@@ -68,6 +70,17 @@ func sadd(key, value string) {
     }
 }
 
+func SCard(key string) int64 {
+
+    num, err := REDIS_CLIENT.SCard(key)
+    if err != nil {
+        log.ErrorfType("redis err", "%s", err.Error())
+        return 0
+    } else {
+        return num
+    }
+
+}
 func MongoInit(host, db, collection string) *mgo.Collection {
     session, err := mgo.Dial(host)
     if err != nil {

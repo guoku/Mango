@@ -163,7 +163,7 @@ func Fetch(itemid string, shoptype string) (html string, detail string, err erro
             log.Info("当proxy不可达时，resp为空")
         }
         time.Sleep(1 * time.Second)
-        log.ErrorfType(HTTP_ERR, "%s is %s", itemid, err)
+        log.ErrorfType(HTTP_ERR, "商品 %s is %s", itemid, err)
         return
     }
     defer resp.Body.Close()

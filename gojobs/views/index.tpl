@@ -9,7 +9,7 @@
         <tr>
             {{ range .serviceInfo }}
             <tr>
-                <td> {{ .Name }} </td>
+                <td> <a href="/detail?serviceName={{ .Name }}">{{ .Name }}</a> </td>
                 <td>
                 <form method="POST" class="narrow-form update_form" margin-bottom="0px" action="/switcher/">
                    <input class="service" type="hidden" name="serviceName" value="{{ .Name }}"/> 

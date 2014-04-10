@@ -1,17 +1,20 @@
 package log
 
 import (
-    "database/sql"
     "fmt"
     "io"
     "os"
     "runtime"
+    "strconv"
     "strings"
     "sync"
     "time"
 
     "github.com/astaxie/beego"
+    "github.com/astaxie/beego/orm"
     _ "github.com/go-sql-driver/mysql"
+
+    "Mango/gojobs/models"
 )
 
 const (
@@ -42,25 +45,7 @@ func init() {
     }
     op := beego.AppConfig.String("log::output")
     if op == MYSQL {
-        mysqluser := beego.AppConfig.String("log::mysqluser")
-        mysqlpass := beego.AppConfig.String("log::mysqlpass")
-        mysqlurl := beego.AppConfig.String("log::mysqlurl")
-        mysqlport := beego.AppConfig.String("log::mysqlport")
-        mysqldb := beego.AppConfig.String("log::mysqldb")
-        mysqltable := beego.AppConfig.String("log::mysqltable")
-        db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8", mysqluser, mysqlpass, mysqlurl, mysqlport, mysqldb))
-        if err != nil {
-            panic(err)
-        }
-        err = db.Ping()
-        if err != nil {
-            panic(err)
-        }
-        stmt, err := db.Prepare(fmt.Sprintf("insert into %s(level, logtype, file, line,time, reason) values (?, ?, ?, ?, ?, ?)", mysqltable))
-        if err != nil {
-            panic(err)
-        }
-        Output = MysqlWriter{User: mysqluser, Password: mysqlpass, Url: mysqlurl, Port: mysqlport, DB: mysqldb, Table: mysqltable, stmt: stmt}
+        Output = MysqlWriter{}
         Std = New(Output, Level)
     } else {
         Std = New(os.Stderr, Level)
@@ -68,13 +53,6 @@ func init() {
 }
 
 type MysqlWriter struct {
-    User     string
-    Password string
-    Url      string
-    Port     string
-    DB       string
-    Table    string
-    stmt     *sql.Stmt
 }
 
 func (W MysqlWriter) Write(p []byte) (n int, err error) {
@@ -84,11 +62,15 @@ func (W MysqlWriter) Write(p []byte) (n int, err error) {
     logtype := sarray[1]
     file := sarray[2]
     line := sarray[3]
-    now := sarray[4]
+    lineNum, _ := strconv.Atoi(line)
+    now := time.Now()
     reason := sarray[5]
-    _, err = W.stmt.Exec(lvl, logtype, file, line, now, reason)
+    fmt.Println(reason, "reson")
+    o := orm.NewOrm()
+    clogs := models.CrawlerLogs{Level: lvl, LogType: logtype, File: file, Line: lineNum, Time: now, Reason: reason}
+    _, err = o.Insert(&clogs)
     if err != nil {
-        fmt.Println(err, " log.go")
+        return 0, err
     }
     return 1, err
 }
@@ -120,26 +102,26 @@ func (l *Logger) PrintOut(level int, logtype string, s string) error {
     return err
 }
 func Info(v ...interface{}) {
-    Std.PrintOut(Linfo, "", fmt.Sprintln(v...))
+    Std.PrintOut(Linfo, "unknown", fmt.Sprintln(v...))
 }
 
 func Error(v ...interface{}) {
-    Std.PrintOut(Lerror, "", fmt.Sprintln(v...))
+    Std.PrintOut(Lerror, "unknown", fmt.Sprintln(v...))
 }
 
 func Warn(v ...interface{}) {
-    Std.PrintOut(Lwarn, "", fmt.Sprintln(v...))
+    Std.PrintOut(Lwarn, "unknown", fmt.Sprintln(v...))
 }
 func Infof(format string, v ...interface{}) {
-    Std.PrintOut(Linfo, "", fmt.Sprintf(format, v...))
+    Std.PrintOut(Linfo, "unknown", fmt.Sprintf(format, v...))
 }
 
 func Errorf(format string, v ...interface{}) {
-    Std.PrintOut(Lerror, "", fmt.Sprintf(format, v...))
+    Std.PrintOut(Lerror, "unknown", fmt.Sprintf(format, v...))
 }
 
 func Warnf(format string, v ...interface{}) {
-    Std.PrintOut(Lwarn, "", fmt.Sprintf(format, v...))
+    Std.PrintOut(Lwarn, "unknown", fmt.Sprintf(format, v...))
 }
 
 //通过logtype，可以设置不同的log类型，比如http类型，文本处理异常类型

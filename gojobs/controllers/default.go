@@ -1,6 +1,7 @@
 package controllers
 
 import (
+    "Mango/gojobs/models"
     "Mango/gojobs/rpc"
     "github.com/astaxie/beego"
 )
@@ -12,6 +13,7 @@ type MainController struct {
 type ServiceInfo struct {
     Name  string
     Statu string
+    Count int
 }
 
 func (this *MainController) Get() {
@@ -29,6 +31,7 @@ func (this *MainController) Get() {
         service = append(service, info)
     }
     this.Data["serviceInfo"] = service
+    this.Data["Tab"] = &models.Tab{TabName: "Index"}
     this.Layout = "layout.html"
     this.TplNames = "index.tpl"
 }
