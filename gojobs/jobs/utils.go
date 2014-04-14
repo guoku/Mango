@@ -2,24 +2,28 @@ package jobs
 
 import (
     "Mango/gojobs/log"
+    "Mango/gojobs/models"
     "fmt"
     "github.com/astaxie/beego"
     "github.com/xuyu/goredis"
     "labix.org/v2/mgo"
+    "net/url"
+    "strconv"
+    "time"
 )
 
 var (
-    MGOHOST   string
-    THREADNUM int
+    MGOHOST string
 
     MANGO       string
     SHOPS_DEPOT string
     ITEMS_DEPOT string
 
-    ZERG     string
-    PAGES    string
-    FAILED   string
-    MINERALS string
+    ZERG        string
+    PAGES       string
+    FAILED      string
+    MINERALS    string
+    UPDATE_TIME string
 
     TAOBAO string = "taobao.com"
     TMALL  string = "tmall.com"
@@ -29,7 +33,9 @@ var (
 
 func init() {
     MGOHOST = beego.AppConfig.String("mongo::server")
+
     MANGO = beego.AppConfig.String("mango::mango")
+
     SHOPS_DEPOT = beego.AppConfig.String("mango::shops_depot")
     ITEMS_DEPOT = beego.AppConfig.String("mango::items_depot")
 
@@ -37,15 +43,10 @@ func init() {
     PAGES = beego.AppConfig.String("zerg::pages")
     FAILED = beego.AppConfig.String("zerg::failed")
     MINERALS = beego.AppConfig.String("zerg::minerals")
-    var err error
-    THREADNUM, err = beego.AppConfig.Int("fetchnew::threadnum")
-    if err != nil {
-        log.Error(err)
-        THREADNUM = 1
-    }
-
+    UPDATE_TIME = beego.AppConfig.String("zerg::time")
     redis_server := beego.AppConfig.String("redis::server")
     redis_port := beego.AppConfig.String("redis::port")
+    var err error
     REDIS_CLIENT, err = goredis.Dial(&goredis.DialConfig{Address: fmt.Sprintf("%s:%s", redis_server, redis_port)})
     if err != nil {
         panic(err)
@@ -55,17 +56,16 @@ func init() {
 
 //每成功抓取一个商品，就放到redis的集合里面
 //便于统计每日成功量，过期时间为一天
-func SAdd(key, value string) {
+func SAdd(key string, value string) {
     _, err := REDIS_CLIENT.SAdd(key, value)
     if err != nil {
         log.ErrorfType("redis err", "%s", err.Error())
     }
-    num, err := REDIS_CLIENT.SCard(key)
+    reply, err := REDIS_CLIENT.PTTL(key)
     if err != nil {
-        log.ErrorfType("redis err", "%s", err.Error())
-        return
+        fmt.Println(err)
     }
-    if num == 1 {
+    if reply <= 0 {
         REDIS_CLIENT.PExpire(key, 24*3600*1000) //设置过期时间为一天
     }
 }
@@ -84,8 +84,38 @@ func SCard(key string) int64 {
 func MongoInit(host, db, collection string) *mgo.Collection {
     session, err := mgo.Dial(host)
     if err != nil {
+        fmt.Println(err.Error())
+        fmt.Println(host)
+        fmt.Println(db, collection)
         log.Error(err)
+        time.Sleep(30 * time.Second)
         panic(err)
     }
     return session.DB(db).C(collection)
+}
+
+func GetUploadItemParams(item *models.TaobaoItemStd, params *url.Values, matchedGuokuCid int) {
+    params.Add("taobao_id", strconv.Itoa(item.NumIid))
+    params.Add("cid", strconv.Itoa(item.Cid))
+    params.Add("taobao_title", item.Title)
+    params.Add("taobao_shop_nick", item.Nick)
+    if item.PromotionPrice > 0.0 {
+        params.Add("taobao_price", fmt.Sprint("%f", float64(item.PromotionPrice)))
+    } else {
+        params.Add("taobao_price", fmt.Sprintf("%f", float64(item.Price)))
+    }
+    if item.InStock {
+        params.Add("taobao_soldout", "0")
+    } else {
+        params.Add("taobao_soldout", "1")
+    }
+
+    itemImgs := item.ItemImgs
+    if itemImgs != nil && len(itemImgs) > 0 {
+        params.Add("chief_image_url", itemImgs[0])
+        for i, _ := range itemImgs {
+            params.Add("image_url", itemImgs[i])
+        }
+    }
+    params.Add("category_id", strconv.Itoa(matchedGuokuCid))
 }

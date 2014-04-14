@@ -53,7 +53,7 @@ func (this *SwitcherController) Get() {
         if err != nil {
             panic(err)
         }
-        if result == "已经启动" {
+        if result == jobs.START_STATU {
             this.Data["status"] = true
 
         } else {

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+    "Mango/gojobs/jobs"
     "Mango/gojobs/models"
     "Mango/gojobs/rpc"
     "github.com/astaxie/beego"
@@ -23,7 +24,7 @@ func (this *MainController) Get() {
         info.Name = k
         var result string
         v.Statu("", &result)
-        if result == "已经启动" {
+        if result == jobs.START_STATU {
             info.Statu = "started"
         } else {
             info.Statu = "stoped"

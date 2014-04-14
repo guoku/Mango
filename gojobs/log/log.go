@@ -65,7 +65,6 @@ func (W MysqlWriter) Write(p []byte) (n int, err error) {
     lineNum, _ := strconv.Atoi(line)
     now := time.Now()
     reason := sarray[5]
-    fmt.Println(reason, "reson")
     o := orm.NewOrm()
     clogs := models.CrawlerLogs{Level: lvl, LogType: logtype, File: file, Line: lineNum, Time: now, Reason: reason}
     _, err = o.Insert(&clogs)

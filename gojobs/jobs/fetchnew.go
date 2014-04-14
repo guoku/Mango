@@ -4,6 +4,7 @@ import (
     "Mango/gojobs/crawler"
     "Mango/gojobs/log"
     "fmt"
+    "github.com/astaxie/beego"
     "labix.org/v2/mgo"
     "labix.org/v2/mgo/bson"
     "strconv"
@@ -11,13 +12,25 @@ import (
 )
 
 type FetchNew struct {
-    start bool
+    Base
 }
 
+var THREADNUM int
+
+func init() {
+    var err error
+    THREADNUM, err = beego.AppConfig.Int("fetchnew::threadnum")
+    if err != nil {
+        log.Error(err)
+        THREADNUM = 1
+    }
+}
+
+/*
 func (f *FetchNew) Start(arg string, result *string) error {
     if arg == START {
         if f.start {
-            *result = "已经启动"
+            *result = START_STATU
             return nil
         }
         *result = "开始启动"
@@ -36,34 +49,33 @@ func (f *FetchNew) Start(arg string, result *string) error {
 func (f *FetchNew) Stop(arg string, result *string) error {
     if arg == STOP {
         f.start = false
-        *result = "已经停止运行"
+        *result = STOP_STATU
     }
     return nil
 }
 
 func (f *FetchNew) Statu(arg string, result *string) error {
     if f.start {
-        *result = "已经启动"
+        *result = START_STATU
     } else {
-        *result = "已经停止"
+        *result = STOP_STATU
     }
     return nil
 }
-
-func (f *FetchNew) run() error {
+*/
+func (f *FetchNew) run() {
 
     defer func() {
-        fmt.Println("\n\n running over \n\n")
         f.start = false
     }()
     for {
         if f.start == false {
-            return nil
+            return
         }
 
         FetchTaobaoItem(THREADNUM)
     }
-    return nil
+    return
 }
 
 func FetchTaobaoItem(threadnum int) {

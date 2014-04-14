@@ -1,10 +1,10 @@
 package crawler
 
 import (
+    "Mango/gojobs/log"
     "bytes"
     "compress/zlib"
     "container/ring"
-    "github.com/qiniu/log"
     "math/rand"
     "net/http"
     "net/url"
