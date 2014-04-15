@@ -4,6 +4,7 @@ import (
     "Mango/gojobs/log"
     "Mango/gojobs/models"
     "encoding/json"
+    "fmt"
     "github.com/astaxie/beego"
     "io/ioutil"
     "labix.org/v2/mgo"
@@ -43,7 +44,7 @@ func syncRefresh() {
     }
 
     taobaoCats := session.DB(MANGO).C("taobao_cats")
-    itemDepot := MongoInit(MGOHOST, MANGO, ITEMS_DEPOT)
+    itemDepot := session.DB(MANGO).C(ITEMS_DEPOT)
 
     uploadLink := beego.AppConfig.String("syncnewitem::link")
     readyCats := make([]models.TaobaoItemCat, 0)
@@ -51,6 +52,10 @@ func syncRefresh() {
 
     for _, v := range readyCats {
         items := make([]models.TaobaoItemStd, 0)
+        /*
+           refreshed:true 表示这个商品之前上传过了，然后，爬虫再次更新了数据
+           所以需要再次上传
+        */
         itemDepot.Find(bson.M{"cid": v.ItemCat.Cid, "refreshed": true,
             "item_imgs.0": bson.M{"$exists": true},
             "score":       bson.M{"$gt": 2}}).Sort("-refresh_time").All(&items)
@@ -73,6 +78,7 @@ func syncRefresh() {
                 return
             }
             body, err := ioutil.ReadAll(resp.Body)
+            resp.Body.Close()
             if err != nil {
                 log.Error(err)
                 continue
@@ -84,11 +90,13 @@ func syncRefresh() {
             if r.Status == "success" || r.Status == "updated" {
                 SAdd("jobs:syncrefreshitem", items[i].ItemId)
                 err = itemDepot.Update(bson.M{"num_iid": items[i].NumIid},
-                    bson.M{"$set": bson.M{"item_id": r.ItemId, "refreshed": true,
+                    bson.M{"$set": bson.M{"item_id": r.ItemId, "refreshed": false,
                         "refresh_time": time.Now()}})
                 if err != nil {
+                    fmt.Println(items[i].NumIid)
+                    fmt.Println("%v", r)
                     log.Error(err)
-                    continue
+                    return
                 }
             } else if r.ItemId != "" {
                 err = itemDepot.Update(

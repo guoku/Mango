@@ -80,7 +80,7 @@ func syncShop() {
         return
     }
     mgoUpdateTime := session.DB(ZERG).C(UPDATE_TIME)
-    mgoShopDepot := MongoInit(MGOHOST, MANGO, SHOPS_DEPOT)
+    mgoShopDepot := session.DB(MANGO).C(SHOPS_DEPOT)
     utime := new(Uptime)
     mgoUpdateTime.Find(bson.M{"name": "last"}).One(&utime)
     date := utime.Last.Format("2006010203")
@@ -98,6 +98,7 @@ func syncShop() {
             return
         }
         body, err := ioutil.ReadAll(resp.Body)
+        resp.Body.Close()
         if err != nil {
             log.ErrorfType("http err", "%s", err.Error())
             return

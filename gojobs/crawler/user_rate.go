@@ -359,18 +359,17 @@ func ParseShop(userid string) (*rest.Shop, error) {
     serviceScore := new(rest.ShopService)
     serviceLink := fmt.Sprintf("http://rate.taobao.com/ShopService4C.htm?userNumId=%s", userid)
     resp, err = http.Get(serviceLink)
-    defer resp.Body.Close()
+    defer func() {
+        if resp != nil {
+            resp.Body.Close()
+        }
+    }()
     if err != nil {
         log.ErrorfType(HTTP_ERR, "%s", err)
     } else {
         data, _ := ioutil.ReadAll(resp.Body)
         jdata := string(data)
-        re := regexp.MustCompile("\\\"([0-9\\.]+)\\\"")
-        var f = func(repl string) string {
-            return repl[1 : len(repl)-1]
-        }
-        jdata = re.ReplaceAllStringFunc(jdata, f)
-        log.Info(jdata)
+        jdata = escape(jdata)
         err = json.Unmarshal([]byte(jdata), serviceScore)
         if err != nil {
             log.ErrorfType(SHOP_ERR, "%s is %s", link, err)
@@ -381,4 +380,16 @@ func ParseShop(userid string) (*rest.Shop, error) {
     shop.ShopScore = &shopscore
     log.Infof("%+v", shop)
     return shop, nil
+}
+
+func escape(src string) string {
+    re := regexp.MustCompile(`"(\d+|\d+\.\d+)?"`)
+    return re.ReplaceAllStringFunc(src, func(st string) string {
+        l := len(st)
+        st = st[1 : l-1]
+        if st == "" {
+            return "0"
+        }
+        return st
+    })
 }

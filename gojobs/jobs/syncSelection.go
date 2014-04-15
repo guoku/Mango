@@ -36,7 +36,7 @@ func (this *SyncSelection) run() {
 }
 
 func syncSelection(t int64, offset int) {
-    count := 100
+    count := 200
     session, err := mgo.Dial(MGOHOST)
     if err != nil {
         log.ErrorfType("mongo err", "%s", err.Error())
@@ -52,6 +52,8 @@ func syncSelection(t int64, offset int) {
 
     for {
         link := fmt.Sprintf(syncLink+"?count=%d&offset=%d", count, offset)
+        offset = offset + count
+        fmt.Println("\n\n", offset)
         resp, err := http.Get(link)
         if err != nil {
             log.ErrorfType("server err", "%s %s", "服务器错误", err.Error())
@@ -73,7 +75,7 @@ func syncSelection(t int64, offset int) {
             resp.Body.Close()
         }
 
-        allowchan := make(chan bool, 3)
+        allowchan := make(chan bool, 5)
         for _, ent := range entities {
             if ent.PostTime < float64(t) {
                 continue
@@ -81,7 +83,6 @@ func syncSelection(t int64, offset int) {
             allowchan <- true
             go s_process(ent, allowchan, mgofailed, mgopages, itemDepot, shopDepot)
         }
-        offset = offset + count
         resp.Body.Close()
     }
 
@@ -107,51 +108,57 @@ func s_process(ent Entity, allowchan chan bool, mgofailed, mgopages, itemDepot, 
         fetchWithShopid(itemid, shop.ShopInfo.Sid, shop.ShopInfo.ShopType, mgofailed, mgopages, itemDepot)
         SAdd("jobs:syncselection", itemid)
     }
-    <-allowchan
+    defer func() {
+        <-allowchan
+    }()
 }
 
 func s_fetch(itemid string, mgofailed, mgopages, itemDepot, shopDepot *mgo.Collection) {
-    font, detail, shoptype, instock, err := crawler.FetchWithOutType(itemid)
-    if err != nil {
-        crawler.SaveFailed(itemid, "", shoptype, mgofailed)
-        log.Error(err)
-        return
+    for i := 0; i < 10; i++ {
+        font, detail, shoptype, instock, err := crawler.FetchWithOutType(itemid)
+        if err != nil {
+            crawler.SaveFailed(itemid, "", shoptype, mgofailed)
+            log.Error(err)
+            continue
+        }
+        info, instock, err := crawler.ParsePage(font, detail, itemid, "", shoptype)
+        if err != nil {
+            crawler.SaveFailed(itemid, "", shoptype, mgofailed)
+            log.Error(err)
+            continue
+        }
+        crawler.Save(info, itemDepot)
+        sid := strconv.Itoa(info.Sid)
+        crawler.SaveSuccessed(itemid, sid, shoptype, font, detail, true, instock, mgopages)
+        s_fetchShop(sid, shopDepot)
+        break
     }
 
-    info, instock, err := crawler.ParsePage(font, detail, itemid, "", shoptype)
-    if err != nil {
-        crawler.SaveFailed(itemid, "", shoptype, mgofailed)
-        log.Error(err)
-        return
-    }
-    crawler.Save(info, itemDepot)
-    sid := strconv.Itoa(info.Sid)
-    crawler.SaveSuccessed(itemid, sid, shoptype, font, detail, true, instock, mgopages)
-    s_fetchShop(sid, shopDepot)
 }
 
 func s_fetchShop(sid string, shopDepot *mgo.Collection) {
-    shoplink := fmt.Sprintf("http://shop%s.taobao.com", sid)
-    shopinfo, err := crawler.FetchShopDetail(shoplink)
-    if err != nil {
-        log.ErrorfType("shop err", "%s", err.Error())
-        return
+    for i := 0; i < 10; i++ {
+        shoplink := fmt.Sprintf("http://shop%s.taobao.com", sid)
+        shopinfo, err := crawler.FetchShopDetail(shoplink)
+        if err != nil {
+            log.ErrorfType("shop err", "%s", err.Error())
+            continue
+        }
+        shop := models.ShopItem{}
+        shop.ShopInfo = shopinfo
+        shop.CreatedTime = time.Now()
+        shop.LastUpdatedTime = time.Now()
+        shop.LastCrawledTime = time.Now()
+        shop.Status = "queued"
+        shop.CrawlerInfo = &models.CrawlerInfo{Priority: 10, Cycle: 720}
+        shop.ExtendedInfo = &models.TaobaoShopExtendedInfo{
+            Type:           shopinfo.ShopType,
+            Orientational:  false,
+            CommissionRate: -1,
+        }
+        shopDepot.Insert(shop)
+        break
     }
-
-    shop := models.ShopItem{}
-    shop.ShopInfo = shopinfo
-    shop.CreatedTime = time.Now()
-    shop.LastUpdatedTime = time.Now()
-    shop.LastCrawledTime = time.Now()
-    shop.Status = "queued"
-    shop.CrawlerInfo = &models.CrawlerInfo{Priority: 10, Cycle: 720}
-    shop.ExtendedInfo = &models.TaobaoShopExtendedInfo{
-        Type:           shopinfo.ShopType,
-        Orientational:  false,
-        CommissionRate: -1,
-    }
-
-    shopDepot.Insert(shop)
 }
 func fetchWithShopid(itemid string, shopid int, shoptype string, mgofailed, mgopages, itemDepot *mgo.Collection) {
     font, detail, instock, err, isWeb := crawler.FetchItem(itemid, shoptype)

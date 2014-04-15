@@ -79,11 +79,17 @@ func (f *FetchNew) run() {
 }
 
 func FetchTaobaoItem(threadnum int) {
-    mgopages := MongoInit(MGOHOST, ZERG, PAGES)
-    mgofailed := MongoInit(MGOHOST, ZERG, FAILED)
-    mgominer := MongoInit(MGOHOST, ZERG, MINERALS)
-    item_depot := MongoInit(MGOHOST, MANGO, ITEMS_DEPOT)
-    shop_depot := MongoInit(MGOHOST, MANGO, SHOPS_DEPOT)
+    session, err := mgo.Dial(MGOHOST)
+    if err != nil {
+        log.ErrorfType("mongo err", "%s", err.Error())
+        return
+    }
+
+    mgofailed := session.DB(ZERG).C(FAILED)
+    mgopages := session.DB(ZERG).C(PAGES)
+    mgominer := session.DB(ZERG).C(MINERALS)
+    shop_depot := session.DB(MANGO).C(SHOPS_DEPOT)
+    item_depot := session.DB(MANGO).C(ITEMS_DEPOT)
 
     var shops []*crawler.ShopItem
     mgominer.Find(bson.M{"state": "posted"}).Sort("-date").Limit(10).All(&shops)
@@ -118,7 +124,6 @@ func FetchTaobaoItem(threadnum int) {
             allowchan <- true
             go fetch(itemid, shopid, shoptype, mgofailed, item_depot, mgopages, allowchan)
         }
-        close(allowchan)
         updateshop(shopitem.Shop_id, mgominer, shop_depot)
     }
 }

@@ -27,11 +27,11 @@ func (this *StatuUpdate) run() {
         update()
         updateShopItems()
         fmt.Println("执行一次")
-        // time.Sleep(1 * time.Hour)
+        time.Sleep(1 * time.Hour)
     }
 }
 
-//把更新时隔超过指定期限的店铺变为finished状态
+//把更新时隔超过指定期限的店铺变为queued状态
 func update() {
 
     session, err := mgo.Dial(MGOHOST)
@@ -39,9 +39,8 @@ func update() {
         log.ErrorfType("mongo err", "%s", err.Error())
         return
     }
-    defer session.Close()
     c := session.DB(MANGO).C(SHOPS_DEPOT)
-    shops := make([]models.ShopItem, 100)
+    shops := make([]models.ShopItem, 200)
     c.Find(bson.M{"status": "finished"}).All(&shops)
     for _, shop := range shops {
         lastupdatetime := shop.LastCrawledTime

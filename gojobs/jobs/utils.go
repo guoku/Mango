@@ -61,7 +61,7 @@ func SAdd(key string, value string) {
     if err != nil {
         log.ErrorfType("redis err", "%s", err.Error())
     }
-    reply, err := REDIS_CLIENT.PTTL(key)
+    reply, err := REDIS_CLIENT.TTL(key)
     if err != nil {
         fmt.Println(err)
     }
@@ -100,9 +100,11 @@ func GetUploadItemParams(item *models.TaobaoItemStd, params *url.Values, matched
     params.Add("taobao_title", item.Title)
     params.Add("taobao_shop_nick", item.Nick)
     if item.PromotionPrice > 0.0 {
-        params.Add("taobao_price", fmt.Sprint("%f", float64(item.PromotionPrice)))
+        s := fmt.Sprintf("%f", item.PromotionPrice)
+        params.Add("taobao_price", s)
     } else {
-        params.Add("taobao_price", fmt.Sprintf("%f", float64(item.Price)))
+        s := fmt.Sprintf("%f", item.Price)
+        params.Add("taobao_price", s)
     }
     if item.InStock {
         params.Add("taobao_soldout", "0")

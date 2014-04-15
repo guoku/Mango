@@ -4,7 +4,6 @@ import (
     "Mango/gojobs/log"
     "Mango/gojobs/models"
     "encoding/json"
-    "fmt"
     "github.com/astaxie/beego"
     "io/ioutil"
     "labix.org/v2/mgo"
@@ -49,8 +48,7 @@ func sync() {
         return
     }
     taobaoCats := session.DB(MANGO).C("taobao_cats")
-
-    itemDepot := MongoInit(MGOHOST, MANGO, ITEMS_DEPOT)
+    itemDepot := session.DB(MANGO).C(ITEMS_DEPOT)
     uploadLink := beego.AppConfig.String("syncnewitem::link")
     readyCats := make([]models.TaobaoItemCat, 0)
     taobaoCats.Find(bson.M{"matched_guoku_cid": bson.M{"$gt": 0}}).All(&readyCats)
@@ -78,16 +76,15 @@ func sync() {
                 return
             }
             body, err := ioutil.ReadAll(resp.Body)
-
+            resp.Body.Close()
             if err != nil {
                 log.ErrorfType("sync err", "%s", err.Error())
                 continue
             }
 
             r := CreateItemsResp{}
-            fmt.Println(string(body))
             json.Unmarshal(body, &r)
-            if r.Status == "success" {
+            if r.Status == "success" || r.Status == "updated" {
                 SAdd("jobs:syncnewitem", items[i].ItemId)
                 err = itemDepot.Update(
                     bson.M{"num_iid": items[i].NumIid},

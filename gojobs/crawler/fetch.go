@@ -38,9 +38,8 @@ func FetchItem(itemid string, shoptype string) (font, detail string, instock boo
 func FetchWithOutType(itemid string) (html, detail, shoptype string, instock bool, err error) {
     shoplink := fmt.Sprintf("http://a.m.taobao.com/i%s.htm", itemid)
     instock = true
-    //transport := getTransport()
-    //client := &http.Client{Transport: transport}
-    client := &http.Client{}
+    transport := getTransport()
+    client := &http.Client{Transport: transport}
     req, err := http.NewRequest("GET", shoplink, nil)
     if err != nil {
         log.ErrorfType(HTTP_ERR, "%s is %s", itemid, err)
@@ -58,7 +57,11 @@ func FetchWithOutType(itemid string) (html, detail, shoptype string, instock boo
         log.ErrorfType(HTTP_ERR, "%s is %s", itemid, err)
         return
     }
-    defer resp.Body.Close()
+    defer func() {
+        if resp != nil {
+            resp.Body.Close()
+        }
+    }()
     if resp.StatusCode == 200 {
         resplink := resp.Request.URL.String()
         if strings.Contains(resplink, "h5") {

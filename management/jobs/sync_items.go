@@ -116,7 +116,6 @@ func syncOnlineItems() {
                 break
             } else {
                 log.Info(num_iid)
-                return
                 mgoMango.Update(bson.M{"num_iid": int(num_iid)}, bson.M{"$set": bson.M{"item_id": v.ItemId}})
 
             }
