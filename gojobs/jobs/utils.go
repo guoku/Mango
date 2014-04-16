@@ -57,6 +57,15 @@ func init() {
 //每成功抓取一个商品，就放到redis的集合里面
 //便于统计每日成功量，过期时间为一天
 func SAdd(key string, value string) {
+    if REDIS_CLIENT == nil {
+        redis_server := beego.AppConfig.String("redis::server")
+        redis_port := beego.AppConfig.String("redis::port")
+        REDIS_CLIENT, err := goredis.Dial(&goredis.DialConfig{Address: fmt.Sprintf("%s:%s", redis_server, redis_port)})
+        if err != nil {
+            panic(err)
+        }
+        REDIS_CLIENT.SAdd(key, value)
+    }
     _, err := REDIS_CLIENT.SAdd(key, value)
     if err != nil {
         log.ErrorfType("redis err", "%s", err.Error())

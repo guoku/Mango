@@ -26,7 +26,7 @@ func (this *SyncNewItem) run() {
         if this.start == false {
             return
         }
-        sync()
+        this.sync()
         time.Sleep(1 * time.Hour)
     }
 }
@@ -40,19 +40,27 @@ type CreateItemsResp struct {
 /*
  把新抓取到的符合要求的数据post上去
 */
-func sync() {
+func (this *SyncNewItem) sync() {
     //taobaoCats := MongoInit(MGOHOST, MANGO, "taobao_cats")
     session, err := mgo.Dial(MGOHOST)
     if err != nil {
         log.ErrorfType("mongo err", "%s", err.Error())
         return
     }
+    defer func() {
+        if session != nil {
+            session.Close()
+        }
+    }()
     taobaoCats := session.DB(MANGO).C("taobao_cats")
     itemDepot := session.DB(MANGO).C(ITEMS_DEPOT)
     uploadLink := beego.AppConfig.String("syncnewitem::link")
     readyCats := make([]models.TaobaoItemCat, 0)
     taobaoCats.Find(bson.M{"matched_guoku_cid": bson.M{"$gt": 0}}).All(&readyCats)
     for _, v := range readyCats {
+        if this.start == false {
+            return
+        }
         items := make([]models.TaobaoItemStd, 0)
         log.Info(v.ItemCat.Cid)
         itemDepot.Find(
@@ -89,7 +97,7 @@ func sync() {
                 err = itemDepot.Update(
                     bson.M{"num_iid": items[i].NumIid},
                     bson.M{"$set": bson.M{"item_id": r.ItemId,
-                        "uploaded": true}})
+                        "uploaded": true, "refreshed": false}})
             } else if r.ItemId != "" {
                 err = itemDepot.Update(bson.M{"num_iid": items[i].NumIid},
                     bson.M{"$set": bson.M{"item_id": r.ItemId,

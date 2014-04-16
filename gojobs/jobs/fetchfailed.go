@@ -24,75 +24,117 @@ func (this *Fetchfailed) run() {
         if this.start == false {
             return
         }
-        fetchfailed()
+        this.fetchfailed()
+
     }
 }
 
-func fetchfailed() {
+func (this *Fetchfailed) fetchfailed() {
     tnum, _ := beego.AppConfig.Int("fetchfailed::thread")
     var allowchan chan bool = make(chan bool, tnum)
     session, err := mgo.Dial(MGOHOST)
+    defer func() {
+        if session != nil {
+            session.Close()
+        }
+    }()
     if err != nil {
         log.ErrorfType("mongo err", "%s", err.Error())
         return
     }
+    fmt.Println("连接成功")
     mgopages := session.DB(ZERG).C(PAGES)
     mgofailed := session.DB(ZERG).C(FAILED)
     itemDepot := session.DB(MANGO).C(ITEMS_DEPOT)
     shopDepot := session.DB(MANGO).C(SHOPS_DEPOT)
     iter := mgofailed.Find(nil).Iter()
     failed := new(crawler.FailedPages)
+    i := 0
     for iter.Next(&failed) {
+        i = i + 1
+        if this.start == false {
+            break
+        }
         allowchan <- true
+        fmt.Println("发出", failed.ItemId)
         go fetchFailedItem(failed, mgofailed, mgopages, itemDepot, shopDepot, allowchan)
+        fmt.Println("发出完成")
+    }
+    if i == 0 {
+        //说明已经没有数据了
+        time.Sleep(60 * time.Second)
+    }
+    fmt.Println("等待")
+    for {
+        if len(allowchan) > 0 {
+            time.Sleep(1 * time.Second)
+        } else {
+            break
+        }
     }
 }
 
-func fetchFailedItem(failed *crawler.FailedPages, mgofailed, mgopages, itemDepot, shopDepot *mgo.Collection, allowchan chan bool) {
-    defer func() { <-allowchan }()
-    _, err := mgofailed.RemoveAll(bson.M{"itemid": failed.ItemId})
-    if err != nil {
-        log.Error(err)
-        return
-    }
+func fetchFailedItem(
+    failed *crawler.FailedPages,
+    mgofailed, mgopages, itemDepot, shopDepot *mgo.Collection,
+    allowchan chan bool) {
+    success := false
+    defer func() {
+        if success {
+            SAdd("jobs:fetchfailed", failed.ItemId)
+            mgofailed.RemoveAll(bson.M{"itemid": failed.ItemId})
+        }
+        <-allowchan
+        fmt.Println("channel size ", len(allowchan))
+        fmt.Println("完成", failed.ItemId)
+    }()
     for i := 0; i < 10; i++ {
+        if failed.ItemId == "" {
+            success = true
+            break
+        }
         page, detail, instock, err, isWeb := crawler.FetchItem(failed.ItemId, failed.ShopType)
         if err != nil {
-            log.Error(err)
+            //log.Error(err)
             if instock {
-                crawler.SaveFailed(failed.ItemId, failed.ShopId, failed.ShopType, mgofailed)
+                if i == 9 {
+                    //crawler.SaveFailed(failed.ItemId, failed.ShopId, failed.ShopType, mgofailed)
+                    break
+                } else {
+                    continue
+                }
             } else {
-                mgofailed.RemoveAll(bson.M{"itemid": failed.ItemId})
+                if i == 9 {
+                    //连续抓了9次返回的都是404错误，应该可以说明这个商品下架了
+                    success = true
+                    break
+                }
+                continue
             }
         } else {
             if isWeb {
                 info, err := crawler.ParseWeb(page, detail, failed.ItemId, failed.ShopId, failed.ShopType)
                 if err != nil {
                     log.Error(err)
-                    continue
+                    break
                 }
                 fetchShop(info.Sid, shopDepot)
                 err = crawler.Save(info, itemDepot)
-                SAdd("jobs:fetchfailed", fmt.Sprintf("%s", info.Sid))
-                if err != nil {
-                    log.Error(err)
-                    continue
-                }
             } else {
                 info, instock, err := crawler.ParsePage(page, detail, failed.ItemId, failed.ShopId, failed.ShopType)
                 if err != nil {
                     log.Error(err)
-                    continue
+                    break
                 }
                 instock = info.InStock
                 fetchShop(info.Sid, shopDepot)
                 err = crawler.Save(info, itemDepot)
                 if err != nil {
                     log.Error(err)
-                    continue
+                    break
                 }
-                SAdd("jobs:fetchfailed", fmt.Sprintf("%s", info.Sid))
                 crawler.SaveSuccessed(failed.ItemId, failed.ShopId, failed.ShopType, page, detail, true, instock, mgopages)
+                success = true
             }
         }
         break //执行到这里已经没有错了

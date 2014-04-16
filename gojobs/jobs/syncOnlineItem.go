@@ -33,23 +33,31 @@ func (this *SyncOnlineItem) run() {
         if this.start == false {
             return
         }
-        syncOnline()
+        this.syncOnline()
         time.Sleep(1 * time.Hour)
     }
 }
 
-func syncOnline() {
+func (this *SyncOnlineItem) syncOnline() {
     session, err := mgo.Dial(MGOHOST)
     if err != nil {
         log.ErrorfType("mongo err", "%s", err.Error())
         return
     }
+    defer func() {
+        if session != nil {
+            session.Close()
+        }
+    }()
     shopDepot := session.DB(MANGO).C(SHOPS_DEPOT)
     itemDepot := session.DB(MANGO).C(ITEMS_DEPOT)
     count := 1000
     offset := 0
     syncLink := beego.AppConfig.String("synconline::link")
     for {
+        if this.start == false {
+            return
+        }
         resp, err := http.Get(fmt.Sprintf(syncLink+"?count=%d&offset=%d", count, offset))
         if err != nil {
             log.ErrorfType("server err", "%s %s", "服务器错误", err.Error())

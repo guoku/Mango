@@ -19,7 +19,7 @@ func FetchItem(itemid string, shoptype string) (font, detail string, instock boo
     log.Infof("start to fetch %s", itemid)
     font, detail, err, isWeb = Fetch(itemid, shoptype)
     if err != nil {
-        log.ErrorfType(FETCH_ERR, "%s failed", itemid)
+        //log.ErrorfType(FETCH_ERR, "%s failed %s", itemid, err.Error())
         if err.Error() != "404" {
             //说明不是因为商品下架而导致的失败
             instock = true
@@ -36,6 +36,9 @@ func FetchItem(itemid string, shoptype string) (font, detail string, instock boo
 
 //这种方式在天猫商品里会多一次访问，所以建议少用
 func FetchWithOutType(itemid string) (html, detail, shoptype string, instock bool, err error) {
+    if itemid == "" {
+        log.Error("itemid 是空的")
+    }
     shoplink := fmt.Sprintf("http://a.m.taobao.com/i%s.htm", itemid)
     instock = true
     transport := getTransport()
@@ -142,6 +145,9 @@ func FetchWithOutType(itemid string) (html, detail, shoptype string, instock boo
 func Fetch(itemid string, shoptype string) (html string, detail string, err error, isWeb bool) {
     url := ""
     detailurl := ""
+    if itemid == "" {
+        log.Error("itemid 是空的")
+    }
     if shoptype == "tmall.com" {
         url = "http://a.m.tmall.com/i" + itemid + ".htm"
         detailurl = "http://a.m.tmall.com/da" + itemid + ".htm"
@@ -166,7 +172,7 @@ func Fetch(itemid string, shoptype string) (html string, detail string, err erro
             log.Info("当proxy不可达时，resp为空")
         }
         time.Sleep(1 * time.Second)
-        log.ErrorfType(HTTP_ERR, "商品 %s is %s", itemid, err)
+        //log.ErrorfType(HTTP_ERR, "商品 %s is %s", itemid, err)
         return
     }
     defer resp.Body.Close()

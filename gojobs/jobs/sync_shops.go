@@ -48,16 +48,16 @@ func (f *SyncShop) Statu(arg string, result *string) error {
     return nil
 }
 */
-func (f *SyncShop) run() {
+func (this *SyncShop) run() {
     defer func() {
-        f.start = false
+        this.start = false
     }()
 
     for {
-        if f.start == false {
+        if this.start == false {
             return
         }
-        syncShop()
+        this.syncShop()
         time.Sleep(1 * time.Hour)
     }
 }
@@ -68,7 +68,7 @@ type Uptime struct {
     Name string    `bson:"name"`
 }
 
-func syncShop() {
+func (this *SyncShop) syncShop() {
     count := 50
     offset := 0
     //这里貌似奇怪触发了mgo的一个bug，在这里用两个
@@ -79,6 +79,11 @@ func syncShop() {
         fmt.Println(err)
         return
     }
+    defer func() {
+        if session != nil {
+            session.Close()
+        }
+    }()
     mgoUpdateTime := session.DB(ZERG).C(UPDATE_TIME)
     mgoShopDepot := session.DB(MANGO).C(SHOPS_DEPOT)
     utime := new(Uptime)
@@ -86,6 +91,9 @@ func syncShop() {
     date := utime.Last.Format("2006010203")
 
     for {
+        if this.start == false {
+            return
+        }
         syncShopLink := beego.AppConfig.String("sync::syncshop")
         link := fmt.Sprintf(syncShopLink+"?count=%d&offset=%d&date=%s", count, offset, date)
         resp, err := http.Get(link)

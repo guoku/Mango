@@ -24,25 +24,29 @@ func (this *StatuUpdate) run() {
             fmt.Println("停止了")
             return
         }
-        update()
-        updateShopItems()
+        this.update()
+        this.updateShopItems()
         fmt.Println("执行一次")
         time.Sleep(1 * time.Hour)
     }
 }
 
 //把更新时隔超过指定期限的店铺变为queued状态
-func update() {
+func (this *StatuUpdate) update() {
 
     session, err := mgo.Dial(MGOHOST)
     if err != nil {
         log.ErrorfType("mongo err", "%s", err.Error())
         return
     }
+
     c := session.DB(MANGO).C(SHOPS_DEPOT)
     shops := make([]models.ShopItem, 200)
     c.Find(bson.M{"status": "finished"}).All(&shops)
     for _, shop := range shops {
+        if this.start == false {
+            return
+        }
         lastupdatetime := shop.LastCrawledTime
         now := time.Now()
         diff := now.Sub(lastupdatetime)
@@ -51,6 +55,7 @@ func update() {
             c.Update(bson.M{"shop_info.sid": shop.ShopInfo.Sid}, bson.M{"$set": bson.M{"status": "queued"}})
         }
     }
+    session.Close()
 }
 
 type MineralShop struct {
@@ -63,7 +68,7 @@ type MineralShop struct {
 }
 
 //把处于queued状态的店铺的商品列表爬取下来，放到zerg.minerals里面去
-func updateShopItems() {
+func (this *StatuUpdate) updateShopItems() {
     mgoShop := MongoInit(MGOHOST, MANGO, SHOPS_DEPOT)
     mgoMinerals := MongoInit(MGOHOST, ZERG, MINERALS)
     shops := make([]models.ShopItem, 0)
@@ -78,6 +83,9 @@ func updateShopItems() {
         return
     }
     for _, shop := range shops {
+        if this.start == false {
+            return
+        }
         sid := shop.ShopInfo.Sid
         shoplink := shop.ShopInfo.ShopLink
         if shoplink == "" {

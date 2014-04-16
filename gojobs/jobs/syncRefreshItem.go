@@ -28,7 +28,7 @@ func (this *SyncRefreshItem) run() {
             return
         }
 
-        syncRefresh()
+        this.syncRefresh()
         time.Sleep(1 * time.Hour)
     }
 }
@@ -36,12 +36,17 @@ func (this *SyncRefreshItem) run() {
 /*
    把之前已经post上去过的商品数据，再次post，更新数据
 */
-func syncRefresh() {
+func (this *SyncRefreshItem) syncRefresh() {
     session, err := mgo.Dial(MGOHOST)
     if err != nil {
         log.ErrorfType("mongo err", "%s", err.Error())
         return
     }
+    defer func() {
+        if session != nil {
+            session.Close()
+        }
+    }()
 
     taobaoCats := session.DB(MANGO).C("taobao_cats")
     itemDepot := session.DB(MANGO).C(ITEMS_DEPOT)
@@ -51,6 +56,9 @@ func syncRefresh() {
     taobaoCats.Find(bson.M{"matched_guoku_cid": bson.M{"$gt": 0}}).All(&readyCats)
 
     for _, v := range readyCats {
+        if this.start == false {
+            return
+        }
         items := make([]models.TaobaoItemStd, 0)
         /*
            refreshed:true 表示这个商品之前上传过了，然后，爬虫再次更新了数据
@@ -90,7 +98,7 @@ func syncRefresh() {
             if r.Status == "success" || r.Status == "updated" {
                 SAdd("jobs:syncrefreshitem", items[i].ItemId)
                 err = itemDepot.Update(bson.M{"num_iid": items[i].NumIid},
-                    bson.M{"$set": bson.M{"item_id": r.ItemId, "refreshed": false,
+                    bson.M{"$set": bson.M{"item_id": r.ItemId, "refreshed": false, "uploaded": true,
                         "refresh_time": time.Now()}})
                 if err != nil {
                     fmt.Println(items[i].NumIid)

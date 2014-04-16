@@ -12,6 +12,7 @@ import (
     "labix.org/v2/mgo/bson"
     "net/http"
     "strconv"
+    "sync"
     "time"
 )
 
@@ -30,19 +31,23 @@ func (this *SyncSelection) run() {
         }
         t := time.Now()
         t = t.Add(-time.Hour * 24 * 30)
-        syncSelection(t.Unix(), 0)
+        this.syncSelection(t.Unix(), 0)
         time.Sleep(1 * time.Hour)
     }
 }
 
-func syncSelection(t int64, offset int) {
+func (this *SyncSelection) syncSelection(t int64, offset int) {
     count := 200
     session, err := mgo.Dial(MGOHOST)
     if err != nil {
         log.ErrorfType("mongo err", "%s", err.Error())
         return
     }
-
+    defer func() {
+        if session != nil {
+            session.Close()
+        }
+    }()
     mgofailed := session.DB(ZERG).C(FAILED)
     mgopages := session.DB(ZERG).C(PAGES)
     shopDepot := session.DB(MANGO).C(SHOPS_DEPOT)
@@ -50,23 +55,27 @@ func syncSelection(t int64, offset int) {
 
     syncLink := beego.AppConfig.String("syncselection::link")
 
+    var wg sync.WaitGroup
     for {
+        if this.start == false {
+            break
+        }
         link := fmt.Sprintf(syncLink+"?count=%d&offset=%d", count, offset)
         offset = offset + count
         fmt.Println("\n\n", offset)
         resp, err := http.Get(link)
         if err != nil {
             log.ErrorfType("server err", "%s %s", "服务器错误", err.Error())
-            return
+            break
         }
         if resp.StatusCode != 200 {
             log.ErrorfType("server err", "%s", "服务器错误")
-            return
+            break
         }
         body, err := ioutil.ReadAll(resp.Body)
         if err != nil {
             log.Error(err)
-            return
+            break
         }
 
         entities := make([]Entity, 100)
@@ -81,14 +90,17 @@ func syncSelection(t int64, offset int) {
                 continue
             }
             allowchan <- true
-            go s_process(ent, allowchan, mgofailed, mgopages, itemDepot, shopDepot)
+            wg.Add(1)
+            go s_process(ent, allowchan, wg, mgofailed, mgopages, itemDepot, shopDepot)
         }
         resp.Body.Close()
     }
+    wg.Wait()
 
 }
 
-func s_process(ent Entity, allowchan chan bool, mgofailed, mgopages, itemDepot, shopDepot *mgo.Collection) {
+func s_process(ent Entity, allowchan chan bool, wg sync.WaitGroup,
+    mgofailed, mgopages, itemDepot, shopDepot *mgo.Collection) {
     for _, item := range ent.Items {
         itemid := item.Id
         nick := item.Nick
@@ -110,6 +122,7 @@ func s_process(ent Entity, allowchan chan bool, mgofailed, mgopages, itemDepot, 
     }
     defer func() {
         <-allowchan
+        wg.Done()
     }()
 }
 

@@ -8,6 +8,7 @@ import (
     "labix.org/v2/mgo"
     "labix.org/v2/mgo/bson"
     "strconv"
+    "sync"
     "time"
 )
 
@@ -63,28 +64,32 @@ func (f *FetchNew) Statu(arg string, result *string) error {
     return nil
 }
 */
-func (f *FetchNew) run() {
+func (this *FetchNew) run() {
 
     defer func() {
-        f.start = false
+        this.start = false
     }()
     for {
-        if f.start == false {
+        if this.start == false {
             return
         }
 
-        FetchTaobaoItem(THREADNUM)
+        this.fetchTaobaoItem(THREADNUM)
     }
     return
 }
 
-func FetchTaobaoItem(threadnum int) {
+func (this *FetchNew) fetchTaobaoItem(threadnum int) {
     session, err := mgo.Dial(MGOHOST)
     if err != nil {
         log.ErrorfType("mongo err", "%s", err.Error())
         return
     }
-
+    defer func() {
+        if session != nil {
+            session.Close()
+        }
+    }()
     mgofailed := session.DB(ZERG).C(FAILED)
     mgopages := session.DB(ZERG).C(PAGES)
     mgominer := session.DB(ZERG).C(MINERALS)
@@ -98,7 +103,11 @@ func FetchTaobaoItem(threadnum int) {
         fmt.Println("睡眠一个小时")
         time.Sleep(time.Hour * 1)
     }
+    var wg sync.WaitGroup
     for _, shopitem := range shops {
+        if this.start == false {
+            break
+        }
         var allowchan chan bool = make(chan bool, threadnum)
         log.Infof("start to fetch %d", shopitem.Shop_id)
         shoptype := TAOBAO
@@ -119,13 +128,19 @@ func FetchTaobaoItem(threadnum int) {
         if istmall {
             shoptype = TMALL
         }
-
         for _, itemid := range items {
+            if this.start == false {
+                break
+            }
             allowchan <- true
-            go fetch(itemid, shopid, shoptype, mgofailed, item_depot, mgopages, allowchan)
+            wg.Add(1)
+            go fetch(itemid, shopid, shoptype,
+                mgofailed, item_depot, mgopages,
+                allowchan, wg)
         }
         updateshop(shopitem.Shop_id, mgominer, shop_depot)
     }
+    wg.Wait()
 }
 
 func updateshop(shopid int, mgominer, mgoshop *mgo.Collection) {
@@ -143,13 +158,19 @@ func updateshop(shopid int, mgominer, mgoshop *mgo.Collection) {
 }
 func fetch(itemid, shopid, shoptype string,
     mgofailed, item_depot, mgopages *mgo.Collection,
-    allowchan chan bool) {
+    allowchan chan bool, wg sync.WaitGroup) {
+
+    var success bool = false
     defer func() {
+        if success {
+            SAdd(FETCHNEW, itemid)
+        }
         <-allowchan
+        wg.Done()
     }()
     font, detail, instock, err, isWeb := crawler.FetchItem(itemid, shoptype)
     if err != nil {
-        log.Errorf("抓取页面失败，itemid 是 %s, 错误为 %s", itemid, err.Error())
+        //log.Errorf("抓取页面失败，itemid 是 %s, 错误为 %s", itemid, err.Error())
         if instock {
             crawler.SaveFailed(itemid, shopid, shoptype, mgofailed)
         }
@@ -168,15 +189,15 @@ func fetch(itemid, shopid, shoptype string,
                 crawler.SaveFailed(itemid, shopid, shoptype, mgofailed)
                 return
             }
-            SAdd(FETCHNEW, itemid)
+            success = true
 
         } else {
             info, instock, err := crawler.ParsePage(font, detail, itemid, shopid, shoptype)
             if err != nil {
                 if instock {
+                    fmt.Println("404错误，默认为成功")
                     crawler.SaveSuccessed(itemid, shopid, shoptype,
                         font, detail, false, instock, mgopages)
-                    SAdd(FETCHNEW, itemid)
                     return
                 }
             } else {
@@ -191,7 +212,7 @@ func fetch(itemid, shopid, shoptype string,
                 }
                 crawler.SaveSuccessed(itemid, shopid, shoptype,
                     font, detail, parsed, instock, mgopages)
-                SAdd(FETCHNEW, itemid)
+                success = true
             }
         }
     }

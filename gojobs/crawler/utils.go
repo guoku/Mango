@@ -33,10 +33,13 @@ func getTransport() (transport *http.Transport) {
     log.Info("使用的proxy为：", proxy)
     url_i := url.URL{}
     url_proxy, _ := url_i.Parse(proxy)
-    transport = &http.Transport{Proxy: http.ProxyURL(url_proxy), ResponseHeaderTimeout: time.Duration(10) * time.Second, DisableKeepAlives: true}
+    transport = &http.Transport{Proxy: http.ProxyURL(url_proxy), ResponseHeaderTimeout: time.Duration(20) * time.Second, DisableKeepAlives: true}
     return
 }
 func IsTmall(itemid string) (bool, error) {
+    if itemid == "" {
+        log.Error("itemid 是空的")
+    }
     url := "http://a.m.taobao.com/i" + itemid + ".htm"
     request, _ := http.NewRequest("GET", url, nil)
     //transport := getTransport()
